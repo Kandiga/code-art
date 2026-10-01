@@ -1,0 +1,4796 @@
+{
+ "en_US-ryan-high|1|vo1": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 1.9620861678004535,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 135.48494094220445,
+   "f0_mean": 143.95070045418726,
+   "f0_sd_st": 4.4873330904787965,
+   "f0_range_st": 16.13569118732645,
+   "hnr": 9.133017193350886,
+   "tilt_db_oct": -5.14121166639666,
+   "alpha_ratio_db": -6.793677009882159
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9579710364341736,
+    "minconf": 0.7802627086639404
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9740396567753383,
+    "minconf": 0.8890623450279236
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo2": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 2.914104308390023,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 138.4530675069859,
+   "f0_mean": 142.15288973508575,
+   "f0_sd_st": 4.455476105558068,
+   "f0_range_st": 15.163702610144217,
+   "hnr": 9.883622279302068,
+   "tilt_db_oct": -5.646892970568892,
+   "alpha_ratio_db": -7.676937653807666
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For a hundred and thirty years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9192276022263935,
+    "minconf": 0.2895837128162384
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.972555323080583,
+    "minconf": 0.8704569339752197
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo3a": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.3119274376417234,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 162.29717343770224,
+   "f0_mean": 159.46145573321976,
+   "f0_sd_st": 4.073939603554197,
+   "f0_range_st": 15.156566970178964,
+   "hnr": 7.594237159349196,
+   "tilt_db_oct": -4.321556005289744,
+   "alpha_ratio_db": -7.192333481814039
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8801714777946472,
+    "minconf": 0.713584303855896
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9179474115371704,
+    "minconf": 0.8534533977508545
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo3b": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 0.9636281179138322,
+  "win": 1,
+  "metrics": {
+   "f0_med": 210.14897567853444,
+   "f0_mean": 195.21426611467552,
+   "f0_sd_st": 4.830332440457969,
+   "f0_range_st": 17.27908313367698,
+   "hnr": 9.381155333976576,
+   "tilt_db_oct": -5.113029196196698,
+   "alpha_ratio_db": -5.233106861791446
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet Emerita.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.6096548140048981,
+    "minconf": 0.560745894908905
+   },
+   "base.en": {
+    "hyp": "Meet Emerita.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.5057579874992371,
+    "minconf": 0.4508812725543976
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo4a": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.6733786848072563,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 147.26673809904833,
+   "f0_mean": 143.6590440783255,
+   "f0_sd_st": 1.7750039016142658,
+   "f0_range_st": 5.241525771709114,
+   "hnr": 8.45481889955765,
+   "tilt_db_oct": -5.985916332042131,
+   "alpha_ratio_db": -6.246886666979358
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8394656479358673,
+    "minconf": 0.7075707912445068
+   },
+   "base.en": {
+    "hyp": "He writes.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.9040502309799194,
+    "minconf": 0.8290592432022095
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo4b": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.6965986394557823,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 223.33459703047117,
+   "f0_mean": 220.95342898752963,
+   "f0_sd_st": 1.8090239145844627,
+   "f0_range_st": 5.852269417232604,
+   "hnr": 6.5396462301148235,
+   "tilt_db_oct": -3.995229916833582,
+   "alpha_ratio_db": -3.001687526696603
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "key shoots.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.4569750726222992,
+    "minconf": 0.3437371253967285
+   },
+   "base.en": {
+    "hyp": "Key shoots.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.5757545232772827,
+    "minconf": 0.4868770241737366
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo4c": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 0.8591383219954648,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 227.55438355621794,
+   "f0_mean": 190.22006554907227,
+   "f0_sd_st": 7.41204168801019,
+   "f0_range_st": 19.312816319435907,
+   "hnr": 4.859474897303334,
+   "tilt_db_oct": -6.578089151696957,
+   "alpha_ratio_db": -12.578926085526657
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.83692666888237,
+    "minconf": 0.688235878944397
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8999163210391998,
+    "minconf": 0.8153275847434998
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo4d": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.7198185941043084,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 222.69511298719397,
+   "f0_mean": 219.99594014724735,
+   "f0_sd_st": 1.8264664058939546,
+   "f0_range_st": 5.556331921731395,
+   "hnr": 5.345790358703006,
+   "tilt_db_oct": -4.827236723408224,
+   "alpha_ratio_db": -7.902788792656096
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "He cuts.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.5867898762226105,
+    "minconf": 0.19459855556488037
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7979122400283813,
+    "minconf": 0.6021445989608765
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo5": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.3815873015873017,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 155.18796296172553,
+   "f0_mean": 146.0270736670162,
+   "f0_sd_st": 4.158317750572349,
+   "f0_range_st": 12.687783855808956,
+   "hnr": 7.449584759762498,
+   "tilt_db_oct": -3.581337129382904,
+   "alpha_ratio_db": -7.301328356687144
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9077976763248443,
+    "minconf": 0.5754633545875549
+   },
+   "base.en": {
+    "hyp": "And she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8636505961418152,
+    "minconf": 0.36272549629211426
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo6a": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.3467573696145125,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 127.35039294602903,
+   "f0_mean": 127.62866143603861,
+   "f0_sd_st": 4.329749375802238,
+   "f0_range_st": 14.790475157478017,
+   "hnr": 7.192429483812008,
+   "tilt_db_oct": -4.925499104968396,
+   "alpha_ratio_db": -7.559603849544242
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "I'm Rita, cinema studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.7094725593924522,
+    "minconf": 0.33927425742149353
+   },
+   "base.en": {
+    "hyp": "I'm Rita Cinema Studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.7965828105807304,
+    "minconf": 0.7589222490787506
+   }
+  }
+ },
+ "en_US-ryan-high|1|vo6b": {
+  "voice": "en_US-ryan-high",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.2190476190476192,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 134.83202319538677,
+   "f0_mean": 142.98444315109816,
+   "f0_sd_st": 5.223377687173574,
+   "f0_range_st": 14.717261543839845,
+   "hnr": 7.936397701279143,
+   "tilt_db_oct": -7.409944082863075,
+   "alpha_ratio_db": -7.950141595822902
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "your story directed",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7184402942657471,
+    "minconf": 0.4973651170730591
+   },
+   "base.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7158454060554504,
+    "minconf": 0.517076849937439
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo1": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.3336054421768706,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 220.60807411034247,
+   "f0_mean": 223.8853172275012,
+   "f0_sd_st": 2.8062572663672136,
+   "f0_range_st": 8.554510247150093,
+   "hnr": 12.164121434154083,
+   "tilt_db_oct": -7.552449506377161,
+   "alpha_ratio_db": -12.50759725304361
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.925794107573373,
+    "minconf": 0.5229166746139526
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.959529195513044,
+    "minconf": 0.7629865407943726
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo2": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.8080725623582765,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 213.19002915950247,
+   "f0_mean": 211.74384935256583,
+   "f0_sd_st": 2.3127405597903112,
+   "f0_range_st": 6.92120607989189,
+   "hnr": 14.246402115439414,
+   "tilt_db_oct": -7.852572505525805,
+   "alpha_ratio_db": -12.980496136650807
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For a hundred and thirty years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.8801418862172535,
+    "minconf": 0.35648828744888306
+   },
+   "base.en": {
+    "hyp": "for 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.8929349238222296,
+    "minconf": 0.5233225226402283
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo3a": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.822766439909297,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 198.60537454800698,
+   "f0_mean": 202.28680518234236,
+   "f0_sd_st": 1.6551372556392148,
+   "f0_range_st": 5.138564811952263,
+   "hnr": 12.896512938986161,
+   "tilt_db_oct": -7.339172216286643,
+   "alpha_ratio_db": -11.35140150054994
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.7289829015731811,
+    "minconf": 0.5565388202667236
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8551946640014648,
+    "minconf": 0.7414029836654663
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo3b": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.1377777777777778,
+  "win": 1,
+  "metrics": {
+   "f0_med": 199.2120978503418,
+   "f0_mean": 207.56707096794773,
+   "f0_sd_st": 1.4190710037383274,
+   "f0_range_st": 4.165517259173407,
+   "hnr": 15.742719447508243,
+   "tilt_db_oct": -7.992121407301273,
+   "alpha_ratio_db": -20.313398839742554
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "meet a metre.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.49983089168866474,
+    "minconf": 0.3672482669353485
+   },
+   "base.en": {
+    "hyp": "meet a meter.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.5751767456531525,
+    "minconf": 0.3635950982570648
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo4a": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 1.0448979591836736,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 229.487290308035,
+   "f0_mean": 226.72715073784607,
+   "f0_sd_st": 2.4312244656622024,
+   "f0_range_st": 7.136496307685762,
+   "hnr": 12.299099817217934,
+   "tilt_db_oct": -8.560543081232389,
+   "alpha_ratio_db": -4.590811314073985
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8263657689094543,
+    "minconf": 0.8115071654319763
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.822413831949234,
+    "minconf": 0.8176091909408569
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo4b": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.9287981859410431,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 237.81519141187266,
+   "f0_mean": 233.54664313235736,
+   "f0_sd_st": 2.329470481822857,
+   "f0_range_st": 6.466654215395119,
+   "hnr": 6.475039365645884,
+   "tilt_db_oct": -6.396170570311674,
+   "alpha_ratio_db": -9.800120155484596
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8685883283615112,
+    "minconf": 0.7467342019081116
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7986786961555481,
+    "minconf": 0.6059815287590027
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo4c": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 1.0797278911564625,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 227.2262742764042,
+   "f0_mean": 223.99113672249192,
+   "f0_sd_st": 3.197817289024806,
+   "f0_range_st": 8.153730496669503,
+   "hnr": 10.510117362734595,
+   "tilt_db_oct": -11.809563120775831,
+   "alpha_ratio_db": -19.515320507535375
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "He scores.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.6580731719732285,
+    "minconf": 0.34060636162757874
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8846313059329987,
+    "minconf": 0.7995778322219849
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo4d": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.9868480725623583,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 240.93079801368037,
+   "f0_mean": 226.405066198077,
+   "f0_sd_st": 5.407069986674611,
+   "f0_range_st": 18.847716487396514,
+   "hnr": 5.993994149562828,
+   "tilt_db_oct": -7.20088231223044,
+   "alpha_ratio_db": -7.580634741465158
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7371740341186523,
+    "minconf": 0.7337843775749207
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6808526813983917,
+    "minconf": 0.6312786936759949
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo5": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.811156462585034,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 227.10754824356226,
+   "f0_mean": 225.23065145575325,
+   "f0_sd_st": 1.62907489060032,
+   "f0_range_st": 5.022727890989172,
+   "hnr": 9.437980915068174,
+   "tilt_db_oct": -7.810254328670037,
+   "alpha_ratio_db": -14.178463406661274
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9070038020610809,
+    "minconf": 0.602482795715332
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9049839377403259,
+    "minconf": 0.5820731520652771
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo6a": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.6718367346938776,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 209.66361560209864,
+   "f0_mean": 213.18457550649475,
+   "f0_sd_st": 2.8083493581969856,
+   "f0_range_st": 8.182470521511604,
+   "hnr": 14.075837168752763,
+   "tilt_db_oct": -7.298248439977697,
+   "alpha_ratio_db": -15.439655254825297
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and read a cinema studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.7343509137630463,
+    "minconf": 0.47009924054145813
+   },
+   "base.en": {
+    "hyp": "and read a cinema studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.7824108719825744,
+    "minconf": 0.5936967730522156
+   }
+  }
+ },
+ "en_GB-cori-high|1|vo6b": {
+  "voice": "en_GB-cori-high",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.6834467120181407,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 217.22604155536362,
+   "f0_mean": 214.36859445247825,
+   "f0_sd_st": 4.078813535431038,
+   "f0_range_st": 13.120006458136855,
+   "hnr": 11.681977419660095,
+   "tilt_db_oct": -8.544238321288374,
+   "alpha_ratio_db": -12.22033427839635
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story, directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.4910128613313039,
+    "minconf": 0.20160874724388123
+   },
+   "base.en": {
+    "hyp": "your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.6923753718535105,
+    "minconf": 0.3714304268360138
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo1": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.6006349206349206,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 96.36147366736904,
+   "f0_mean": 96.42612492475409,
+   "f0_sd_st": 1.886861296636509,
+   "f0_range_st": 6.711187595354897,
+   "hnr": 6.980741508420994,
+   "tilt_db_oct": -3.9827911148064676,
+   "alpha_ratio_db": -5.040646786700805
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9114290348121098,
+    "minconf": 0.43321874737739563
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9623271652630397,
+    "minconf": 0.7944243550300598
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo2": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 4.31891156462585,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 90.78424806858447,
+   "f0_mean": 91.30633999642967,
+   "f0_sd_st": 1.977096092457221,
+   "f0_range_st": 5.527546391226235,
+   "hnr": 8.987347407447082,
+   "tilt_db_oct": -4.4383326495495945,
+   "alpha_ratio_db": -8.568941554041109
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For a hundred and thirty years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9112343575273242,
+    "minconf": 0.6128121614456177
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9547857154499401,
+    "minconf": 0.7862363457679749
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo3a": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 2.2291156462585033,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 89.34352805150318,
+   "f0_mean": 88.39142652612618,
+   "f0_sd_st": 1.3295039260265138,
+   "f0_range_st": 3.1629608134593936,
+   "hnr": 6.13083642543792,
+   "tilt_db_oct": -2.5455969479939147,
+   "alpha_ratio_db": -4.9031363574832545
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8409093618392944,
+    "minconf": 0.652934193611145
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9135236740112305,
+    "minconf": 0.8244048357009888
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo3b": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.3003174603174603,
+  "win": 1,
+  "metrics": {
+   "f0_med": 106.30936211947295,
+   "f0_mean": 103.75790796317452,
+   "f0_sd_st": 1.8225836200035639,
+   "f0_range_st": 6.5937800378683615,
+   "hnr": 9.469594368355802,
+   "tilt_db_oct": -4.8973358038345625,
+   "alpha_ratio_db": -8.657005431764242
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet Amrita.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6237280865510304,
+    "minconf": 0.6009832620620728
+   },
+   "base.en": {
+    "hyp": "Meet Amrita",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6964515348275502,
+    "minconf": 0.4766547679901123
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo4a": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.9636281179138322,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 98.57588770858095,
+   "f0_mean": 96.0507216315755,
+   "f0_sd_st": 1.8954848826705688,
+   "f0_range_st": 5.846729192772984,
+   "hnr": 5.873710938872286,
+   "tilt_db_oct": -5.5497891401400805,
+   "alpha_ratio_db": -3.575584154846187
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7583051025867462,
+    "minconf": 0.5689254403114319
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8171691000461578,
+    "minconf": 0.6550233960151672
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo4b": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 1.0448979591836736,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 100.62432476773404,
+   "f0_mean": 100.81966317545539,
+   "f0_sd_st": 1.3475881587282315,
+   "f0_range_st": 4.172405345022782,
+   "hnr": 5.4549078582317225,
+   "tilt_db_oct": -2.328114244169508,
+   "alpha_ratio_db": -3.3909771538793265
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6506195515394211,
+    "minconf": 0.30374160408973694
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7535413503646851,
+    "minconf": 0.537868082523346
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo4c": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 1.0565079365079366,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 97.80378374749819,
+   "f0_mean": 95.94555729734716,
+   "f0_sd_st": 2.9505878096135,
+   "f0_range_st": 8.214982312959865,
+   "hnr": 6.309720885533086,
+   "tilt_db_oct": -7.0666734530608295,
+   "alpha_ratio_db": -12.013902318883565
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6111913770437241,
+    "minconf": 0.2328888475894928
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.5933377742767334,
+    "minconf": 0.23805391788482666
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo4d": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.9752380952380952,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 101.17661875162412,
+   "f0_mean": 97.8996183422303,
+   "f0_sd_st": 2.4957843519199616,
+   "f0_range_st": 7.070603361062325,
+   "hnr": 2.8376282669189026,
+   "tilt_db_oct": -3.0935133033295,
+   "alpha_ratio_db": -2.1666228382978048
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.5574211850762367,
+    "minconf": 0.21832318603992462
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6575503498315811,
+    "minconf": 0.3480548560619354
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo5": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 2.4729251700680273,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 97.69535981039645,
+   "f0_mean": 105.53412452608383,
+   "f0_sd_st": 4.4512635621056935,
+   "f0_range_st": 8.596121673261727,
+   "hnr": 5.16440132591819,
+   "tilt_db_oct": -3.7775368710690262,
+   "alpha_ratio_db": -4.796357423832457
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9272064745426178,
+    "minconf": 0.6899946928024292
+   },
+   "base.en": {
+    "hyp": "And she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8732014179229737,
+    "minconf": 0.4284968674182892
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo6a": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.8692063492063493,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 102.11604418401457,
+   "f0_mean": 98.55401790917567,
+   "f0_sd_st": 2.0858916446711775,
+   "f0_range_st": 5.84051343180405,
+   "hnr": 8.262335262863482,
+   "tilt_db_oct": -4.265834603491597,
+   "alpha_ratio_db": -9.64510979095782
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and read to send them a studio.",
+    "wer": 2.0,
+    "errors": 6,
+    "nref": 3,
+    "conf": 0.7576970670904432,
+    "minconf": 0.4027101695537567
+   },
+   "base.en": {
+    "hyp": "and read a cinema studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.8160295605659484,
+    "minconf": 0.613487720489502
+   }
+  }
+ },
+ "en_GB-alan-medium|1|vo6b": {
+  "voice": "en_GB-alan-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.8924263038548752,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 98.1251484826571,
+   "f0_mean": 91.50373702363828,
+   "f0_sd_st": 2.7085085407338347,
+   "f0_range_st": 7.717455718109334,
+   "hnr": 6.404583638376793,
+   "tilt_db_oct": -5.937334964451728,
+   "alpha_ratio_db": -6.525927687944235
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7744089166323344,
+    "minconf": 0.4596557021141052
+   },
+   "base.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.6702655355135599,
+    "minconf": 0.5632714033126831
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo1": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.2058956916099772,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 183.1019109243664,
+   "f0_mean": 180.30668646890433,
+   "f0_sd_st": 4.033166043983012,
+   "f0_range_st": 11.681743205764818,
+   "hnr": 12.183808062757539,
+   "tilt_db_oct": -6.945064391821021,
+   "alpha_ratio_db": -7.734980549963746
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9325952019010272,
+    "minconf": 0.5913605690002441
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9717202952929905,
+    "minconf": 0.8325048685073853
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo2": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.01859410430839,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 173.9366307274401,
+   "f0_mean": 183.54716728181285,
+   "f0_sd_st": 4.37857270295079,
+   "f0_range_st": 14.688755217507026,
+   "hnr": 14.168827492830435,
+   "tilt_db_oct": -7.4970974941507755,
+   "alpha_ratio_db": -7.987241008362752
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9417779608206316,
+    "minconf": 0.7345681190490723
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.972298882224343,
+    "minconf": 0.8543357253074646
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo3a": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.555736961451247,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 196.9545589549656,
+   "f0_mean": 189.82060843677,
+   "f0_sd_st": 3.933543331201648,
+   "f0_range_st": 14.066353157296255,
+   "hnr": 11.723118421710236,
+   "tilt_db_oct": -5.8019400407825055,
+   "alpha_ratio_db": -7.99294926178244
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8731031894683838,
+    "minconf": 0.747559666633606
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9428845524787903,
+    "minconf": 0.8233767151832581
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo3b": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.1029478458049886,
+  "win": 1,
+  "metrics": {
+   "f0_med": 214.436242141511,
+   "f0_mean": 205.05173372839468,
+   "f0_sd_st": 5.158207129379944,
+   "f0_range_st": 17.0771046007041,
+   "hnr": 15.147635022038774,
+   "tilt_db_oct": -7.338831236892835,
+   "alpha_ratio_db": -8.825039212604404
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Me, Tam Rito.",
+    "wer": 1.5,
+    "errors": 3,
+    "nref": 2,
+    "conf": 0.5726796189943949,
+    "minconf": 0.4188864231109619
+   },
+   "base.en": {
+    "hyp": "Meet Amrita.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.40293338894844055,
+    "minconf": 0.05500549077987671
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo4a": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.7430385487528345,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 207.78575542286606,
+   "f0_mean": 215.84295884333955,
+   "f0_sd_st": 3.785590713910374,
+   "f0_range_st": 12.033356509978358,
+   "hnr": 8.965427396583452,
+   "tilt_db_oct": -7.0830100882729985,
+   "alpha_ratio_db": -4.234602450592963
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7226150631904602,
+    "minconf": 0.4742310047149658
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.9015517234802246,
+    "minconf": 0.8087565302848816
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo4b": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.7430385487528345,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 229.17793756502795,
+   "f0_mean": 245.82843930998442,
+   "f0_sd_st": 4.034033430905791,
+   "f0_range_st": 11.95115579643436,
+   "hnr": 6.3317238024573905,
+   "tilt_db_oct": -5.856050449296566,
+   "alpha_ratio_db": -13.221626590047613
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "she shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.671623095870018,
+    "minconf": 0.34659168124198914
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7437642067670822,
+    "minconf": 0.4924758970737457
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo4c": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 0.8707482993197279,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 227.89965607160056,
+   "f0_mean": 201.32041206066626,
+   "f0_sd_st": 6.340243064326181,
+   "f0_range_st": 16.717588795814592,
+   "hnr": 9.766490989060607,
+   "tilt_db_oct": -9.380667575596078,
+   "alpha_ratio_db": -12.581821202805916
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6136117428541183,
+    "minconf": 0.24102506041526794
+   },
+   "base.en": {
+    "hyp": "she scores. //",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.37000498299797374,
+    "minconf": 0.040257807821035385
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo4d": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.8010884353741496,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 198.1009884579689,
+   "f0_mean": 198.0319436324063,
+   "f0_sd_st": 5.017206699208933,
+   "f0_range_st": 14.113365712829655,
+   "hnr": 5.94111418993028,
+   "tilt_db_oct": -6.791348365148025,
+   "alpha_ratio_db": -4.55414812069833
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.78992760181427,
+    "minconf": 0.5938801169395447
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7117758393287659,
+    "minconf": 0.42581844329833984
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo5": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.6718367346938776,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 191.9374693994172,
+   "f0_mean": 193.65401143697372,
+   "f0_sd_st": 3.8863417030929486,
+   "f0_range_st": 13.537876048838198,
+   "hnr": 10.680514215558109,
+   "tilt_db_oct": -6.833912147044538,
+   "alpha_ratio_db": -12.387717585879361
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8994790852069855,
+    "minconf": 0.5785588026046753
+   },
+   "base.en": {
+    "hyp": "And she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8780134618282318,
+    "minconf": 0.42371493577957153
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo6a": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.5905668934240362,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 186.68310384325156,
+   "f0_mean": 185.49048210608095,
+   "f0_sd_st": 4.885627789225832,
+   "f0_range_st": 17.129342747101592,
+   "hnr": 12.731954181668097,
+   "tilt_db_oct": -7.148149528860186,
+   "alpha_ratio_db": -11.396095501495115
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Amrita Cinema Studio.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7333533515532812,
+    "minconf": 0.6234177947044373
+   },
+   "base.en": {
+    "hyp": "Amrita Cinema Studio",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7545173698001437,
+    "minconf": 0.6549184322357178
+   }
+  }
+ },
+ "en_US-lessac-high|1|vo6b": {
+  "voice": "en_US-lessac-high",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.6137868480725623,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 205.25916394445701,
+   "f0_mean": 200.3740866233541,
+   "f0_sd_st": 6.542277542910508,
+   "f0_range_st": 18.408499979874065,
+   "hnr": 11.250454792688233,
+   "tilt_db_oct": -7.899267747764169,
+   "alpha_ratio_db": -10.443063007593345
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story, directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.882910966873169,
+    "minconf": 0.7133509516716003
+   },
+   "base.en": {
+    "hyp": "Your story, directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.8163779179255167,
+    "minconf": 0.6540840268135071
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo1": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.647074829931973,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 163.2703297535245,
+   "f0_mean": 160.15200966705453,
+   "f0_sd_st": 1.6880645145394404,
+   "f0_range_st": 5.092473195244395,
+   "hnr": 12.033819328265661,
+   "tilt_db_oct": -5.140317714055785,
+   "alpha_ratio_db": -11.415053774436846
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9336998122079032,
+    "minconf": 0.6003068685531616
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9438691309520176,
+    "minconf": 0.691213846206665
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo2": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.7964625850340137,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 161.41955345508964,
+   "f0_mean": 170.13288248043054,
+   "f0_sd_st": 2.4826727975464213,
+   "f0_range_st": 7.288554966775857,
+   "hnr": 13.30188352485835,
+   "tilt_db_oct": -6.582787750935916,
+   "alpha_ratio_db": -11.651463115046957
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For a hundred and thirty years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9234207442828587,
+    "minconf": 0.34762775897979736
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9476106708700006,
+    "minconf": 0.6544157266616821
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo3a": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.6834467120181407,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 146.22586814947317,
+   "f0_mean": 147.75269594434138,
+   "f0_sd_st": 1.662235108956521,
+   "f0_range_st": 5.484855429754631,
+   "hnr": 12.566806533715983,
+   "tilt_db_oct": -4.864897249336033,
+   "alpha_ratio_db": -11.709263662460055
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.882632040977478,
+    "minconf": 0.7664055228233337
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9204404711723327,
+    "minconf": 0.8219791650772095
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo3b": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.207437641723356,
+  "win": 1,
+  "metrics": {
+   "f0_med": 145.5905224714417,
+   "f0_mean": 149.17445445780388,
+   "f0_sd_st": 1.985064337297889,
+   "f0_range_st": 5.927795519804084,
+   "hnr": 14.854519179591003,
+   "tilt_db_oct": -5.528270286270199,
+   "alpha_ratio_db": -13.990620214247118
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "meet a reader.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.40643492341041565,
+    "minconf": 0.18975818157196045
+   },
+   "base.en": {
+    "hyp": "Me to Merida.",
+    "wer": 1.5,
+    "errors": 3,
+    "nref": 2,
+    "conf": 0.4423930421471596,
+    "minconf": 0.3701823651790619
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo4a": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.8475283446712019,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 131.17268558630133,
+   "f0_mean": 133.0683283185336,
+   "f0_sd_st": 1.3249163810580769,
+   "f0_range_st": 4.411996356261771,
+   "hnr": 9.472533219294668,
+   "tilt_db_oct": -8.215057051433671,
+   "alpha_ratio_db": -15.93863340016583
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6858270466327667,
+    "minconf": 0.4036385416984558
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7883977890014648,
+    "minconf": 0.5843495726585388
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo4b": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.9404081632653061,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 129.9924335976843,
+   "f0_mean": 129.91133798951662,
+   "f0_sd_st": 1.242641753979805,
+   "f0_range_st": 3.419082436369794,
+   "hnr": 5.650760373686659,
+   "tilt_db_oct": -4.419752210812474,
+   "alpha_ratio_db": -7.899011482251778
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8640066683292389,
+    "minconf": 0.7396523356437683
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8380816280841827,
+    "minconf": 0.6853116750717163
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo4c": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 1.0448979591836736,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 124.69867176847555,
+   "f0_mean": 129.5865860106036,
+   "f0_sd_st": 1.1787882676116146,
+   "f0_range_st": 3.6904462759594967,
+   "hnr": 8.277806602461077,
+   "tilt_db_oct": -7.542180817944618,
+   "alpha_ratio_db": -15.47042062029652
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7197732925415039,
+    "minconf": 0.6574347019195557
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7877989113330841,
+    "minconf": 0.6365389823913574
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo4d": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.893968253968254,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 132.26513189238946,
+   "f0_mean": 132.89052971109754,
+   "f0_sd_st": 1.866687747145083,
+   "f0_range_st": 5.387456773346278,
+   "hnr": 2.805884971195938,
+   "tilt_db_oct": -4.925239809435012,
+   "alpha_ratio_db": -8.952416481991772
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.864244818687439,
+    "minconf": 0.7366915941238403
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8667384088039398,
+    "minconf": 0.7366548180580139
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo5": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.9156462585034013,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 151.2378195623358,
+   "f0_mean": 151.79166347254463,
+   "f0_sd_st": 1.814124573775904,
+   "f0_range_st": 6.067405635750135,
+   "hnr": 7.315961656217067,
+   "tilt_db_oct": -4.648082821617129,
+   "alpha_ratio_db": -9.6424106859714
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9042912721633911,
+    "minconf": 0.6151232719421387
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8954349279403686,
+    "minconf": 0.5228869915008545
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo6a": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.811156462585034,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 160.82918210840842,
+   "f0_mean": 154.8119241288845,
+   "f0_sd_st": 1.9083219004550735,
+   "f0_range_st": 5.509555277618702,
+   "hnr": 11.679688963665452,
+   "tilt_db_oct": -4.0263344989803,
+   "alpha_ratio_db": -5.094202924930817
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and read a cinemas studio.",
+    "wer": 1.3333333333333333,
+    "errors": 4,
+    "nref": 3,
+    "conf": 0.843489670753479,
+    "minconf": 0.6930801272392273
+   },
+   "base.en": {
+    "hyp": "I'm Rita Cinema Studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.7888888195157051,
+    "minconf": 0.6037801504135132
+   }
+  }
+ },
+ "en_US-kristin-medium|1|vo6b": {
+  "voice": "en_US-kristin-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.7298866213151927,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 134.49888278985657,
+   "f0_mean": 136.8922956845637,
+   "f0_sd_st": 1.8031085276878767,
+   "f0_range_st": 5.605832374219992,
+   "hnr": 11.191867147258842,
+   "tilt_db_oct": -5.615608283942543,
+   "alpha_ratio_db": -12.862890996488712
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7785005370775858,
+    "minconf": 0.5234755277633667
+   },
+   "base.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7593376040458679,
+    "minconf": 0.6758483648300171
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo1": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 1.8924263038548752,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 107.38964417396488,
+   "f0_mean": 107.62446353657153,
+   "f0_sd_st": 1.4544965214329482,
+   "f0_range_st": 4.582168007013827,
+   "hnr": 6.54936701268882,
+   "tilt_db_oct": -6.06641240070347,
+   "alpha_ratio_db": -6.179963594810074
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9054301253386906,
+    "minconf": 0.4787065088748932
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9438039405005318,
+    "minconf": 0.7889578938484192
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo2": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.4829931972789114,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 113.40774908283836,
+   "f0_mean": 117.81003371945282,
+   "f0_sd_st": 2.7257081487500807,
+   "f0_range_st": 8.623621308088278,
+   "hnr": 12.141383898417335,
+   "tilt_db_oct": -8.106776303981292,
+   "alpha_ratio_db": -9.60121308459303
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "for 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9153285460038618,
+    "minconf": 0.5449336767196655
+   },
+   "base.en": {
+    "hyp": "for 130 years it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9341579892418601,
+    "minconf": 0.6458410024642944
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo3a": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.6021768707482993,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 108.27132606766156,
+   "f0_mean": 116.93188492014313,
+   "f0_sd_st": 3.9228597919502377,
+   "f0_range_st": 4.909013517339464,
+   "hnr": 6.057459978241992,
+   "tilt_db_oct": -6.0195580969410205,
+   "alpha_ratio_db": -8.992418243325577
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8402047157287598,
+    "minconf": 0.6515734195709229
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9000988602638245,
+    "minconf": 0.7572986483573914
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo3b": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 0.9752380952380952,
+  "win": 1,
+  "metrics": {
+   "f0_med": 115.95631633076418,
+   "f0_mean": 128.6206961379775,
+   "f0_sd_st": 3.605136736217129,
+   "f0_range_st": 10.349617585117585,
+   "hnr": 11.993849422163981,
+   "tilt_db_oct": -8.918558277103145,
+   "alpha_ratio_db": -18.14579039312128
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet some reader.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.4425312081972758,
+    "minconf": 0.32524752616882324
+   },
+   "base.en": {
+    "hyp": "Meet them, Rita.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.5431007742881775,
+    "minconf": 0.2147049903869629
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo4a": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.8823582766439909,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 118.97554479403294,
+   "f0_mean": 120.66031076110643,
+   "f0_sd_st": 0.8768933946806613,
+   "f0_range_st": 2.9151426118422883,
+   "hnr": 6.643812766464442,
+   "tilt_db_oct": -5.994110718161442,
+   "alpha_ratio_db": -6.605008230394973
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8327663838863373,
+    "minconf": 0.7284366488456726
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.9093048870563507,
+    "minconf": 0.8295081853866577
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo4b": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.8243083900226758,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 125.69040838597013,
+   "f0_mean": 126.64847913277866,
+   "f0_sd_st": 0.7974138557114424,
+   "f0_range_st": 2.3095466414183705,
+   "hnr": 3.358987340050369,
+   "tilt_db_oct": -5.05270226917861,
+   "alpha_ratio_db": -9.037780195661316
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6255295723676682,
+    "minconf": 0.253553181886673
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7695586979389191,
+    "minconf": 0.5470387935638428
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo4c": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 0.9636281179138322,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 107.25619750149205,
+   "f0_mean": 106.3523576308652,
+   "f0_sd_st": 1.0555859414726938,
+   "f0_range_st": 2.89957211719625,
+   "hnr": 5.83067394221971,
+   "tilt_db_oct": -9.031249507041997,
+   "alpha_ratio_db": -17.100706524508936
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.5528934448957443,
+    "minconf": 0.4129014313220978
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8370816707611084,
+    "minconf": 0.7589504718780518
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo4d": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.7662585034013606,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 119.37504768063894,
+   "f0_mean": 118.4750366357273,
+   "f0_sd_st": 1.6533110301179634,
+   "f0_range_st": 5.000257588663503,
+   "hnr": 2.2767573273047343,
+   "tilt_db_oct": -6.77876248733007,
+   "alpha_ratio_db": -9.938347473691689
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She coats.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.47771432995796204,
+    "minconf": 0.30120527744293213
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7540930807590485,
+    "minconf": 0.5565544366836548
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo5": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.7298866213151927,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 114.71611028771721,
+   "f0_mean": 113.39244381152069,
+   "f0_sd_st": 1.7947775076488341,
+   "f0_range_st": 5.83876293305801,
+   "hnr": 5.528625121171752,
+   "tilt_db_oct": -6.0538634776698945,
+   "alpha_ratio_db": -8.989663915106613
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.914045262336731,
+    "minconf": 0.6411667466163635
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8884105503559112,
+    "minconf": 0.495755136013031
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo6a": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.486077097505669,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 120.01321910263903,
+   "f0_mean": 116.30703261640286,
+   "f0_sd_st": 2.830454461153703,
+   "f0_range_st": 8.865019558137783,
+   "hnr": 7.658714318215542,
+   "tilt_db_oct": -5.325704049064893,
+   "alpha_ratio_db": -7.7554162130189805
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "I'm Rita Senna Machudio.",
+    "wer": 1.3333333333333333,
+    "errors": 4,
+    "nref": 3,
+    "conf": 0.6074569628884395,
+    "minconf": 0.24347730726003647
+   },
+   "base.en": {
+    "hyp": "I'm Rita Cinema Studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.7870951592922211,
+    "minconf": 0.4315614104270935
+   }
+  }
+ },
+ "en_GB-northern_english_male-medium|1|vo6b": {
+  "voice": "en_GB-northern_english_male-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.7414965986394557,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 129.02858740299476,
+   "f0_mean": 127.91695116820112,
+   "f0_sd_st": 2.24945002478875,
+   "f0_range_st": 7.183221348452757,
+   "hnr": 8.358796819256401,
+   "tilt_db_oct": -7.906785355262635,
+   "alpha_ratio_db": -11.449532838929759
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7666614254315695,
+    "minconf": 0.5070325136184692
+   },
+   "base.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.780866265296936,
+    "minconf": 0.6344754099845886
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo1": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.078185941043084,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 176.86201595742182,
+   "f0_mean": 184.11830418825875,
+   "f0_sd_st": 1.9343854385683414,
+   "f0_range_st": 6.339524921315865,
+   "hnr": 13.347200104399509,
+   "tilt_db_oct": -6.434154012207175,
+   "alpha_ratio_db": -10.71568247957522
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9442333579063416,
+    "minconf": 0.7482454180717468
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9348005056381226,
+    "minconf": 0.6220374703407288
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo2": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.030204081632653,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 215.49796987827227,
+   "f0_mean": 218.70116467480514,
+   "f0_sd_st": 2.1406335368967833,
+   "f0_range_st": 7.087718671142502,
+   "hnr": 14.955033563333119,
+   "tilt_db_oct": -6.729678808684201,
+   "alpha_ratio_db": -12.98633047801209
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9521590579639782,
+    "minconf": 0.8353354930877686
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9717695658857172,
+    "minconf": 0.8686821460723877
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo3a": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.5325170068027212,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 214.5758661041405,
+   "f0_mean": 206.95947771988523,
+   "f0_sd_st": 1.831057930667735,
+   "f0_range_st": 5.977118164939309,
+   "hnr": 13.951188594146274,
+   "tilt_db_oct": -6.473076192461881,
+   "alpha_ratio_db": -11.82673088062251
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8850597023963929,
+    "minconf": 0.7726095914840698
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9147730469703674,
+    "minconf": 0.8257114291191101
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo3b": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 0.8475283446712019,
+  "win": 1,
+  "metrics": {
+   "f0_med": 201.1121637165744,
+   "f0_mean": 204.54637587876582,
+   "f0_sd_st": 2.4540778851965004,
+   "f0_range_st": 7.180625089451729,
+   "hnr": 15.191576609433403,
+   "tilt_db_oct": -5.7455184427743236,
+   "alpha_ratio_db": -13.65379560966625
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet a razor.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.47334084411462146,
+    "minconf": 0.1881430596113205
+   },
+   "base.en": {
+    "hyp": "Meet Emraiser.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.23587894439697266,
+    "minconf": 0.0921446681022644
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo4a": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.6385487528344671,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 219.61318899352216,
+   "f0_mean": 217.6610395705602,
+   "f0_sd_st": 0.8718260353583501,
+   "f0_range_st": 3.0522805592240205,
+   "hnr": 11.523613821228903,
+   "tilt_db_oct": -5.873053526724355,
+   "alpha_ratio_db": -8.328926502666974
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8270533382892609,
+    "minconf": 0.6793389916419983
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.9469048082828522,
+    "minconf": 0.9049938321113586
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo4b": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.6385487528344671,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 224.80322918713924,
+   "f0_mean": 231.074081398175,
+   "f0_sd_st": 1.8175937633028705,
+   "f0_range_st": 4.969290854931517,
+   "hnr": 8.161979971979944,
+   "tilt_db_oct": -5.372015388630777,
+   "alpha_ratio_db": -10.589716209012089
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7714275121688843,
+    "minconf": 0.5449895262718201
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.9587021768093109,
+    "minconf": 0.9215527176856995
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo4c": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 0.7778684807256235,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 229.1611303551531,
+   "f0_mean": 227.65269351877126,
+   "f0_sd_st": 1.843512584899268,
+   "f0_range_st": 5.118033565697782,
+   "hnr": 11.328021435590202,
+   "tilt_db_oct": -9.641039636335995,
+   "alpha_ratio_db": -15.668703058006102
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6755553781986237,
+    "minconf": 0.35631316900253296
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.804949551820755,
+    "minconf": 0.6148123741149902
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo4d": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.626938775510204,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 187.1902676228109,
+   "f0_mean": 181.33507645378302,
+   "f0_sd_st": 1.6227394538230226,
+   "f0_range_st": 4.62557097264514,
+   "hnr": 5.580436553717123,
+   "tilt_db_oct": -6.971837316277805,
+   "alpha_ratio_db": -10.222126030782812
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7398883700370789,
+    "minconf": 0.48611098527908325
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8385378420352936,
+    "minconf": 0.6860154867172241
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo5": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.5905668934240362,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 196.12300152374814,
+   "f0_mean": 193.06623234678594,
+   "f0_sd_st": 1.6011503514277605,
+   "f0_range_st": 5.493652899571588,
+   "hnr": 10.26841587734716,
+   "tilt_db_oct": -5.511024368962403,
+   "alpha_ratio_db": -11.146792046764862
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9370867908000946,
+    "minconf": 0.7507401704788208
+   },
+   "base.en": {
+    "hyp": "And she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8734984219074249,
+    "minconf": 0.40675753355026245
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo6a": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.4164172335600906,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 197.57638346563766,
+   "f0_mean": 189.4354343300345,
+   "f0_sd_st": 2.3636253127743463,
+   "f0_range_st": 7.070305826643854,
+   "hnr": 14.835533936318338,
+   "tilt_db_oct": -7.005093864077159,
+   "alpha_ratio_db": -15.202742830864855
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "I'm Rita Sinema Studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.7734426862249771,
+    "minconf": 0.5642060960332552
+   },
+   "base.en": {
+    "hyp": "I'm Regis Cinema Studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.6472852826118469,
+    "minconf": 0.3889358937740326
+   }
+  }
+ },
+ "en_GB-jenny_dioco-medium|1|vo6b": {
+  "voice": "en_GB-jenny_dioco-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.3235374149659864,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 199.13632363164743,
+   "f0_mean": 197.86819767240112,
+   "f0_sd_st": 2.78643951299964,
+   "f0_range_st": 7.73304354056149,
+   "hnr": 12.682200424589421,
+   "tilt_db_oct": -7.158304384768097,
+   "alpha_ratio_db": -13.584863947312613
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.8254032929738363,
+    "minconf": 0.517909049987793
+   },
+   "base.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7183014949162801,
+    "minconf": 0.6018999218940735
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo1": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.147845804988662,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 231.2247422040586,
+   "f0_mean": 224.1960823617557,
+   "f0_sd_st": 4.0837179719234475,
+   "f0_range_st": 12.586749337213723,
+   "hnr": 11.87627839652234,
+   "tilt_db_oct": -7.1432179124206465,
+   "alpha_ratio_db": -12.15050560104266
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9352794374738421,
+    "minconf": 0.6194671988487244
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9604675769805908,
+    "minconf": 0.7603666186332703
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo2": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.2043537414965986,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 207.13619289450403,
+   "f0_mean": 215.28985581565587,
+   "f0_sd_st": 3.9041927968528523,
+   "f0_range_st": 12.087376325866844,
+   "hnr": 13.02832034294027,
+   "tilt_db_oct": -6.405232865611664,
+   "alpha_ratio_db": -9.377008117625259
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.940026424147866,
+    "minconf": 0.6012212634086609
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9689444357698614,
+    "minconf": 0.8778380155563354
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo3a": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.5905668934240362,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 201.15190181325067,
+   "f0_mean": 205.33259660349714,
+   "f0_sd_st": 3.4539249982804208,
+   "f0_range_st": 13.267800778454976,
+   "hnr": 11.274761721528058,
+   "tilt_db_oct": -6.444026974563438,
+   "alpha_ratio_db": -10.07792958449057
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8917944669723511,
+    "minconf": 0.8065623044967651
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9280126333236695,
+    "minconf": 0.8381092548370361
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo3b": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 0.9868480725623583,
+  "win": 1,
+  "metrics": {
+   "f0_med": 252.38666559359189,
+   "f0_mean": 246.66363922482728,
+   "f0_sd_st": 5.042043577147023,
+   "f0_range_st": 17.47526434339071,
+   "hnr": 15.503324456865409,
+   "tilt_db_oct": -7.603340006547225,
+   "alpha_ratio_db": -13.856147861023532
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet Emerita.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.5027340799570084,
+    "minconf": 0.4712962806224823
+   },
+   "base.en": {
+    "hyp": "Meet Amrita.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7487812514106433,
+    "minconf": 0.6763128389914831
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo4a": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 1.0100680272108844,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 232.82927356322946,
+   "f0_mean": 236.09676272996126,
+   "f0_sd_st": 2.4713531446650543,
+   "f0_range_st": 7.7025976599963695,
+   "hnr": 11.06111516789096,
+   "tilt_db_oct": -5.548248632563647,
+   "alpha_ratio_db": -6.951353084535425
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8470601439476013,
+    "minconf": 0.7266651391983032
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.935258686542511,
+    "minconf": 0.8839786052703857
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo4b": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.9752380952380952,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 255.13416732992522,
+   "f0_mean": 252.19216550799737,
+   "f0_sd_st": 2.299585921157473,
+   "f0_range_st": 6.8718340318579205,
+   "hnr": 7.427578162778616,
+   "tilt_db_oct": -5.404298491231194,
+   "alpha_ratio_db": -8.75083852958237
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8452171981334686,
+    "minconf": 0.6951999664306641
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8477668464183807,
+    "minconf": 0.7030801773071289
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo4c": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 1.0100680272108844,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 260.3037349394392,
+   "f0_mean": 227.096046054248,
+   "f0_sd_st": 4.922134072842567,
+   "f0_range_st": 12.271987381144921,
+   "hnr": 7.592202702848639,
+   "tilt_db_oct": -7.7733760829878005,
+   "alpha_ratio_db": -9.501611976237834
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8410505652427673,
+    "minconf": 0.6985272169113159
+   },
+   "base.en": {
+    "hyp": "She scores. of course.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.7188790775835514,
+    "minconf": 0.12660415470600128
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo4d": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.8475283446712019,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 331.6579245522761,
+   "f0_mean": 305.4433606380491,
+   "f0_sd_st": 3.387855398709802,
+   "f0_range_st": 9.355706304745262,
+   "hnr": 7.0649091961324615,
+   "tilt_db_oct": -7.079451771453726,
+   "alpha_ratio_db": -11.412876284962106
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7968940138816833,
+    "minconf": 0.6047531366348267
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8070735335350037,
+    "minconf": 0.6156492233276367
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo5": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.7414965986394557,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 222.90791333161172,
+   "f0_mean": 229.6714228936259,
+   "f0_sd_st": 4.5790185083415915,
+   "f0_range_st": 14.189406349970248,
+   "hnr": 10.628629701495422,
+   "tilt_db_oct": -5.897413927761439,
+   "alpha_ratio_db": -10.77533679556649
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9210273921489716,
+    "minconf": 0.6373763084411621
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8886112809181214,
+    "minconf": 0.48465073108673096
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo6a": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.6602267573696146,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 255.60103983800357,
+   "f0_mean": 241.0921248393617,
+   "f0_sd_st": 4.410649363068992,
+   "f0_range_st": 14.191570641756321,
+   "hnr": 13.767426967505008,
+   "tilt_db_oct": -7.403482251808154,
+   "alpha_ratio_db": -14.135692361878807
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "I'm Rita Cinema Studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.8403868675231934,
+    "minconf": 0.5652272701263428
+   },
+   "base.en": {
+    "hyp": "I'm Rita Cinema Studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.8916995525360107,
+    "minconf": 0.796142578125
+   }
+  }
+ },
+ "en_US-hfc_female-medium|1|vo6b": {
+  "voice": "en_US-hfc_female-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.5789569160997732,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 239.4384817513008,
+   "f0_mean": 235.99645326851538,
+   "f0_sd_st": 4.853447055084977,
+   "f0_range_st": 14.07342175196976,
+   "hnr": 10.782102757691868,
+   "tilt_db_oct": -7.522140967096946,
+   "alpha_ratio_db": -12.015850574194673
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.8162551919619242,
+    "minconf": 0.5746580362319946
+   },
+   "base.en": {
+    "hyp": "Your story, directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.8356266419092814,
+    "minconf": 0.6798294186592102
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo1": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.2987755102040817,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 201.4269621173948,
+   "f0_mean": 208.83284005872656,
+   "f0_sd_st": 2.7458916916704665,
+   "f0_range_st": 9.395543784607904,
+   "hnr": 11.721842598811854,
+   "tilt_db_oct": -7.227213594048372,
+   "alpha_ratio_db": -11.0445665295359
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "every film starts with a blunt page.",
+    "wer": 0.14285714285714285,
+    "errors": 1,
+    "nref": 7,
+    "conf": 0.8775883998189654,
+    "minconf": 0.6306106448173523
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blunt page.",
+    "wer": 0.14285714285714285,
+    "errors": 1,
+    "nref": 7,
+    "conf": 0.9572758844920567,
+    "minconf": 0.765609622001648
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo2": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.633922902494331,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 196.1745197024427,
+   "f0_mean": 207.15720803275045,
+   "f0_sd_st": 3.5619447976631005,
+   "f0_range_st": 9.131090703285677,
+   "hnr": 13.567161662830651,
+   "tilt_db_oct": -7.397319828873866,
+   "alpha_ratio_db": -10.085161370177518
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For a hundred and thirty years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9092026012284415,
+    "minconf": 0.2601168155670166
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9677661711519415,
+    "minconf": 0.8186739087104797
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo3a": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.6950566893424037,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 196.54830898479415,
+   "f0_mean": 197.75670950701826,
+   "f0_sd_st": 2.060097613750697,
+   "f0_range_st": 7.615121884622344,
+   "hnr": 12.744944657922208,
+   "tilt_db_oct": -7.178897305943231,
+   "alpha_ratio_db": -15.114568650501683
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8888692140579224,
+    "minconf": 0.8156775832176208
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8900445818901062,
+    "minconf": 0.7086390852928162
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo3b": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.1029478458049886,
+  "win": 1,
+  "metrics": {
+   "f0_med": 216.05868939794723,
+   "f0_mean": 212.309724174235,
+   "f0_sd_st": 3.446877832162246,
+   "f0_range_st": 10.1041349292183,
+   "hnr": 13.35567622710187,
+   "tilt_db_oct": -6.50355630579407,
+   "alpha_ratio_db": -12.739870348248928
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet Ambreater.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.46509469859302044,
+    "minconf": 0.4403971694409847
+   },
+   "base.en": {
+    "hyp": "Meet Amrita.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.5582890684405963,
+    "minconf": 0.5197329868872961
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo4a": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.905578231292517,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 240.05523675649744,
+   "f0_mean": 235.74774493909916,
+   "f0_sd_st": 1.1901897012297227,
+   "f0_range_st": 3.491491980091038,
+   "hnr": 9.342972408191896,
+   "tilt_db_oct": -7.122445786172432,
+   "alpha_ratio_db": -12.826890366325854
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8964467942714691,
+    "minconf": 0.8254966735839844
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.9209882318973541,
+    "minconf": 0.8503972887992859
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo4b": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.8359183673469388,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 205.4859281181906,
+   "f0_mean": 217.1654049893934,
+   "f0_sd_st": 2.4043659801956014,
+   "f0_range_st": 6.264332530844565,
+   "hnr": 2.999982676111647,
+   "tilt_db_oct": -4.02803887724443,
+   "alpha_ratio_db": -7.096528882943753
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7949167788028717,
+    "minconf": 0.5961368083953857
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8765097856521606,
+    "minconf": 0.7596322298049927
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo4c": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 1.0448979591836736,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 195.5110061974386,
+   "f0_mean": 213.04085086971037,
+   "f0_sd_st": 2.7583066050168004,
+   "f0_range_st": 7.5776505010151105,
+   "hnr": 7.730407280143067,
+   "tilt_db_oct": -7.815328934136296,
+   "alpha_ratio_db": -12.50962787619999
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8102282583713531,
+    "minconf": 0.6458438634872437
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8918807506561279,
+    "minconf": 0.7951143383979797
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo4d": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.893968253968254,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 229.73790194318806,
+   "f0_mean": 237.88807565660488,
+   "f0_sd_st": 2.4815378687106375,
+   "f0_range_st": 6.821661098204585,
+   "hnr": 3.4823941983045126,
+   "tilt_db_oct": -5.735577747554078,
+   "alpha_ratio_db": -3.323223743948856
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8333803713321686,
+    "minconf": 0.6930784583091736
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8809228837490082,
+    "minconf": 0.7675284147262573
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo5": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.9504761904761905,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 204.93008950854403,
+   "f0_mean": 214.80962968397682,
+   "f0_sd_st": 2.9012908772416313,
+   "f0_range_st": 9.104661816696723,
+   "hnr": 7.955228113488532,
+   "tilt_db_oct": -6.60967587829975,
+   "alpha_ratio_db": -11.413194661493202
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9138834118843079,
+    "minconf": 0.6386216282844543
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8938127100467682,
+    "minconf": 0.5107213854789734
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo6a": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.497687074829932,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 219.6771761660657,
+   "f0_mean": 218.83383545490517,
+   "f0_sd_st": 2.6703002405682756,
+   "f0_range_st": 8.542019668317174,
+   "hnr": 12.986545131230667,
+   "tilt_db_oct": -7.241523780052321,
+   "alpha_ratio_db": -16.77992887522384
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "I'm waitress and I'm a studio.",
+    "wer": 1.6666666666666667,
+    "errors": 5,
+    "nref": 3,
+    "conf": 0.5753694574038187,
+    "minconf": 0.3637641370296478
+   },
+   "base.en": {
+    "hyp": "I'm Rita Sinema Studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.6652668081223965,
+    "minconf": 0.475229948759079
+   }
+  }
+ },
+ "en_GB-alba-medium|1|vo6b": {
+  "voice": "en_GB-alba-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.8924263038548752,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 187.3060242726599,
+   "f0_mean": 190.5775559921988,
+   "f0_sd_st": 1.757275105832856,
+   "f0_range_st": 5.233239103267499,
+   "hnr": 11.946578095417667,
+   "tilt_db_oct": -7.064993531700718,
+   "alpha_ratio_db": -13.33622151162178
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.8405264417330424,
+    "minconf": 0.573524534702301
+   },
+   "base.en": {
+    "hyp": "your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.782630036274592,
+    "minconf": 0.4311313331127167
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo1": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.020136054421769,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 187.5594173400074,
+   "f0_mean": 188.0275694017751,
+   "f0_sd_st": 6.189194884158664,
+   "f0_range_st": 19.680391745772894,
+   "hnr": 11.470107828952539,
+   "tilt_db_oct": -6.9734841200021505,
+   "alpha_ratio_db": -8.857729102427086
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blink page.",
+    "wer": 0.14285714285714285,
+    "errors": 1,
+    "nref": 7,
+    "conf": 0.827899477311543,
+    "minconf": 0.4715079367160797
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.8750873718942914,
+    "minconf": 0.4098415970802307
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo2": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.2275736961451247,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 184.4197956095079,
+   "f0_mean": 180.05970356359632,
+   "f0_sd_st": 5.0849791549934915,
+   "f0_range_st": 16.958062017523005,
+   "hnr": 12.493915045465286,
+   "tilt_db_oct": -8.135842730788752,
+   "alpha_ratio_db": -11.841169020737667
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "for a hundred and thirty years, get to the army to make a movie.",
+    "wer": 0.2727272727272727,
+    "errors": 3,
+    "nref": 11,
+    "conf": 0.8646115681954792,
+    "minconf": 0.3716168701648712
+   },
+   "base.en": {
+    "hyp": "for 130 years, get to the army to make a movie.",
+    "wer": 0.2727272727272727,
+    "errors": 3,
+    "nref": 11,
+    "conf": 0.8564484932205894,
+    "minconf": 0.5659993290901184
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo3a": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.3931972789115645,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 180.1896023886422,
+   "f0_mean": 175.8274935857979,
+   "f0_sd_st": 5.432175118122282,
+   "f0_range_st": 18.350997105385826,
+   "hnr": 10.201828625737116,
+   "tilt_db_oct": -7.246038795869681,
+   "alpha_ratio_db": -10.916747927723641
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8449804306030273,
+    "minconf": 0.6270679235458374
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9282952547073364,
+    "minconf": 0.8691626787185669
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo3b": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 0.8823582766439909,
+  "win": 1,
+  "metrics": {
+   "f0_med": 182.41599052592866,
+   "f0_mean": 177.25280632791203,
+   "f0_sd_st": 4.602386689703006,
+   "f0_range_st": 17.881306875189463,
+   "hnr": 12.491391160417725,
+   "tilt_db_oct": -7.842585341213681,
+   "alpha_ratio_db": -14.862384247561991
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet Amrita.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.535619929432869,
+    "minconf": 0.4321596324443817
+   },
+   "base.en": {
+    "hyp": "Meet Amrita.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6656182358662288,
+    "minconf": 0.6446177363395691
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo4a": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.7894784580498866,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 196.83161610362035,
+   "f0_mean": 198.09929133777632,
+   "f0_sd_st": 1.6210370928786222,
+   "f0_range_st": 5.682134385595691,
+   "hnr": 10.836659917661375,
+   "tilt_db_oct": -6.144668139146677,
+   "alpha_ratio_db": -9.315549712178397
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7082889825105667,
+    "minconf": 0.4710753262042999
+   },
+   "base.en": {
+    "hyp": "she writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.659132182598114,
+    "minconf": 0.3484953045845032
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo4b": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.8010884353741496,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 186.27528106675203,
+   "f0_mean": 187.0970372366669,
+   "f0_sd_st": 1.2573739949541796,
+   "f0_range_st": 3.388789912763662,
+   "hnr": 1.3290582502600603,
+   "tilt_db_oct": -4.156129403796181,
+   "alpha_ratio_db": -7.903464259766915
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "she shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7051399052143097,
+    "minconf": 0.4386764168739319
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7569512128829956,
+    "minconf": 0.5514653921127319
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo4c": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 0.9404081632653061,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 86.13667482182363,
+   "f0_mean": 116.11012596630871,
+   "f0_sd_st": 7.278969188322726,
+   "f0_range_st": 18.849575788534683,
+   "hnr": 3.4037903225011985,
+   "tilt_db_oct": -7.931914446695419,
+   "alpha_ratio_db": -14.138203131123934
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7256098389625549,
+    "minconf": 0.6719933152198792
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8335844278335571,
+    "minconf": 0.7068496942520142
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo4d": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.8475283446712019,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 240.42586137789607,
+   "f0_mean": 262.8201582861722,
+   "f0_sd_st": 3.187083999410519,
+   "f0_range_st": 8.427927985483175,
+   "hnr": 3.5555825236896577,
+   "tilt_db_oct": -5.97215090918495,
+   "alpha_ratio_db": -8.818389241997963
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7743702232837677,
+    "minconf": 0.5569950342178345
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6861424297094345,
+    "minconf": 0.38077470660209656
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo5": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.3931972789115645,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 179.26224062281003,
+   "f0_mean": 161.02266677298198,
+   "f0_sd_st": 7.4477510142347665,
+   "f0_range_st": 23.2646819818519,
+   "hnr": 5.783853088136384,
+   "tilt_db_oct": -6.3970548161690886,
+   "alpha_ratio_db": -11.971583840857093
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9013248562812806,
+    "minconf": 0.5726069211959839
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8867652595043183,
+    "minconf": 0.490569144487381
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo6a": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.3931972789115645,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 187.29787189678652,
+   "f0_mean": 159.67270748089896,
+   "f0_sd_st": 7.190673893384721,
+   "f0_range_st": 18.091930087795255,
+   "hnr": 9.097679178969075,
+   "tilt_db_oct": -7.355384716218931,
+   "alpha_ratio_db": -12.92767221642345
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and read a cinema studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.8219100117683411,
+    "minconf": 0.6726757884025574
+   },
+   "base.en": {
+    "hyp": "and read a cinema studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.7887612104415893,
+    "minconf": 0.5315946340560913
+   }
+  }
+ },
+ "en_US-libritts-high|1|vo6b": {
+  "voice": "en_US-libritts-high",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.5325170068027212,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 166.10923054127082,
+   "f0_mean": 140.33932325770223,
+   "f0_sd_st": 5.687969470567858,
+   "f0_range_st": 14.217977002249665,
+   "hnr": 8.215073455958745,
+   "tilt_db_oct": -6.442011197551299,
+   "alpha_ratio_db": -8.316632282329914
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.796406884988149,
+    "minconf": 0.5102033019065857
+   },
+   "base.en": {
+    "hyp": "your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.8663721680641174,
+    "minconf": 0.6552518606185913
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo1": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.2407256235827666,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 113.14022929642718,
+   "f0_mean": 115.8441128726165,
+   "f0_sd_st": 4.572963369147254,
+   "f0_range_st": 15.243986413821887,
+   "hnr": 8.077769295651791,
+   "tilt_db_oct": -5.51774194396175,
+   "alpha_ratio_db": -5.05829306565121
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.933919336114611,
+    "minconf": 0.6509107947349548
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9628277676446098,
+    "minconf": 0.7971631288528442
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo2": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 3.4249433106575964,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 125.4202839104704,
+   "f0_mean": 127.29753906008287,
+   "f0_sd_st": 4.454465961969184,
+   "f0_range_st": 13.239180306495676,
+   "hnr": 9.57778518020867,
+   "tilt_db_oct": -5.0134663448845895,
+   "alpha_ratio_db": -5.125527311331297
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For 130 years, it took an army to make a movie. Thank you.",
+    "wer": 0.18181818181818182,
+    "errors": 2,
+    "nref": 11,
+    "conf": 0.876262044104246,
+    "minconf": 0.0303824320435524
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9722425395792181,
+    "minconf": 0.8942241072654724
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo3a": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.7763265306122449,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 108.54139969397616,
+   "f0_mean": 105.97181950978573,
+   "f0_sd_st": 3.6687816689667354,
+   "f0_range_st": 12.556751580928939,
+   "hnr": 8.557385856143975,
+   "tilt_db_oct": -5.029969090893771,
+   "alpha_ratio_db": -6.185895352877708
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8902278542518616,
+    "minconf": 0.8080812096595764
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9074417114257812,
+    "minconf": 0.7601386904716492
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo3b": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.0216780045351475,
+  "win": 1,
+  "metrics": {
+   "f0_med": 99.40178414515816,
+   "f0_mean": 115.77577887670658,
+   "f0_sd_st": 5.723648096154669,
+   "f0_range_st": 17.629173802443194,
+   "hnr": 7.994597363831933,
+   "tilt_db_oct": -5.654889646315515,
+   "alpha_ratio_db": -5.840249231139723
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Me, dumrita.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.35949012264609337,
+    "minconf": 0.265874445438385
+   },
+   "base.en": {
+    "hyp": "Meadam Rita.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.4676473972698053,
+    "minconf": 0.27464960763851803
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo4a": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.9404081632653061,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 101.50598388479327,
+   "f0_mean": 112.7668199427513,
+   "f0_sd_st": 3.1283292129767424,
+   "f0_range_st": 8.67235717006328,
+   "hnr": 4.555831139749352,
+   "tilt_db_oct": -4.24719170988903,
+   "alpha_ratio_db": -2.9658192756870534
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "See your rights.",
+    "wer": 1.5,
+    "errors": 3,
+    "nref": 2,
+    "conf": 0.5227471391359965,
+    "minconf": 0.26626771688461304
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8030863404273987,
+    "minconf": 0.7493047118186951
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo4b": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 1.0448979591836736,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 128.87051181281208,
+   "f0_mean": 125.20282840774723,
+   "f0_sd_st": 1.2523454839544417,
+   "f0_range_st": 4.161068674681647,
+   "hnr": 2.2183928003442928,
+   "tilt_db_oct": -2.9932636313709793,
+   "alpha_ratio_db": -6.180747877893738
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8303043842315674,
+    "minconf": 0.6731553673744202
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8698710799217224,
+    "minconf": 0.7659489512443542
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo4c": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 0.9984580498866213,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 123.33994481540424,
+   "f0_mean": 116.2328707346126,
+   "f0_sd_st": 5.287543686020197,
+   "f0_range_st": 13.973126022556857,
+   "hnr": 4.548029953556642,
+   "tilt_db_oct": -6.29660826508828,
+   "alpha_ratio_db": -5.584630683657422
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8429409861564636,
+    "minconf": 0.7055599093437195
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8577715158462524,
+    "minconf": 0.7350280284881592
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo4d": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.9287981859410431,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 126.11076264181702,
+   "f0_mean": 114.37038559468644,
+   "f0_sd_st": 2.9337828278673825,
+   "f0_range_st": 7.668274747208654,
+   "hnr": 4.218538750030941,
+   "tilt_db_oct": -3.412592737580308,
+   "alpha_ratio_db": -2.8377455534040346
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7950680255889893,
+    "minconf": 0.6079684495925903
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8504194021224976,
+    "minconf": 0.7024656534194946
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo5": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.9736961451247166,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 125.68181902672502,
+   "f0_mean": 122.84251245571298,
+   "f0_sd_st": 3.538590642787422,
+   "f0_range_st": 13.23082036322952,
+   "hnr": 6.788519350361744,
+   "tilt_db_oct": -4.194426925184901,
+   "alpha_ratio_db": -3.4881824263711145
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9309483706951142,
+    "minconf": 0.6975178718566895
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9160379230976105,
+    "minconf": 0.6076716780662537
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo6a": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.6486167800453515,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 135.32774327473106,
+   "f0_mean": 130.9160980900344,
+   "f0_sd_st": 5.219286316835725,
+   "f0_range_st": 15.443615652392491,
+   "hnr": 7.484512973999709,
+   "tilt_db_oct": -5.076797407777043,
+   "alpha_ratio_db": -6.7909453818008725
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "I'm Rita Senna, my studio.",
+    "wer": 1.3333333333333333,
+    "errors": 4,
+    "nref": 3,
+    "conf": 0.7181957751512528,
+    "minconf": 0.3363759070634842
+   },
+   "base.en": {
+    "hyp": "I'm Rita Sinema Studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.7603245203693708,
+    "minconf": 0.6095118721326193
+   }
+  }
+ },
+ "en_US-hfc_male-medium|1|vo6b": {
+  "voice": "en_US-hfc_male-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.6370068027210884,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 121.46448323039607,
+   "f0_mean": 114.76173991400003,
+   "f0_sd_st": 5.410136524484172,
+   "f0_range_st": 15.806489358913367,
+   "hnr": 7.476830751988426,
+   "tilt_db_oct": -5.685126752380612,
+   "alpha_ratio_db": -4.030788039787747
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.6948755582173666,
+    "minconf": 0.4667145609855652
+   },
+   "base.en": {
+    "hyp": "Your story, directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.77813853820165,
+    "minconf": 0.6124044060707092
+   }
+  }
+ },
+ "en_US-john-medium|1|vo1": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.681904761904762,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 89.82185983643349,
+   "f0_mean": 92.5715892359874,
+   "f0_sd_st": 1.8089668785545103,
+   "f0_range_st": 5.790812834016863,
+   "hnr": 6.749942117176196,
+   "tilt_db_oct": -5.731775212385769,
+   "alpha_ratio_db": -8.753313726229685
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.8958358764648438,
+    "minconf": 0.37868988513946533
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9626187426703317,
+    "minconf": 0.8003096580505371
+   }
+  }
+ },
+ "en_US-john-medium|1|vo2": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 4.446621315192743,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 109.79066144825273,
+   "f0_mean": 107.69363650279652,
+   "f0_sd_st": 3.383756027493193,
+   "f0_range_st": 12.741139569653777,
+   "hnr": 7.97440970275566,
+   "tilt_db_oct": -5.705866080462902,
+   "alpha_ratio_db": -8.775623380840553
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For a hundred and thirty years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.90239075251988,
+    "minconf": 0.3638957738876343
+   },
+   "base.en": {
+    "hyp": "for 130 years. It took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9227498011155562,
+    "minconf": 0.5408486723899841
+   }
+  }
+ },
+ "en_US-john-medium|1|vo3a": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.8692063492063493,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 87.87286182671053,
+   "f0_mean": 95.54651275220442,
+   "f0_sd_st": 2.685221123293098,
+   "f0_range_st": 7.197287850072561,
+   "hnr": 8.16896937012594,
+   "tilt_db_oct": -6.0315999869956585,
+   "alpha_ratio_db": -10.256856212997079
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8233654141426087,
+    "minconf": 0.611785888671875
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9048345565795899,
+    "minconf": 0.826153576374054
+   }
+  }
+ },
+ "en_US-john-medium|1|vo3b": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.1493877551020408,
+  "win": 1,
+  "metrics": {
+   "f0_med": 97.81207045558006,
+   "f0_mean": 96.70379011082103,
+   "f0_sd_st": 1.5744999471129393,
+   "f0_range_st": 5.063513377229864,
+   "hnr": 8.211432531841702,
+   "tilt_db_oct": -5.123730183963839,
+   "alpha_ratio_db": -7.763537719475364
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet Emeter.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.23085718601942062,
+    "minconf": 0.19752973318099976
+   },
+   "base.en": {
+    "hyp": "Neat Emreiter.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.4376145303249359,
+    "minconf": 0.3279742896556854
+   }
+  }
+ },
+ "en_US-john-medium|1|vo4a": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.893968253968254,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 81.44037717961405,
+   "f0_mean": 83.12721874662867,
+   "f0_sd_st": 2.4497889556912726,
+   "f0_range_st": 7.176036306292617,
+   "hnr": 3.1261642821422577,
+   "tilt_db_oct": -4.0851217244744005,
+   "alpha_ratio_db": -3.6798417238500076
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8724775314331055,
+    "minconf": 0.771654486656189
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8267433941364288,
+    "minconf": 0.6768478155136108
+   }
+  }
+ },
+ "en_US-john-medium|1|vo4b": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.8359183673469388,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 91.96552317416075,
+   "f0_mean": 95.90891800437568,
+   "f0_sd_st": 4.658368795580884,
+   "f0_range_st": 12.255137099772941,
+   "hnr": 0.80606440142642,
+   "tilt_db_oct": -3.1057420535017024,
+   "alpha_ratio_db": -2.782269672490152
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8451153635978699,
+    "minconf": 0.694924533367157
+   },
+   "base.en": {
+    "hyp": "She shoots.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8914117217063904,
+    "minconf": 0.792391836643219
+   }
+  }
+ },
+ "en_US-john-medium|1|vo4c": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 1.0216780045351475,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 85.42343311054012,
+   "f0_mean": 84.34066081920835,
+   "f0_sd_st": 2.805465422492186,
+   "f0_range_st": 8.338324946025839,
+   "hnr": 1.6444061601981355,
+   "tilt_db_oct": -6.203850153343059,
+   "alpha_ratio_db": -10.020519274309175
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8248548805713654,
+    "minconf": 0.7343699336051941
+   },
+   "base.en": {
+    "hyp": "She scores.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8827400207519531,
+    "minconf": 0.7807961106300354
+   }
+  }
+ },
+ "en_US-john-medium|1|vo4d": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.9752380952380952,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 97.0783760258025,
+   "f0_mean": 91.82907227825268,
+   "f0_sd_st": 2.55710755896624,
+   "f0_range_st": 6.2718170501486235,
+   "hnr": 0.8824122452805396,
+   "tilt_db_oct": -3.8046090233649146,
+   "alpha_ratio_db": -3.6655954535416746
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.8139233887195587,
+    "minconf": 0.6382613182067871
+   },
+   "base.en": {
+    "hyp": "Cheat Cuts",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.5532639101147652,
+    "minconf": 0.34307609498500824
+   }
+  }
+ },
+ "en_US-john-medium|1|vo5": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 2.403265306122449,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 102.18198219158802,
+   "f0_mean": 105.68062005006482,
+   "f0_sd_st": 1.981193271963743,
+   "f0_range_st": 5.630216226183937,
+   "hnr": 6.214082365807834,
+   "tilt_db_oct": -5.03591729063226,
+   "alpha_ratio_db": -6.7838021005827915
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started. Good.",
+    "wer": 0.2,
+    "errors": 1,
+    "nref": 5,
+    "conf": 0.7617240830635031,
+    "minconf": 0.011562159284949303
+   },
+   "base.en": {
+    "hyp": "And she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8739286482334137,
+    "minconf": 0.43259862065315247
+   }
+  }
+ },
+ "en_US-john-medium|1|vo6a": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo6a",
+  "dur": 1.7298866213151927,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 116.64338270652847,
+   "f0_mean": 123.15527768346966,
+   "f0_sd_st": 3.9634587870980487,
+   "f0_range_st": 13.058714053397868,
+   "hnr": 7.7629500108048894,
+   "tilt_db_oct": -6.133269921849748,
+   "alpha_ratio_db": -11.265360617947305
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and read her cinemas studio.",
+    "wer": 1.3333333333333333,
+    "errors": 4,
+    "nref": 3,
+    "conf": 0.6605584710836411,
+    "minconf": 0.19346635043621063
+   },
+   "base.en": {
+    "hyp": "and read her cinema studio.",
+    "wer": 1.0,
+    "errors": 3,
+    "nref": 3,
+    "conf": 0.5712607324123382,
+    "minconf": 0.1338404417037964
+   }
+  }
+ },
+ "en_US-john-medium|1|vo6b": {
+  "voice": "en_US-john-medium",
+  "seed": 1,
+  "id": "vo6b",
+  "dur": 1.9040362811791383,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 133.66039762577864,
+   "f0_mean": 130.6498806715647,
+   "f0_sd_st": 4.497128887649986,
+   "f0_range_st": 11.771543095742818,
+   "hnr": 6.138253936057851,
+   "tilt_db_oct": -5.213111956334979,
+   "alpha_ratio_db": -8.110630123297199
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.817075510819753,
+    "minconf": 0.6440598964691162
+   },
+   "base.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7406376798947653,
+    "minconf": 0.6337958574295044
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo1": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo1",
+  "dur": 2.0085260770975055,
+  "win": 2.45,
+  "metrics": {
+   "f0_med": 115.95990894141165,
+   "f0_mean": 125.52622923683366,
+   "f0_sd_st": 4.4137063486530765,
+   "f0_range_st": 15.65650746469883,
+   "hnr": 7.398020466424582,
+   "tilt_db_oct": -6.7304648057112795,
+   "alpha_ratio_db": -8.622427483280813
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9163115450314113,
+    "minconf": 0.5874220728874207
+   },
+   "base.en": {
+    "hyp": "Every film starts with a blank page.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 7,
+    "conf": 0.9632014632225037,
+    "minconf": 0.8385797142982483
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo2": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo2",
+  "dur": 2.8328344671201813,
+  "win": 5.399999999999999,
+  "metrics": {
+   "f0_med": 102.8992887292817,
+   "f0_mean": 104.43184351580804,
+   "f0_sd_st": 3.4854155961012947,
+   "f0_range_st": 11.590776459949591,
+   "hnr": 9.608610228385679,
+   "tilt_db_oct": -6.84614371854983,
+   "alpha_ratio_db": -10.15221151701449
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9326617609370839,
+    "minconf": 0.7143917679786682
+   },
+   "base.en": {
+    "hyp": "For 130 years, it took an army to make a movie.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 11,
+    "conf": 0.9523399688980796,
+    "minconf": 0.818124532699585
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo3a": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo3a",
+  "dur": 1.4048072562358276,
+  "win": 2.1000000000000014,
+  "metrics": {
+   "f0_med": 99.77893860958497,
+   "f0_mean": 100.49127427177731,
+   "f0_sd_st": 2.9873752856766247,
+   "f0_range_st": 9.03111827729903,
+   "hnr": 5.98164496751657,
+   "tilt_db_oct": -6.640289739231457,
+   "alpha_ratio_db": -7.834654640468966
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8738962173461914,
+    "minconf": 0.7401936054229736
+   },
+   "base.en": {
+    "hyp": "Now it takes one director.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9016954302787781,
+    "minconf": 0.7808759808540344
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo3b": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo3b",
+  "dur": 1.1261678004535147,
+  "win": 1,
+  "metrics": {
+   "f0_med": 91.10876118628141,
+   "f0_mean": 92.59368202961248,
+   "f0_sd_st": 2.9652480739037004,
+   "f0_range_st": 9.625762737342722,
+   "hnr": 10.56761441884888,
+   "tilt_db_oct": -6.820949058819444,
+   "alpha_ratio_db": -8.660225846705902
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Meet a reader.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.5089569787184397,
+    "minconf": 0.20934081077575684
+   },
+   "base.en": {
+    "hyp": "Meet a reader.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.7621060808499655,
+    "minconf": 0.7186663150787354
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo4a": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo4a",
+  "dur": 0.8823582766439909,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 96.55987803580338,
+   "f0_mean": 99.42340800258009,
+   "f0_sd_st": 1.6308425584574577,
+   "f0_range_st": 4.080586869049689,
+   "hnr": 8.705324947477026,
+   "tilt_db_oct": -6.608602759877858,
+   "alpha_ratio_db": -6.398781742864105
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6627206653356552,
+    "minconf": 0.3665877878665924
+   },
+   "base.en": {
+    "hyp": "She writes.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.6856434345245361,
+    "minconf": 0.38642609119415283
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo4b": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo4b",
+  "dur": 0.905578231292517,
+  "win": 1.6999999999999993,
+  "metrics": {
+   "f0_med": 95.6481826509006,
+   "f0_mean": 89.44148112850458,
+   "f0_sd_st": 3.151510042610345,
+   "f0_range_st": 9.198834095379052,
+   "hnr": 2.7772077516981595,
+   "tilt_db_oct": -2.6793683896426805,
+   "alpha_ratio_db": -3.930983892261275
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Okay, shoots.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.5084202215075493,
+    "minconf": 0.14876429736614227
+   },
+   "base.en": {
+    "hyp": "check shoots.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.4830003008246422,
+    "minconf": 0.2160971611738205
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo4c": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo4c",
+  "dur": 1.0216780045351475,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 102.48690303547833,
+   "f0_mean": 123.70343379239485,
+   "f0_sd_st": 4.675128270543934,
+   "f0_range_st": 10.717958527855808,
+   "hnr": 5.414033612486075,
+   "tilt_db_oct": -6.750523620375928,
+   "alpha_ratio_db": -14.172503586012583
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She has scores.",
+    "wer": 0.5,
+    "errors": 1,
+    "nref": 2,
+    "conf": 0.4866239329179128,
+    "minconf": 0.14620065689086914
+   },
+   "base.en": {
+    "hyp": "She is course.",
+    "wer": 1.0,
+    "errors": 2,
+    "nref": 2,
+    "conf": 0.517456998427709,
+    "minconf": 0.2933746874332428
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo4d": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo4d",
+  "dur": 0.8243083900226758,
+  "win": 1.7000000000000028,
+  "metrics": {
+   "f0_med": 167.40587138207778,
+   "f0_mean": 156.39818767454247,
+   "f0_sd_st": 5.204656037393706,
+   "f0_range_st": 13.193617027972804,
+   "hnr": 3.7103673539134907,
+   "tilt_db_oct": -5.704744099892527,
+   "alpha_ratio_db": -8.323835929277895
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7761571407318115,
+    "minconf": 0.580895721912384
+   },
+   "base.en": {
+    "hyp": "She cuts.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 2,
+    "conf": 0.7480647265911102,
+    "minconf": 0.5060028433799744
+   }
+  }
+ },
+ "en_US-norman-medium|1|vo5": {
+  "voice": "en_US-norman-medium",
+  "seed": 1,
+  "id": "vo5",
+  "dur": 1.555736961451247,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 111.66574095766651,
+   "f0_mean": 114.39187795975745,
+   "f0_sd_st": 3.0516671417286854,
+   "f0_range_st": 7.9829290643210005,
+   "hnr": 7.124284595412612,
+   "tilt_db_oct": -5.9353790815075875,
+   "alpha_ratio_db": -9.189646349759608
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she was just getting started.",
+    "wer": 0.4,
+    "errors": 2,
+    "nref": 5,
+    "conf": 0.8500441114107767,
+    "minconf": 0.682948648929596
+   },
+   "base.en": {
+    "hyp": "and she was just getting started.",
+    "wer": 0.4,
+    "errors": 2,
+    "nref": 5,
+    "conf": 0.80951460202535,
+    "minconf": 0.5589883327484131
+   }
+  }
+ }
+}

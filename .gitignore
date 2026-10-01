@@ -1,0 +1,10 @@
+node_modules/
+.venv/
+__pycache__/
+promo/audio/build/
+promo/audio/**/.venv/
+promo/audio/vo/models/
+promo/cache/
+promo/out/tmp/
+promo/out/stills/
+*.log

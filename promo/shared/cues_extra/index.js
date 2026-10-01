@@ -1,0 +1,27 @@
+// Aggregates per-scene extra cue events. Generated list; each scene author edits ONLY their own file.
+import x_coldopen from './coldopen.js';
+import x_e1895 from './e1895.js';
+import x_e1902 from './e1902.js';
+import x_e1927 from './e1927.js';
+import x_e1939 from './e1939.js';
+import x_e1960 from './e1960.js';
+import x_e1977 from './e1977.js';
+import x_e1993 from './e1993.js';
+import x_e2009 from './e2009.js';
+import x_e2025 from './e2025.js';
+import x_turn from './turn.js';
+import x_job_script from './job_script.js';
+import x_job_storyboard from './job_storyboard.js';
+import x_job_camera from './job_camera.js';
+import x_job_light from './job_light.js';
+import x_job_cast from './job_cast.js';
+import x_job_score from './job_score.js';
+import x_job_edit from './job_edit.js';
+import x_job_color from './job_color.js';
+import x_f2050 from './f2050.js';
+import x_f2100 from './f2100.js';
+import x_f2150 from './f2150.js';
+import x_recap from './recap.js';
+import x_endcard from './endcard.js';
+const all = [x_coldopen, x_e1895, x_e1902, x_e1927, x_e1939, x_e1960, x_e1977, x_e1993, x_e2009, x_e2025, x_turn, x_job_script, x_job_storyboard, x_job_camera, x_job_light, x_job_cast, x_job_score, x_job_edit, x_job_color, x_f2050, x_f2100, x_f2150, x_recap, x_endcard, ];
+export default { sfx: all.flatMap((x) => x.sfx || []), crowd: all.flatMap((x) => x.crowd || []) };

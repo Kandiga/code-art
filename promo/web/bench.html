@@ -1,0 +1,50 @@
+<!doctype html><html><body style="margin:0;background:#000">
+<canvas id="c"></canvas>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js';
+const W=+new URLSearchParams(location.search).get('w')||1920, H=Math.round(W*9/16);
+const canvas=document.getElementById('c');
+const r=new THREE.WebGLRenderer({canvas,antialias:false,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+r.setPixelRatio(1); r.setSize(W,H,false);
+r.shadowMap.enabled=true; r.shadowMap.type=THREE.PCFSoftShadowMap;
+r.toneMapping=THREE.ACESFilmicToneMapping;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x05060a); scene.fog=new THREE.FogExp2(0x05060a,0.03);
+const cam=new THREE.PerspectiveCamera(32,W/H,0.1,100); cam.position.set(0,1.6,7);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x222226,roughness:0.35,metalness:0.2}));
+floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+for(let i=0;i<40;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.5,.5+(i%5)*.3,.5),new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(i/40,.5,.5),roughness:.4,metalness:.3}));
+ m.position.set((i%10-5)*1.1,.3,-Math.floor(i/10)*1.3); m.castShadow=true; m.receiveShadow=true; scene.add(m);}
+const sp=new THREE.SpotLight(0xffe2b0,300,40,.5,.5,2); sp.position.set(3,8,4); sp.castShadow=true; sp.shadow.mapSize.set(1024,1024); scene.add(sp,sp.target);
+scene.add(new THREE.AmbientLight(0x223355,.4));
+const comp=new EffectComposer(r); comp.setPixelRatio(1); comp.setSize(W,H);
+comp.addPass(new RenderPass(scene,cam));
+// gather-bokeh DOF using a depth texture
+const rt=comp.renderTarget1; 
+const depthTex=new THREE.DepthTexture(W,H); 
+const dofShader={uniforms:{tDiffuse:{value:null},tDepth:{value:null},focus:{value:7},aperture:{value:.04},maxblur:{value:.012},near:{value:.1},far:{value:100},aspect:{value:W/H}},
+vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+fragmentShader:`uniform sampler2D tDiffuse,tDepth;uniform float focus,aperture,maxblur,near,far,aspect;varying vec2 vUv;
+float lin(float d){float z=d*2.-1.;return 2.*near*far/(far+near-z*(far-near));}
+void main(){float d=lin(texture2D(tDepth,vUv).x);float coc=clamp(abs(d-focus)/d*aperture*8.,0.,maxblur);vec4 c=vec4(0);float w=0.;
+const int N=24;for(int i=0;i<N;i++){float a=float(i)*2.39996323;float rr=sqrt((float(i)+.5)/float(N));vec2 o=vec2(cos(a),sin(a)*aspect)*rr*coc;o.y/=aspect;o.x*=1.;vec2 uv=vUv+vec2(o.x,o.y*aspect*0.0+o.y);c+=texture2D(tDiffuse,uv);w+=1.;}
+gl_FragColor=c/w;}`};
+const dofPass=new ShaderPass(dofShader);
+// attach depth texture to composer's render targets
+for(const t of [comp.renderTarget1,comp.renderTarget2]){t.depthTexture=new THREE.DepthTexture(W,H);t.depthBuffer=true;}
+const rp=comp.passes[0];
+dofPass.uniforms.tDepth.value=comp.renderTarget1.depthTexture;
+comp.addPass(dofPass);
+comp.addPass(new UnrealBloomPass(new THREE.Vector2(W,H),.4,.6,.85));
+comp.addPass(new OutputPass());
+window.bench=async(n,sub)=>{const t0=performance.now();let tc=0;
+ for(let i=0;i<n;i++){for(let s=0;s<sub;s++){cam.position.x=Math.sin((i+s/sub)*.05)*2;cam.lookAt(0,.8,-1);comp.render();}
+  r.getContext().finish(); const t1=performance.now(); const u=canvas.toDataURL('image/jpeg',.92); tc+=performance.now()-t1;}
+ return {ms:(performance.now()-t0)/n, capMs:tc/n, W,H, gl:r.getContext().getParameter(r.getContext().VERSION), renderer:(()=>{const e=r.getContext().getExtension('WEBGL_debug_renderer_info');return e?r.getContext().getParameter(e.UNMASKED_RENDERER_WEBGL):'?'})()};};
+window.ready=true;
+</script></body></html>
