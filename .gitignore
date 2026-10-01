@@ -12,9 +12,11 @@ promo/out/stills/
 promo/audio/**/*.wav
 promo/audio/**/*.png
 promo/audio/vo/work/
-promo/audio/vo/raw/
 promo/audio/crowd/lib/
 promo/out/stills/
 promo/out/tmp/
 promo/out/lint.json
 promo/out/render_progress_*.json
+# keep the VO shaped-take cache (Praat gender-shift is non-deterministic; cache makes the voice reproducible)
+!promo/audio/vo/raw/
+!promo/audio/vo/raw/*.wav

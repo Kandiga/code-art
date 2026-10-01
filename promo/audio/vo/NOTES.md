@@ -69,27 +69,34 @@ voice in a 9-voice 'Hello!' probe) shifted brighter/nasal (formant x1.09, median
 * vo_hello: room 0.35 s -> 300-3500 Hz band-pass + 2.4 kHz resonance -> asymmetric soft clip -> wow 0.35 % @0.9 Hz + flutter 0.18 % @7 Hz -> optical hiss (-34 dB),
   24 Hz frame thump, Poisson dust crackle; the noise is gated like an optical noise-reduction shutter (only around the word).
 
-## Final results (processed lines, `verify.py`)
-| id | t0 | speech end | maxEnd | peak dBFS | LUFS | -60 dB tail end | WER small.en | WER base.en (no prompt) |
+## Final results (processed lines, `verify.py`, stem md5 8906552d...)
+| id | t0 | speech end | maxEnd | peak dBFS | LUFS | -60 dB tail end | WER small.en | WER base.en (+brand prompt) |
 |---|---|---|---|---|---|---|---|---|
-| vo1 | 1.5 | 3.768 | 3.95 | -4.25 | -20.0 | 4.131 | 0% | 0% |
-| vo_hello | 9 | 9.468 | 9.7 | -9.41 | -20.0 | 9.593 | 0% | 0% |
-| vo2 | 16 | 20.380 | 21.4 | -6.9 | -20.0 | 20.876 | 0% | 0% |
-| vo3a | 22.5 | 24.166 | 24.6 | -6.99 | -20.0 | 24.705 | 0% | 0% |
-| vo3b | 25 | 25.869 | 26 | -11.6 | -20.0 | 25.961 | 0% | 100% |
-| vo4a | 26 | 26.834 | 27.7 | -7.62 | -20.0 | 27.099 | 0% | 0% |
-| vo4b | 30 | 30.617 | 31.7 | -8.37 | -20.0 | 31.009 | 0% | 0% |
-| vo4c | 36 | 36.816 | 37.7 | -8.57 | -20.0 | 37.291 | 0% | 0% |
-| vo4d | 38 | 38.646 | 39.7 | -7.59 | -20.0 | 39.014 | 0% | 0% |
-| vo5 | 46 | 47.625 | 49.2 | -7.26 | -20.0 | 48.145 | 0% | 0% |
-| vo6a | 55 | 56.309 | 56.45 | -5.42 | -20.0 | 56.456 | 0% | 67% |
-| vo6b | 56.5 | 57.895 | 57.95 | -8.87 | -20.0 | 58.433 | 0% | 0% |
+| vo1 | 1.5 | 3.765 | 3.95 | -3.95 | -20.0 | 4.151 | 0% | 0% |
+| vo_hello | 9 | 9.468 | 9.7 | -9.4 | -20.0 | 9.593 | 0% | 100% |
+| vo2 | 16 | 20.382 | 21.4 | -6.72 | -20.0 | 20.874 | 0% | 0% |
+| vo3a | 22.5 | 24.167 | 24.6 | -4.46 | -20.0 | 24.709 | 0% | 0% |
+| vo3b | 25 | 25.968 | 26 | -10.43 | -20.0 | 25.984 | 0% | 50% |
+| vo4a | 26 | 26.816 | 27.7 | -7.7 | -20.0 | 27.087 | 0% | 0% |
+| vo4b | 30 | 30.618 | 31.7 | -8.24 | -20.0 | 31.008 | 0% | 0% |
+| vo4c | 36 | 36.907 | 37.7 | -8.51 | -20.0 | 37.291 | 0% | 0% |
+| vo4d | 38 | 38.647 | 39.7 | -7.4 | -20.0 | 39.005 | 0% | 0% |
+| vo5 | 46 | 47.623 | 49.2 | -7.39 | -20.0 | 48.149 | 0% | 0% |
+| vo6a | 55 | 56.316 | 56.45 | -4.11 | -20.0 | 56.453 | 0% | 67% |
+| vo6b | 56.5 | 57.886 | 57.95 | -8.86 | -20.0 | 58.43 | 0% | 33% |
 
-Onset error 0.00 ms on all lines (stem == exact sum of placed lines). True peak <= -3 dBTP everywhere. Overall WER **0/48 words (small.en)**.
-base.en with the brand prompt scores 16.7 % but every miss is a hallucinated word after the real speech ("Yeah", "See you", "us", doubled "Hello")
-in the padding/reverb tail; small.en and base.en-without-prompt read all 12 lines correctly (4/48 only from those same tail words). Real "Amrita" is
-transcribed correctly by small.en in vo3b and vo6a. Spectrogram of the stem: `audio/build/vo/_vo_stem_spectrogram.png` (a thin horizontal stripe near 1.8 kHz is
-an artefact of ffmpeg's log-frequency display; a Welch spectrum of vo2 shows only a 3-5 dB dip there).
+Onset error <= 0.02 ms on all lines (stem == exact sum of placed lines), speech ends 0.03-1.4 s before maxEnd, no line's tail reaches the next
+VO line (hard end-fade 4 ms before the next onset), true peak <= -3.9 dBTP, every line -20.0 LUFS integrated. Overall WER **0/48 words with small.en**.
+base.en scores 10.4 % (5/48), but every one of those 5 misses is a hallucinated word AFTER the real speech ("Yeah", "Thank you", "And...", a doubled "Hello"), in the
+silence/reverb tail that Whisper base likes to fill; the words of the script are all correct. "Amrita" is transcribed correctly by small.en in vo3b/vo6a.
+Spectrogram of the stem: `audio/build/vo/_vo_stem_spectrogram.png` (a thin horizontal stripe near 1.8 kHz is an artefact of ffmpeg's log-frequency
+display; a Welch spectrum of vo2 shows only a 3-5 dB dip there).
+
+## Determinism
+Piper graph noise is seeded (synth.py), everything else is numpy/scipy with seeded RNGs. Praat's "Change gender" is NOT repeatable (differs run to run even on
+identical input), so the shaped takes are cached next to the dry takes in `audio/vo/raw/*.sh<hash>.wav` (commit them); with the cache present
+`node audio/vo/render.mjs` produces a byte-identical vo.wav (WAVs are written without libsndfile's time-stamped PEAK chunk). `--no-cache` re-synthesizes
+and re-shapes (slightly different take every time).
 
 ## Known issues / hand-off notes
 * vo3b is a 0.87 s line, so at -20 LUFS integrated its peak is -11.6 dBFS (quieter peak than the others); `mixHintDb` in direction.json can be used by the mixer.

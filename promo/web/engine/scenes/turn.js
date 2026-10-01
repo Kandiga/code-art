@@ -40,8 +40,8 @@ const CAM = [
   { t: 22.5, p: [0.0, 1.55, 8.4], g: [0.0, 1.05, 0.0], mm: 35 },
   { t: 23.5, p: [0.08, 1.53, 8.26], g: [0.03, 1.05, 0.0], mm: 35 },
   { t: 24.0, p: [0.38, 1.44, 7.9], g: [0.2, 0.97, 0.1], mm: 37 },
-  { t: 25.0, p: [0.85, 1.2, 6.5], g: [0.5, 0.8, 0.25], mm: 44 },
-  { t: 26.0, p: [1.0, 1.15, 5.9], g: [0.55, 0.66, 0.3], mm: 50 },
+  { t: 25.0, p: [0.85, 1.17, 6.5], g: [0.5, 0.72, 0.25], mm: 44 },
+  { t: 26.0, p: [1.0, 1.12, 5.9], g: [0.55, 0.55, 0.3], mm: 50 },
 ];
 function hermite(a, b, ma, mb, u, dt) { const u2 = u * u, u3 = u2 * u; return (2 * u3 - 3 * u2 + 1) * a + (u3 - 2 * u2 + u) * dt * ma + (-2 * u3 + 3 * u2) * b + (u3 - u2) * dt * mb; }
 function camAt(t, out) {
@@ -222,7 +222,7 @@ void main(){
   vec3 albB = invACES(vec3(0.74, 0.69, 0.575) * (0.93 + 0.12 * n2.g + 0.05 * (n1.r - 0.5))) * (1.0 - 0.2 * (1.0 - clamp(lum * 1.4, 0.0, 1.0)));
   vec3 albW = invACES(vec3(0.96, 0.94, 0.89) * (0.82 + 0.2 * n3.b));
   vec3 alb = fr ? albF : albB;
-  alb *= 1.0 + uLit * 0.06 * (n1.a - 0.5);
+  alb *= 1.0 + uLit * (0.10 * (n1.a - 0.5) + 0.07 * (n3.b - 0.5) + 0.05 * (n2.g - 0.5));
   alb = mix(alb, albW, band * 0.9);
   float outM = step(vUv.x, 0.0) + step(1.0, vUv.x) + step(vUv.y, 0.0) + step(1.0, vUv.y); // the sheet's cut outer edge (outside the frame)
   alb = mix(alb, albW, clamp(outM, 0.0, 1.0));
@@ -461,7 +461,7 @@ export default {
     if (paperOn && st.tex) {
       const x = t - TEAR;
       const hairK = sstep(22.38, 22.42, t) * (1 - sstep(TEAR - 0.004, TEAR + 0.02, t));
-      shared.uLit.value = sstep(22.42, 22.62, t); shared.uFrozen.value = t < 22.39 ? 1 : 0;
+      shared.uLit.value = sstep(22.12, 22.46, t); shared.uFrozen.value = t < 22.08 ? 1 : 0;
       shared.uGap.value = 0.0032 * sstep(0, 0.07, x);
       shared.uSeam.value = D.noSeam ? 0 : x < 0 ? 0 : 9 * Math.exp(-x / 0.4) * sstep(0, 0.02, x);
       shared.uHairI.value = 7 * hairK;
@@ -533,7 +533,7 @@ export default {
     else {
       const x = tl; // contact: squash on the floor, then spring up to the hover height
       const sqz = -0.42 * Math.exp(-x / 0.09) + 0.1 * Math.sin(x * 22) * Math.exp(-x / 0.25) * smooth(x / 0.1);
-      sq = sqz; const hover = 0.9 + 0.035 * Math.sin(t * 2.6) * smooth(x / 0.6);
+      sq = sqz; const hover = 1.0 + 0.035 * Math.sin(t * 2.6) * smooth(x / 0.6);
       const base = 0.5 * (1 + sqz) * 0.92;
       ay = lerp(base, hover, spring(Math.max(0, x - 0.05), 2.1, 0.3)) ; if (x < 0.05) ay = base;
     }

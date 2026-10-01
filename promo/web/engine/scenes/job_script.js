@@ -445,6 +445,8 @@ export default {
   update(st, T, S) {
     const { THREE, camera, A, words, book, tmp, stage } = st;
     const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact);
+    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
+    { const D = globalThis.__dbg || {}; if (D.hide !== undefined || st._hid) { for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } } }
     const snapP = lt >= SNAP ? Math.exp(-(lt - SNAP) / 0.09) : 0;
     const kIdx = Math.min(7, Math.floor(lt / 0.125)), kAge = Math.max(0, lt - 0.125 * kIdx);
     const typedN = KEYS.reduce((n, k) => n + (lt >= k ? 1 : 0), 0);

@@ -148,14 +148,14 @@ const PAST = (t) => amritaAt(t);
 // ---------------------------------------------------------------- sky ----------------------------------------------------------------
 function drawSky(ctx, B, S, pal) {
   if (pal.bw) {
-    P.paper(ctx, S, { seed: 39, base: '#ECECEA', shade: '#DCDCDA' });
+    P.paper(ctx, S, { seed: 39, base: '#E6E8EA', shade: '#D4D7DB' });
   } else {
     const gr = ctx.createLinearGradient(0, 0, 0, 760); gr.addColorStop(0, pal.sky0); gr.addColorStop(0.62, pal.sky1); gr.addColorStop(1, pal.sky2);
     ctx.fillStyle = gr; ctx.fillRect(-10, -10, 1940, 1100);
   }
   // pencil hatching in the sky: long soft diagonal strokes, denser at the top
   const topPoly = [[-40, -20], [1960, -20], [1960, 460], [-40, 560]];
-  P.hatch(ctx, topPoly, { color: pal.bw ? '#8F8F94' : pal.skyH, boil: B, seed: 11, gap: 15, width: 1.6, alpha: pal.bw ? 0.30 : 0.38, angle: -0.62, shade: (x, y) => clamp(1 - y / 520, 0, 1), margin: 0.1, segLen: 70, jitter: 1.6 });
+  P.hatch(ctx, topPoly, { color: pal.bw ? '#8F8F94' : pal.skyH, boil: B, seed: 11, gap: 16, width: 1.5, alpha: pal.bw ? 0.28 : 0.30, angle: -0.62, shade: (x, y) => clamp(1 - y / 520, 0, 1), margin: 0.1, segLen: 70, jitter: 1.6 });
   if (!pal.bw) {
     drawRainbow(ctx, B);
     // warm pearl glow where the castle stands
@@ -576,7 +576,7 @@ export default {
     }
     drawBloomRim(ctx, T);
     // paper grain over everything: the whole film is a drawing
-    ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.42; P.paper(ctx, S, { seed: 39, base: '#F2EEE6', shade: '#E2DACB' }); ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.42; P.paper(ctx, S, { seed: 39, base: '#F0EFEC', shade: '#E0DDD6' }); ctx.restore();
     ctx.restore();
     // the portal must be pristine for the dive
     if (lt >= 1.4) { ctx.save(); ctx.beginPath(); ctx.arc(PT.cx, PT.cy, PT.r, 0, TAU); ctx.clip(); drawWindow(ctx, T.boil, T.t, 1); ctx.restore(); }

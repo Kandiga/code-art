@@ -286,7 +286,7 @@ function drawSunDisc(ctx, B, t, withHalo = true) {
 function drawBirds(ctx, B, t) {
   const lt = t - T0;
   for (let i = 0; i < 6; i++) {
-    const x = 170 + i * 82 + 40 * lt + 12 * Math.sin(lt * 1.3 + i), y = 214 + 24 * Math.sin(i * 2.1) + 7 * Math.sin(lt * 1.9 + i * 1.7) - i * 4, s = 22 + (i % 3) * 6, fl = Math.sin(lt * (9 + i * 0.7) + i * 1.9);
+    const st = smooth((t - HORN_T) / 0.7), x = 170 + i * 82 + 40 * lt + 12 * Math.sin(lt * 1.3 + i) + 70 * st * (0.5 + 0.1 * i), y = 214 + 24 * Math.sin(i * 2.1) + 7 * Math.sin(lt * 1.9 + i * 1.7) - i * 4 - 46 * st * (0.6 + 0.1 * i), s = 22 + (i % 3) * 6, fl = Math.sin(lt * (9 + i * 0.7) + i * 1.9 + 14 * st);
     const w = fl * s * 0.55, pts = [[x - s, y + w * 0.9], [x - s * 0.5, y - s * 0.28 + w * 0.3], [x, y], [x + s * 0.5, y - s * 0.28 + w * 0.3], [x + s, y + w * 0.9]];
     line(ctx, B, pts, { c: '#24102E', w: 3.4, seed: 500 + i, amp: 0.5, passes: 1, step: 8, a: 0.95 });
   }
@@ -517,8 +517,10 @@ function shimmerBlit(ctx, src, t, S) {
 export default {
   id: 'e1960', kind: '2d',
   draw(ctx, T, S) {
-    const B = T.boil, t = T.t;
+    const B = T.boil, t = T.t, lt0 = T.lt, push = 1 + 0.035 * smooth(lt0 / 2.0);
     ctx.save();
+    // slow epic push-in about the sun (the lens disc itself is painted last, at exact scale)
+    ctx.save(); ctx.translate(SUN.cx, SUN.cy); ctx.scale(push, push); ctx.translate(-SUN.cx, -SUN.cy);
     ctx.drawImage(layer(S, 'sky|' + B, (g) => drawSky(g, B)), 0, 0, 1920, 1080);
     drawRays(ctx, t);
     drawAnamorphic(ctx, t);
@@ -534,6 +536,7 @@ export default {
     const am = drawAmrita(ctx, T, S);
     drawFinder(ctx, T, S, am);
     drawGhosts(ctx, t);
+    ctx.restore();
     // the sun is the very last thing painted: pristine, exactly (1100,400) r=130
     drawSunDisc(ctx, B, t, true);
     // paper grain over everything

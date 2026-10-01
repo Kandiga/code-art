@@ -226,6 +226,7 @@ export default {
     const t = T.t, lt = clamp(T.lt, 0, 2), imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
     beams.forEach((b) => { b.object.visible = !D.noBeams; }); haze.object.visible = !D.noHaze; st.bokeh.visible = !D.noBokeh; st.sparks.visible = !D.noSparks; st.ringsG.visible = !D.noRings;
     marks.forEach((m) => { m.visible = !D.noMarks; }); A.root.visible = !D.noAmrita; cast.forEach((c) => { if (D.noCast) c.root.visible = false; }); stage.group.visible = !D.noStage; st.amRim.visible = !D.noAmRim;
+    stage.cyc.visible = !D.noCyc; stage.truss.visible = !D.noTruss; stage.group.traverse((o) => { if (o.name && o.name.startsWith('mist')) o.visible = !D.noMist; }); stage.floor.visible = !D.noFloor;
     stage.update(t);
 
     // landing envelope helpers

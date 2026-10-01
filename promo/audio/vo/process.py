@@ -87,13 +87,17 @@ def shaped_take(path, y, sr, sh, use_cache=True):
     return z[0].astype(np.float64)
 
 
-def prune_raw(keep):
-    """Remove stale takes (anything in raw/ whose '<id>.<key>' stem is not used by the current direction)."""
+def prune_raw(keep, ids):
+    """Drop stale takes of the lines just rendered (same line id, other settings). Never touches anything else
+    (casting scratch files cast_*, takes of lines not in this render)."""
     if not os.path.isdir(RAW):
         return
-    stems = {os.path.basename(k)[:-4] for k in keep}
+    keep_names = {os.path.basename(k) for k in keep}
+    keep_names |= {os.path.splitext(n)[0] + ".words.json" for n in keep_names}
     for f in os.listdir(RAW):
-        if not any(f.startswith(st + ".") for st in stems):
+        if f in keep_names or f.startswith("cast_"):
+            continue
+        if any(f.startswith(i + ".") for i in ids) and f.endswith((".wav", ".words.json")):
             os.remove(os.path.join(RAW, f))
 
 
@@ -393,6 +397,15 @@ def finalize(cue, role, dry, noise, wet, D, spec, next_t0):
     full = full[:, onset:t_end] * g
     nf = int(0.02 * SR)
     full[:, -nf:] *= np.linspace(1, 0, nf)[None, :]
+    if next_t0 is not None and role == "narrator":
+        # hard guarantee: nothing of this line (reverb / release) sounds past 4 ms before the next VO onset
+        lim = int((next_t0 - cue["t0"] - 0.004) * SR)
+        if full.shape[1] > lim:
+            full = full[:, :lim].copy()
+        fl = min(int(0.03 * SR), max(0, lim - int(round((end_s - onset_s) * SR))))
+        if fl > 8 and full.shape[1] >= fl:
+            full[:, -fl:] *= (0.5 + 0.5 * np.cos(np.pi * np.linspace(0, 1, fl)))[None, :]
+    full = full * dsp.lin(target - dsp.lufs_integrated(full))  # level is trimmed AFTER the tail gating
     full = dsp.limiter(full, ceil, look_ms=2.0, rel_ms=80.0)
     for _ in range(3):  # limiter costs a little loudness on peaky lines -> re-trim, re-limit
         lu = dsp.lufs_integrated(full)
@@ -462,7 +475,7 @@ def render_all(args):
         dsp.write_wav_f32(os.path.join(out_dir, "stems", "vo.wav"), stem)
         json.dump(rows, open(os.path.join(out_dir, "vo_lines.json"), "w"), indent=1)
         json.dump(rows, open(os.path.join(out_dir, "stems", "vo_lines.json"), "w"), indent=1)  # build.mjs looks here
-        prune_raw(keep)
+        prune_raw(keep, [c['id'] for c, _ in items])
     else:
         json.dump(rows, open(os.path.join(out_dir, "vo_lines.partial.json"), "w"), indent=1)
 

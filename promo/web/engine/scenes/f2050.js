@@ -95,7 +95,7 @@ function plasterCanvas() {
 function skylineCanvas() {
   const W = 1024, Hh = 860, c = cv(W, Hh), g = c.getContext('2d'), r = mkRng(77);
   const sky = g.createLinearGradient(0, 0, 0, Hh);
-  sky.addColorStop(0, '#070b21'); sky.addColorStop(0.35, '#16204a'); sky.addColorStop(0.62, '#4a3566'); sky.addColorStop(0.8, '#b4586a'); sky.addColorStop(0.93, '#f09a60'); sky.addColorStop(1, '#ffc68a');
+  sky.addColorStop(0, '#0b1230'); sky.addColorStop(0.28, '#1f2d62'); sky.addColorStop(0.48, '#5a3d78'); sky.addColorStop(0.66, '#c2607a'); sky.addColorStop(0.8, '#f4a265'); sky.addColorStop(1, '#ffd29a');
   g.fillStyle = sky; g.fillRect(0, 0, W, Hh);
   for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(255,245,230,${0.2 + 0.7 * r()})`; g.fillRect(r() * W, r() * Hh * 0.45, 1.3, 1.3); }
   const mg = g.createRadialGradient(150, 130, 4, 150, 130, 120); mg.addColorStop(0, 'rgba(255,248,230,1)'); mg.addColorStop(0.18, 'rgba(255,240,215,0.95)'); mg.addColorStop(0.2, 'rgba(255,230,200,0.25)'); mg.addColorStop(1, 'rgba(255,230,200,0)'); g.fillStyle = mg; g.fillRect(0, 0, 400, 300);
@@ -108,9 +108,9 @@ function skylineCanvas() {
       x += bw + 2 + rr2() * 8;
     }
   };
-  layer(Hh * 0.9, 90, 250, '#2a2450', 0.22, ['#ffd9a0', '#ffb15a', '#ffe9c4'], 3);
-  layer(Hh * 0.95, 110, 330, '#161436', 0.3, ['#ffd9a0', '#ffb15a', '#8ff0e5', '#ff7aa8'], 4);
-  layer(Hh * 1.02, 80, 210, '#080a1c', 0.34, ['#ffd9a0', '#ffc070', '#7ff0e0'], 5);
+  layer(Hh * 0.82, 90, 250, '#2e2858', 0.22, ['#ffd9a0', '#ffb15a', '#ffe9c4'], 3);
+  layer(Hh * 0.9, 110, 330, '#1a1840', 0.3, ['#ffd9a0', '#ffb15a', '#8ff0e5', '#ff7aa8'], 4);
+  layer(Hh * 0.98, 80, 210, '#0a0c20', 0.34, ['#ffd9a0', '#ffc070', '#7ff0e0'], 5);
   for (const [x, y, col, w] of [[620, 330, '#2ff0dc', 70], [300, 410, '#ff4fa0', 54], [820, 470, '#ffb62e', 60]]) { g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 18; g.fillRect(x, y, w, 10); g.shadowBlur = 0; }
   const fg = g.createLinearGradient(0, Hh * 0.7, 0, Hh); fg.addColorStop(0, 'rgba(255,170,100,0)'); fg.addColorStop(1, 'rgba(255,170,100,0.35)'); g.fillStyle = fg; g.fillRect(0, Hh * 0.7, W, Hh * 0.3);
   return c;
@@ -133,7 +133,7 @@ const MOON = { u: 0.70, v: 0.27, r: 0.10 }; // moon centre in pane uv (v from to
 function paneSkyCanvas() {
   const c = cv(PW, PH), g = c.getContext('2d'), r = mkRng(101);
   const gr = g.createLinearGradient(0, 0, 0, PH);
-  gr.addColorStop(0, '#04081a'); gr.addColorStop(0.42, '#08203a'); gr.addColorStop(0.74, '#0e5468'); gr.addColorStop(0.9, '#1a8e98'); gr.addColorStop(1, '#2fc2bc');
+  gr.addColorStop(0, '#07102a'); gr.addColorStop(0.38, '#0c3052'); gr.addColorStop(0.68, '#17808f'); gr.addColorStop(0.86, '#45d6cb'); gr.addColorStop(1, '#8af5e4');
   g.fillStyle = gr; g.fillRect(0, 0, PW, PH);
   for (let k = 0; k < 3; k++) { // soft aurora ribbons
     g.save(); g.globalAlpha = 0.1 + 0.05 * k; g.fillStyle = k === 1 ? '#6b5bff' : '#2fe6c8'; g.beginPath(); g.moveTo(0, 120 + 40 * k);
@@ -147,11 +147,12 @@ function paneSkyCanvas() {
   return c;
 }
 // silhouette ridge layer with a glowing rim line; trees: pines along the ridge, houses: tiny lit windows
-function ridgeCanvas({ seed, base, amp, freq, fill, rim, rimW = 3, trees = 0, treeH = 40, houses = 0, wings = false, alpha = 1 }) {
+function ridgeCanvas({ seed, base, amp, freq, fill, fillTop = null, rim, rimW = 3, trees = 0, treeH = 40, houses = 0, wings = false, alpha = 1 }) {
   const c = cv(PW, PH), g = c.getContext('2d'), r = mkRng(seed);
   const ys = []; for (let x = 0; x <= PW; x += 4) ys.push(base * PH + amp * PH * fbm1(x / freq, seed));
   const yAt = (x) => ys[clamp(Math.round(x / 4), 0, ys.length - 1)];
-  g.globalAlpha = alpha; g.fillStyle = fill; g.beginPath(); g.moveTo(0, PH); ys.forEach((y, i) => g.lineTo(i * 4, y)); g.lineTo(PW, PH); g.closePath(); g.fill(); g.globalAlpha = 1;
+  const fg = g.createLinearGradient(0, base * PH - amp * PH * 0.6, 0, PH); fg.addColorStop(0, fillTop || fill); fg.addColorStop(1, fill);
+  g.globalAlpha = alpha; g.fillStyle = fg; g.beginPath(); g.moveTo(0, PH); ys.forEach((y, i) => g.lineTo(i * 4, y)); g.lineTo(PW, PH); g.closePath(); g.fill(); g.globalAlpha = 1;
   const pine = (x, y, h, w) => { g.fillStyle = fill; for (let k = 0; k < 4; k++) { const yy = y - h * (k * 0.24), ww = w * (1 - k * 0.2); g.beginPath(); g.moveTo(x - ww, yy); g.lineTo(x, yy - h * 0.36); g.lineTo(x + ww, yy); g.closePath(); g.fill(); } g.fillRect(x - 1.5, y, 3, 8); };
   for (let i = 0; i < trees; i++) { const x = r() * PW, h = treeH * (0.6 + 0.8 * r()); pine(x, yAt(x) + 3, h, h * 0.22); }
   if (wings) for (const sx of [0.045, 0.1, 0.17, 0.83, 0.9, 0.955]) { const x = sx * PW, h = 230 + 120 * H(Math.round(sx * 100), 3); pine(x, PH + 4, h, h * 0.2); }
@@ -163,12 +164,12 @@ function ridgeCanvas({ seed, base, amp, freq, fill, rim, rimW = 3, trees = 0, tr
 const GW = 1536, GH = 384;
 function groundCanvas() {
   const c = cv(GW, GH), g = c.getContext('2d'), r = mkRng(55);
-  const gr = g.createLinearGradient(0, 0, 0, GH); gr.addColorStop(0, '#0b3d48'); gr.addColorStop(0.15, '#062a34'); gr.addColorStop(1, '#03161d'); g.fillStyle = gr; g.fillRect(0, 0, GW, GH);
+  const gr = g.createLinearGradient(0, 0, 0, GH); gr.addColorStop(0, '#13606a'); gr.addColorStop(0.2, '#0a3d48'); gr.addColorStop(1, '#05222b'); g.fillStyle = gr; g.fillRect(0, 0, GW, GH);
   for (let i = 0; i < 1400; i++) { g.fillStyle = `rgba(60,200,190,${0.03 + 0.07 * r()})`; const y = r() * GH, k = 0.3 + 1.7 * (y / GH); g.fillRect(r() * GW, y, 3 * k, 1.2 * k); }
   for (let i = 1; i < 14; i++) { const y = GH * Math.pow(i / 14, 1.7); g.strokeStyle = `rgba(60,220,210,${0.05 + 0.1 * (y / GH)})`; g.lineWidth = 1; g.beginPath(); g.moveTo(0, y); g.lineTo(GW, y); g.stroke(); }
   // road: winds from the far horizon toward the bottom-left
   const roadX = (v) => GW * (0.66 - 0.40 * v + 0.05 * Math.sin(v * 6.0 + 0.4)), roadW = (v) => 4 + 120 * v * v;
-  g.fillStyle = '#122a34'; g.beginPath(); for (let i = 0; i <= 60; i++) { const v = i / 60; g.lineTo(roadX(v) - roadW(v), v * GH); } for (let i = 60; i >= 0; i--) { const v = i / 60; g.lineTo(roadX(v) + roadW(v), v * GH); } g.closePath(); g.fill();
+  g.fillStyle = '#1a3f4b'; g.beginPath(); for (let i = 0; i <= 60; i++) { const v = i / 60; g.lineTo(roadX(v) - roadW(v), v * GH); } for (let i = 60; i >= 0; i--) { const v = i / 60; g.lineTo(roadX(v) + roadW(v), v * GH); } g.closePath(); g.fill();
   g.strokeStyle = '#2fe0d0'; g.lineWidth = 2.4; g.shadowColor = '#2fe0d0'; g.shadowBlur = 6; for (const s of [-1, 1]) { g.beginPath(); for (let i = 0; i <= 60; i++) { const v = i / 60; if (i) g.lineTo(roadX(v) + s * roadW(v), v * GH); else g.moveTo(roadX(v) + s * roadW(v), v * GH); } g.stroke(); } g.shadowBlur = 0;
   g.strokeStyle = '#ffb62e'; g.shadowColor = '#ffb62e'; g.shadowBlur = 5; for (let k = 0; k < 14; k++) { const v0 = Math.pow(k / 14, 1.4), v1 = Math.pow((k + 0.5) / 14, 1.4); g.lineWidth = 1 + 7 * v0; g.beginPath(); g.moveTo(roadX(v0), v0 * GH); g.lineTo(roadX(v1), v1 * GH); g.stroke(); } g.shadowBlur = 0;
   // railway: straight diagonal from the far horizon (u .40) to the near edge (u .60) -- the loco rides exactly this line
@@ -353,7 +354,7 @@ function buildRoom(THREE, st) {
 
   // the window with the night city (emissive picture) + frame, sill, mullions, curtains
   const sky = tex(THREE, skylineCanvas(), { aniso: 4 });
-  st.city = add(new THREE.Mesh(new THREE.PlaneGeometry(WIN.w, WIN.h), new THREE.MeshBasicMaterial({ map: sky, toneMapped: false, color: new THREE.Color(1.25, 1.2, 1.25), fog: false })));
+  st.city = add(new THREE.Mesh(new THREE.PlaneGeometry(WIN.w, WIN.h), new THREE.MeshBasicMaterial({ map: sky, toneMapped: false, color: new THREE.Color(1.7, 1.6, 1.6), fog: false })));
   st.city.position.set(WIN.x, WIN.y, BACK + 0.03);
   const F = [], fc = '#1b1716', ft = 0.07, fd = 0.13;
   F.push(item(THREE, BOX(THREE, WIN.w + 2 * ft, ft, fd), { p: [WIN.x, WIN.y + WIN.h / 2 + ft / 2, BACK + fd / 2], c: fc }), item(THREE, BOX(THREE, WIN.w + 2 * ft, ft, fd), { p: [WIN.x, WIN.y - WIN.h / 2 - ft / 2, BACK + fd / 2], c: fc }));
@@ -469,7 +470,7 @@ function makeExitCurve(THREE) {
   return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
 }
 const qOf = (lt) => (lt < EV.pop ? Math.pow(seg(lt, 0.3, EV.pop), 1.5) : 1 + Math.pow(seg(lt, EV.pop, EV.snap), 1.15));
-const kOf = (q) => (q <= 1 ? lerp(0.034, 0.078, Math.pow(q, 1.2)) : 0.078 + (0.27 - 0.078) * Math.pow(q - 1, 1.3));
+const kOf = (q) => (q <= 1 ? lerp(0.04, 0.105, Math.pow(q, 1.2)) : 0.105 + (0.3 - 0.105) * Math.pow(q - 1, 1.3));
 function trainPose(st, lt, out) { // pure: position (pane-local), forward tangent, scale for scene time lt
   const q = qOf(lt); let p, tan;
   if (q <= 1) { const a = RAIL(clamp(q, 0, 1)), b = RAIL(clamp(q + 0.01, 0, 1.0)); p = a; tan = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; }
@@ -485,10 +486,10 @@ function buildHolo(THREE, st) {
   // ---- the pane group (origin = pane centre)
   const pane = st.pane = new THREE.Group(); pane.position.set(PANE.x, PANE.y, PANE.z); scene.add(pane);
   const sk = tex(THREE, paneSkyCanvas(), { aniso: 4 });
-  const far = tex(THREE, ridgeCanvas({ seed: 11, base: 0.58, amp: 0.34, freq: 150, fill: '#0b3d4f', rim: '#5ff5e6', rimW: 2.4, houses: 0 }), { aniso: 4 });
-  const mid = tex(THREE, ridgeCanvas({ seed: 23, base: 0.66, amp: 0.3, freq: 120, fill: '#07303e', rim: '#37d9ce', rimW: 2.6, trees: 34, treeH: 46, houses: 9 }), { aniso: 4 });
-  const near = tex(THREE, ridgeCanvas({ seed: 37, base: 0.78, amp: 0.2, freq: 90, fill: '#041e29', rim: '#27bdb5', rimW: 2.8, trees: 22, treeH: 58 }), { aniso: 4 });
-  const wings = tex(THREE, ridgeCanvas({ seed: 41, base: 2, amp: 0, freq: 100, fill: '#031319', rim: '#1fa8a0', rimW: 2.4, wings: true }), { aniso: 4 });
+  const far = tex(THREE, ridgeCanvas({ seed: 11, base: 0.58, amp: 0.34, freq: 150, fill: '#0c4a5c', fillTop: '#26a0a8', rim: '#8ffff0', rimW: 2.4, houses: 0 }), { aniso: 4 });
+  const mid = tex(THREE, ridgeCanvas({ seed: 23, base: 0.66, amp: 0.3, freq: 120, fill: '#073746', fillTop: '#157c88', rim: '#4defe2', rimW: 2.6, trees: 34, treeH: 46, houses: 9 }), { aniso: 4 });
+  const near = tex(THREE, ridgeCanvas({ seed: 37, base: 0.78, amp: 0.2, freq: 90, fill: '#05222d', fillTop: '#0d5a66', rim: '#36d6cc', rimW: 2.8, trees: 22, treeH: 58 }), { aniso: 4 });
+  const wings = tex(THREE, ridgeCanvas({ seed: 41, base: 2, amp: 0, freq: 100, fill: '#031319', fillTop: '#0a3c46', rim: '#2fc4ba', rimW: 2.4, wings: true }), { aniso: 4 });
   const ground = tex(THREE, groundCanvas(), { aniso: 8 });
   const mkPlane = (map, z, order, o = {}) => {
     const mat = layerMaterial(THREE, uT, map, o), m = new THREE.Mesh(new THREE.PlaneGeometry(PANE.w, PANE.h), mat); m.position.z = z; m.renderOrder = order; m.frustumCulled = false; pane.add(m); return { m, mat, z };
@@ -577,7 +578,7 @@ function buildCast(THREE, st, renderer) {
   st.ampGlow = glowSprite(THREE, { color: '#41f0e0', size: 1.7, intensity: 0.0, depthTest: false }); st.ampGlow.renderOrder = 29; scene.add(st.ampGlow);
   // family
   const fam = st.fam = createCouchGroup(THREE, { people: 4, seed: 11, style: 'rim', sofaColor: '#5b3a2c' });
-  fam.group.position.set(...SOFA); fam.setLightColor('#52f0ff', 1.15); scene.add(fam.group);
+  fam.group.position.set(...SOFA); fam.group.scale.setScalar(0.92); fam.setLightColor('#52f0ff', 0.6); scene.add(fam.group);
   // lights: tungsten lamp, hologram key (teal), table fill, cool city, hemisphere
   st.lamp = new THREE.PointLight('#ffa65c', 16, 0, 2); st.lamp.position.set(LAMP[0] - 0.1, 1.45, LAMP[2] + 0.12); scene.add(st.lamp);
   st.holoL = new THREE.PointLight('#2fe6d4', 7, 0, 2); st.holoL.position.set(0.2, 1.3, 1.5); scene.add(st.holoL);
@@ -630,7 +631,7 @@ function applyFamily(st, lt) {
       K.sh.set(0, K.s.y, 0).applyQuaternion(K.q2).add(K.p).applyMatrix4(K.Mp);                 // shoulder after the body transform
       const al = side * ang[1], cp = Math.cos(ang[0]);
       K.dir.set(cp * Math.sin(al), -cp * Math.cos(al), -Math.sin(ang[0])).applyQuaternion(K.qB).normalize();
-      if (i === 2 && s === 1 && c.point > 0.001) { K.tgt.copy(st.locoWorld).sub(fam.group.position).sub(K.sh).normalize(); K.dir.lerp(K.tgt, c.point).normalize(); }
+      if (i === 2 && s === 1 && c.point > 0.001) { K.tgt.copy(st.locoWorld).sub(fam.group.position).divideScalar(0.92).sub(K.sh).normalize(); K.dir.lerp(K.tgt, c.point).normalize(); }
       K.q2.setFromUnitVectors(K.down, K.dir);
       K.m2.compose(K.v1.copy(K.sh).addScaledVector(K.dir, K.s.y), K.q2, K.s); M.arms.setMatrixAt(idx, K.m2);
     }
@@ -647,7 +648,6 @@ const TIMES = [[0, 'neutral'], [0.35, 'determined'], [0.95, 'surprised'], [1.12,
 export default {
   id: 'f2050', kind: '3d', ratio: 2.39,
   async setup({ THREE, S, renderer }) {
-    globalThis.__noGlitch = true;
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#04060c'); scene.fog = new THREE.FogExp2('#0c141f', 0.028);
     const camera = new THREE.PerspectiveCamera(lensVFov(35), 2.39, 0.1, 60);
     const st = { THREE, S, scene, camera, uT: { value: 0 } };
@@ -674,9 +674,9 @@ export default {
 
     // ---- camera: slow dolly-in over the sofa's shoulder (35 mm), a stepped glitch jitter on the cut -------------------------------------
     const u = lt / 2, e = 0.55 * u + 0.45 * sm(0, 1, u), jit = g0 > 0.04 ? g0 : 0;
-    const cx = lerp(1.1, 0.55, e) + 0.02 * Math.sin(t * 1.3) + jit * (H(gf, 21) - 0.5) * 0.22, cy = lerp(1.6, 1.42, e) + 0.012 * Math.sin(t * 1.9 + 1) + jit * (H(gf, 22) - 0.5) * 0.08, cz = lerp(6.3, 5.15, e);
+    const cx = lerp(1.1, 0.55, e) + 0.02 * Math.sin(t * 1.3) + jit * (H(gf, 21) - 0.5) * 0.22, cy = lerp(1.55, 1.4, e) + 0.012 * Math.sin(t * 1.9 + 1) + jit * (H(gf, 22) - 0.5) * 0.08, cz = lerp(6.3, 5.15, e);
     camera.position.set(cx, cy, cz);
-    K.v1.set(lerp(-0.05, 0.1, e) + 0.01 * Math.sin(t * 0.9), lerp(1.28, 1.34, e), 0.4); camera.lookAt(K.v1); camera.updateMatrixWorld(true);
+    K.v1.set(lerp(-0.05, 0.1, e) + 0.01 * Math.sin(t * 0.9), lerp(1.4, 1.46, e), 0.4); camera.lookAt(K.v1); camera.updateMatrixWorld(true);
     st.cam.fwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
 
     // ---- loco pose (pane-local) -----------------------------------------------------------------------------------------------------------
@@ -686,16 +686,16 @@ export default {
     const trVis = lt > 0.3 && lt < 1.64;
     tr.visible = trVis; st.trainMat.uniforms.uDissolve.value = Math.max(1 - seg(lt, 0.3, 0.5), seg(lt, 1.46, 1.62)); st.trainMat.uniforms.uFlick.value = pw * (lt < 0.4 ? 0 : 1) + (lt >= 0.4 ? 0 : 0);
     st.trainMat.uniforms.uFlick.value = micro;
-    st.headGlow.scale.setScalar(lerp(7, 3.4, clamp(tp.k / 0.27))); st.headGlow.userData.set({ intensity: (0.4 + 0.45 * popK + 0.3 * env(lt, EV.laugh, 0.2)) * (trVis ? 1 : 0) });
-    st.lampBeamMat.uniforms.uInt.value = (0.28 + 0.45 * popK) * (trVis ? 1 : 0) * micro;
+    st.headGlow.scale.setScalar(lerp(3.2, 1.9, clamp(tp.k / 0.3))); st.headGlow.userData.set({ intensity: (0.5 + 0.35 * popK + 0.25 * env(lt, EV.laugh, 0.2)) * (trVis ? 1 : 0) });
+    st.lampBeamMat.uniforms.uInt.value = (0.1 + 0.18 * popK) * (trVis ? 1 : 0) * micro;
     tr.updateMatrixWorld(true); st.locoWorld.copy(st.lampLocal); tr.localToWorld(st.locoWorld);
     // lens flare at the headlamp (only while it faces the camera)
     K.v2.set(tp.t[0], tp.t[1], tp.t[2]).normalize(); const facing = clamp(-K.v2.dot(st.cam.fwd) * 1.4, 0, 1);
-    st.flare.position.copy(st.locoWorld); st.flare.userData.set({ intensity: (trVis ? 1 : 0) * facing * (0.1 + 0.45 * popK + 0.2 * sm(0.5, 1.0, lt)) * (lt > 1.5 ? 1 - seg(lt, 1.5, 1.64) : 1), visibility: 1 });
+    st.flare.position.copy(st.locoWorld); st.flare.userData.set({ intensity: (trVis ? 1 : 0) * facing * (0.06 + 0.28 * popK + 0.1 * sm(0.5, 1.0, lt)) * (lt > 1.5 ? 1 - seg(lt, 1.5, 1.64) : 1), visibility: 1 });
 
     // ---- projector trumpet, emitter, rings, lights ---------------------------------------------------------------------------------------
     const coneR = outBack(seg(lt, 0.02, 0.32), 1.1) * 1.04;
-    st.coneMat.uniforms.uReveal.value = coneR; st.coneMat.uniforms.uInt.value = (0.9 + 1.6 * hitK + 0.25 * popK + 1.0 * surge) * flick; st.coneMat.uniforms.uFlick.value = 1;
+    st.coneMat.uniforms.uReveal.value = coneR; st.coneMat.uniforms.uInt.value = (1.35 + 1.6 * hitK + 0.25 * popK + 1.0 * surge) * flick; st.coneMat.uniforms.uFlick.value = 1;
     st.coneMat2.uniforms.uReveal.value = outBack(seg(lt, 0.06, 0.34), 1.0) * 1.04; st.coneMat2.uniforms.uInt.value = (0.9 + 1.0 * hitK + 0.6 * snapK) * flick;
     st.emitRing.scale.setScalar(1 + 0.3 * hitK); st.emitRing2.scale.setScalar(1 + 0.3 * snapK + 0.2 * hitK);
     st.emitRing.material.color.setRGB(0.6, 3.2, 2.9).multiplyScalar(0.25 + 0.75 * flick * sm(0, 0.1, lt) + hitK * 0.8);
@@ -714,7 +714,7 @@ export default {
     st.holoL.intensity = 7 * (0.12 + 0.88 * holo) * (1 + 1.0 * hitK + 0.35 * popK + 0.3 * snapK + 0.8 * surge);
     st.tableL.intensity = 2.6 * holo * (1 + hitK);
     st.lamp.intensity = 16 * (1 + 0.012 * Math.sin(t * 7.3)); st.lampGlow.userData.set({ intensity: 0.85 });
-    st.cityL.intensity = 5; fam.setLightColor('#52f0ff', 1.15 * (0.35 + 0.65 * holo) * (1 + 0.5 * hitK + 0.4 * surge));
+    st.cityL.intensity = 5; fam.setLightColor('#52f0ff', 0.62 * (0.35 + 0.65 * holo) * (1 + 0.5 * hitK + 0.4 * surge));
 
     // ---- pane: unfold, parallax spread, scan-in, pulses -----------------------------------------------------------------------------------
     const unf = outBack(seg(lt, 0.14, 0.5), 1.15), sY = Math.max(0.02, unf);
@@ -752,7 +752,7 @@ export default {
       if (age < 0 || age > 1.0 || te > 1.5) { PF.hide(i); continue; }
       const q = trainPose(st, te, st.tpose2); K.v1.set(q.t[0], q.t[1], q.t[2]).normalize(); K.lm.lookAt(K.v1, K.zero, K.up); K.tq.setFromRotationMatrix(K.lm);
       K.v2.set(0, 1.2, 0.5).multiplyScalar(q.k).applyQuaternion(K.tq); const cxp = q.p[0] + K.v2.x, cyp = q.p[1] + K.v2.y, czp = q.p[2] + K.v2.z;
-      const f = Math.pow(1 - age, 1.4) * sm(0, 0.08, age) * 0.5, sz = (0.04 + 0.2 * age) * Math.pow(q.k / 0.078, 0.6);
+      const f = Math.pow(1 - age, 1.4) * sm(0, 0.08, age) * 0.5, sz = (0.04 + 0.2 * age) * Math.pow(q.k / 0.105, 0.6);
       PF.set(i, cxp + 0.03 * age, cyp + 0.11 * age + 0.02 * Math.sin(age * 5 + i), czp + 0.04 * age, 0.55 * f, 1.0 * f, 1.0 * f, sz);
     }
     for (let i = 0; i < 6; i++) { // the big TOOT puffs at the laugh

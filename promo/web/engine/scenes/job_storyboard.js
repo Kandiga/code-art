@@ -270,6 +270,8 @@ export default {
   update(st, T, S) {
     const { THREE, camera, A, panels, tmp, stage } = st;
     const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact);
+    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
+    { const D = globalThis.__dbg || {}; if (D.hide !== undefined || st._hid) { for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } } }
     const popK = lt >= POP ? Math.exp(-(lt - POP) / 0.12) : 0;
     const nSnap = SNAPS.reduce((n, s) => n + (lt >= s ? 1 : 0), 0), lastSnap = nSnap ? SNAPS[nSnap - 1] : -1;
 
