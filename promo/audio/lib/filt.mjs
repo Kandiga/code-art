@@ -70,11 +70,24 @@ export function biquad(x, type, freq, q = Math.SQRT1_2, gainDb = 0, opts = {}) {
   const { sr = SR, update = 8 } = opts;
   const n = x.length;
   const out = new Float32Array(n);
-  const mod = isArr(freq) || isArr(q) || isArr(gainDb);
-  let [b0, b1, b2, a1, a2] = biquadCoefs(type, P(freq, 0), P(q, 0), P(gainDb, 0), sr);
+  const c0 = biquadCoefs(type, P(freq, 0), P(q, 0), P(gainDb, 0), sr);
+  let b0 = c0[0], b1 = c0[1], b2 = c0[2], a1 = c0[3], a2 = c0[4];
   let z1 = 0, z2 = 0;
+  if (!(isArr(freq) || isArr(q) || isArr(gainDb))) {
+    for (let i = 0; i < n; i++) {
+      const v = x[i];
+      const y = b0 * v + z1;
+      z1 = b1 * v - a1 * y + z2;
+      z2 = b2 * v - a2 * y;
+      out[i] = y;
+    }
+    return out;
+  }
   for (let i = 0; i < n; i++) {
-    if (mod && i % update === 0) [b0, b1, b2, a1, a2] = biquadCoefs(type, P(freq, i), P(q, i), P(gainDb, i), sr);
+    if (i % update === 0) {
+      const c = biquadCoefs(type, P(freq, i), P(q, i), P(gainDb, i), sr);
+      b0 = c[0]; b1 = c[1]; b2 = c[2]; a1 = c[3]; a2 = c[4];
+    }
     const v = x[i];
     const y = b0 * v + z1;
     z1 = b1 * v - a1 * y + z2;
@@ -152,17 +165,20 @@ export function svf(x, type, freq, q = Math.SQRT1_2, opts = {}) {
   const { sr = SR, update = 1 } = opts;
   const n = x.length, out = new Float32Array(n);
   const mod = isArr(freq) || isArr(q);
-  let ic1 = 0, ic2 = 0, g = 0, k = 0, a1 = 0, a2 = 0, a3 = 0;
-  const setC = (i) => {
-    g = Math.tan((Math.PI * clamp(P(freq, i), 5, sr * 0.49)) / sr);
-    k = 1 / Math.max(0.05, P(q, i));
-    a1 = 1 / (1 + g * (g + k));
-    a2 = g * a1;
-    a3 = g * a2;
-  };
-  setC(0);
+  const tp = ['lp', 'bp', 'bpq', 'hp', 'notch', 'peak', 'allpass'].indexOf(type);
+  if (tp < 0) throw new Error(`svf: unknown type "${type}"`);
+  let ic1 = 0, ic2 = 0;
+  let g = Math.tan((Math.PI * clamp(P(freq, 0), 5, sr * 0.49)) / sr);
+  let k = 1 / Math.max(0.05, P(q, 0));
+  let a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
   for (let i = 0; i < n; i++) {
-    if (mod && i % update === 0) setC(i);
+    if (mod && i % update === 0) {
+      g = Math.tan((Math.PI * clamp(P(freq, i), 5, sr * 0.49)) / sr);
+      k = 1 / Math.max(0.05, P(q, i));
+      a1 = 1 / (1 + g * (g + k));
+      a2 = g * a1;
+      a3 = g * a2;
+    }
     const v0 = x[i];
     const v3 = v0 - ic2;
     const v1 = a1 * ic1 + a2 * v3;
@@ -170,19 +186,26 @@ export function svf(x, type, freq, q = Math.SQRT1_2, opts = {}) {
     ic1 = 2 * v1 - ic1;
     ic2 = 2 * v2 - ic2;
     let y;
-    switch (type) {
-      case 'lp': y = v2; break;
-      case 'bp': y = k * v1; break;
-      case 'bpq': y = v1; break;
-      case 'hp': y = v0 - k * v1 - v2; break;
-      case 'notch': y = v0 - k * v1; break;
-      case 'peak': y = v2 - (v0 - k * v1 - v2); break;
-      case 'allpass': y = v0 - 2 * k * v1; break;
-      default: throw new Error(`svf: unknown type "${type}"`);
+    switch (tp) {
+      case 0: y = v2; break;
+      case 1: y = k * v1; break;
+      case 2: y = v1; break;
+      case 3: y = v0 - k * v1 - v2; break;
+      case 4: y = v0 - k * v1; break;
+      case 5: y = v2 - (v0 - k * v1 - v2); break;
+      default: y = v0 - 2 * k * v1;
     }
     out[i] = y;
   }
   return out;
+}
+
+/** fast rational tanh approximation (|err| < 2%, exactly +-1 beyond |x|>3) */
+export function fastTanh(x) {
+  if (x < -3) return -1;
+  if (x > 3) return 1;
+  const x2 = x * x;
+  return (x * (27 + x2)) / (27 + 9 * x2);
 }
 
 // ---------------------------------------------------------------------------
@@ -197,7 +220,7 @@ export function ladder(x, cutoff, res = 0.3, opts = {}) {
   const { sr = SR, drive = 1, comp = 0.5 } = opts;
   const n = x.length, out = new Float32Array(n);
   let s1 = 0, s2 = 0, s3 = 0, s4 = 0;
-  const th = Math.tanh;
+  const th = fastTanh;
   for (let i = 0; i < n; i++) {
     const fc = clamp(P(cutoff, i), 20, sr * 0.3);
     const k = 4 * clamp(P(res, i), 0, 1.0);

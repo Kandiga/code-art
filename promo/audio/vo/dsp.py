@@ -240,9 +240,10 @@ def plate_ir(rt60=1.2, predelay_ms=14.0, seed=11, sr=SR, mults=(1.0, 0.75, 0.42)
     irs = []
     for ch in range(2):
         nz = rng.randn(n)
-        lo = lpf(nz, xover[0], 2, sr)
-        mid = bpf(nz, xover[0], xover[1], 2, sr)
-        hi = hpf(nz, xover[1], 2, sr)
+        # zero-phase (filtfilt) crossovers: the three bands stay in phase, so no comb/notch where they overlap
+        lo = ss.sosfiltfilt(ss.butter(2, xover[0], "lowpass", fs=sr, output="sos"), nz)
+        mid = ss.sosfiltfilt(ss.butter(1, [xover[0], xover[1]], "bandpass", fs=sr, output="sos"), nz)
+        hi = ss.sosfiltfilt(ss.butter(2, xover[1], "highpass", fs=sr, output="sos"), nz)
         ir = sum(b * 10 ** (-3 * t / (rt60 * m)) for b, m in zip((lo, mid, hi), mults))
         ir *= 1 - np.exp(-t / (build_ms * 1e-3))
         ir = hpf(ir, hp, 2, sr)
@@ -298,8 +299,8 @@ def lufs_short_max(x, sr=SR):
     """Maximum short-term (3 s window, 1 s hop; windows shorter than 3 s are zero-padded) loudness."""
     x = np.atleast_2d(x)
     k = k_weight(x)
-    w = 3 * sr
     n = k.shape[1]
+    w = min(3 * sr, max(n, int(0.4 * sr)))  # lines shorter than 3 s: the whole line is the window
     if n < w:
         k = np.pad(k, ((0, 0), (0, w - n)))
         n = w

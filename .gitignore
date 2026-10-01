@@ -8,3 +8,13 @@ promo/cache/
 promo/out/tmp/
 promo/out/stills/
 *.log
+# audio/render working artifacts (regenerable from source)
+promo/audio/**/*.wav
+promo/audio/**/*.png
+promo/audio/vo/work/
+promo/audio/vo/raw/
+promo/audio/crowd/lib/
+promo/out/stills/
+promo/out/tmp/
+promo/out/lint.json
+promo/out/render_progress_*.json

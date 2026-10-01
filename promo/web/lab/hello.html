@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#222}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+import '/web/engine/main.js';
+await new Promise(r=>{const i=setInterval(()=>{if(window.film){clearInterval(i);r();}},20)});
+await window.film.init({scale:1});
+const S=window.film.S, T=S.cues.makeT(5.0);
+const c=document.createElement('canvas'); c.width=1920;c.height=1080; document.body.appendChild(c);
+const g=c.getContext('2d'); S.pencil.paper(g,S,{seed:3});
+S.amrita2d.drawAmrita(g,T,S,{x:960,y:540,size:260,yaw:0.45,expr:'happy',prop:'crank'});
+window.__done=true;
+</script></body></html>

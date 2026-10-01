@@ -1,0 +1,37 @@
+{
+  "_comment": "VO direction. Times come from shared/cues.js; this file only holds PERFORMANCE and CHAIN settings.",
+  "voices": {
+    "narrator": { "voice": "en_US-ryan-high", "speaker": 0, "seed": 1, "ns": 0.667, "nw": 0.8 },
+    "diegetic": { "voice": "en_US-joe-medium", "speaker": 0, "seed": 1, "ns": 0.8, "nw": 0.9 }
+  },
+  "level": { "lufs": -20.0, "peak_db": -3.0 },
+  "fit": { "end_margin_s": 0.03, "min_ls_mul": 0.86, "max_tempo": 1.10 },
+  "chain": {
+    "hpf": 80,
+    "tone": { "low_hz": 190, "low_db": 2.5, "mud_db": -1.5, "pres_hz": 3200, "pres_db": 2.5, "pres_q": 0.9, "air_db": 1.5 },
+    "deess": { "lo": 5200, "hi": 9800, "thr_db": -34, "ratio": 4, "atk_ms": 0.6, "rel_ms": 25 },
+    "comp1": { "thr_db": -20, "ratio": 3.0, "atk_ms": 4, "rel_ms": 90, "knee_db": 6, "makeup_db": 0 },
+    "comp2": { "thr_db": -27, "ratio": 2.0, "atk_ms": 18, "rel_ms": 220, "knee_db": 8, "makeup_db": 2 },
+    "sat": { "drive": 1.8, "bias": 0.08, "wet": 0.3 },
+    "reverb": { "wet": 0.12, "rt60": 1.2, "predelay_ms": 14, "seed": 11, "mults": [1.0, 0.75, 0.42], "hp": 220, "lp": 9000 }
+  },
+  "vintage": {
+    "room_rt60": 0.35, "room_wet": 0.18, "bp_lo": 300, "bp_hi": 3500, "res_hz": 2400, "res_db": 4, "res_q": 1.2,
+    "drive": 2.2, "wow_pct": 0.35, "wow_hz": 0.9, "flutter_pct": 0.18, "flutter_hz": 7.0, "weave_pct": 0.12,
+    "hiss_db": -34, "thump_db": -46, "crackle_per_s": 14, "crackle_db": -34
+  },
+  "lines": {
+    "vo1": { "segments": [ { "text": "Every film starts with a blank page.", "ls": 1.1, "ns": 0.5, "nw": 0.6 } ], "hush": 0.2, "wet": 0.10 },
+    "vo2": { "segments": [ { "text": "For a hundred and thirty years,", "ls": 1.15, "gap": 0.3 }, { "text": "it took an army{v1.6c1.15} to make a movie.", "ls": 1.15 } ] },
+    "vo3a": { "segments": [ { "text": "Now it takes", "ls": 1.15, "gap": 0.22 }, { "text": "one director.", "ls": 1.2 } ] },
+    "vo3b": { "segments": [ { "text": "Meet.", "ls": 1.1, "gap": 0.1 }, { "text": "Amrita{v1.15}.", "ls": 1.1 } ], "wet": 0.16 },
+    "vo4a": { "segments": [ { "text": "She writes.", "ls": 1.0 } ] },
+    "vo4b": { "segments": [ { "text": "She shoots.", "ls": 1.0 } ] },
+    "vo4c": { "segments": [ { "text": "She scores.", "ls": 1.0 } ] },
+    "vo4d": { "segments": [ { "text": "She cuts.", "ls": 1.0 } ] },
+    "vo5": { "segments": [ { "text": "And she's just getting started.", "ls": 1.05 } ] },
+    "vo6a": { "segments": [ { "text": "Amrita Cinema Studio.", "ls": 0.95 } ] },
+    "vo6b": { "segments": [ { "text": "Your story.", "ls": 1.05, "gap": 0.15 }, { "text": "Directed.", "ls": 1.05 } ] },
+    "vo_hello": { "voice": "diegetic", "segments": [ { "text": "Hello!", "ls": 0.95 } ], "formant_shift": 1.5 }
+  }
+}

@@ -47,7 +47,7 @@ def main():
     res = json.load(open(resf)) if os.path.exists(resf) else {}
     if cmd == "run":
         from synth import run_job
-        from analyze import asr_wer, read_wav_mono, voice_metrics
+        from analyze import asr_wer, read_wav_mono, voice_metrics, VOCAB_PROMPT
         lines = cue_lines()["vo"]
         for v in voices:
             for seed in seeds:
@@ -66,7 +66,8 @@ def main():
                     r.setdefault("asr", {})
                     for m in asrs:
                         if m not in r["asr"]:
-                            r["asr"][m] = asr_wer(wav, ln["text"], m)
+                            nm, _, flag = m.partition("+")
+                            r["asr"][m] = asr_wer(wav, ln["text"], nm, prompt=VOCAB_PROMPT if flag == "p" else None)
                     res[key] = r
                     json.dump(res, open(resf, "w"), indent=1)
                 print("done", v, seed, flush=True)
@@ -77,7 +78,7 @@ def main():
 def table(res, voices):
     rows = []
     for v in voices:
-        rs = [r for r in res.values() if r["voice"] == v]
+        rs = [r for k, r in res.items() if not k.startswith("_dns") and r["voice"] == v]
         if not rs:
             continue
         row = {"voice": v}
@@ -98,15 +99,27 @@ def table(res, voices):
             fit.setdefault(r["id"], []).append(r["dur"] / r["win"])
         row["fit"] = {k: float(np.mean(x)) for k, x in fit.items()}
         row["worst_fit"] = max(row["fit"].values())
+        dk = "_dns|" + v
+        if dk not in res:
+            from analyze import dnsmos
+            ys = []
+            for r in sorted(rs, key=lambda r: (r["seed"], r["id"])):
+                if r["seed"] != 1:
+                    continue
+                y, sr = read_wav_mono(os.path.join(WORK, "cmp", v, f"s{r['seed']}_{r['id']}.wav"))
+                ys.append(np.concatenate([y, np.zeros(int(0.25 * sr), np.float32)]))
+            res[dk] = dnsmos(np.concatenate(ys), sr)
+            json.dump(res, open(os.path.join(WORK, "compare.json"), "w"), indent=1)
+        row["dns_sig"], row["dns_ovrl"] = res[dk]["sig"], res[dk]["ovrl"]
         rows.append(row)
     ms = sorted({k[4:] for r in rows for k in r if k.startswith("wer_")})
     hdr = f"{'voice':36s} " + " ".join(f"WER:{m:7s}" for m in ms) + " " + " ".join(f"conf:{m:7s}" for m in ms) + \
-          "  F0   F0sd  HNR  tilt  alpha  worstFit"
+          "  F0   F0sd  HNR  tilt  alpha  worstFit  dnsSIG dnsOVR"
     print(hdr)
     for r in rows:
         print(f"{r['voice']:36s} " + " ".join(f"{100*r['wer_'+m]:11.1f}%" for m in ms) + " " +
               " ".join(f"{r['conf_'+m]:12.3f}" for m in ms) +
-              f" {r['f0']:5.0f} {r['f0sd']:4.1f} {r['hnr']:5.1f} {r['tilt']:5.1f} {r['alpha']:6.1f} {r['worst_fit']:6.2f}")
+              f" {r['f0']:5.0f} {r['f0sd']:4.1f} {r['hnr']:5.1f} {r['tilt']:5.1f} {r['alpha']:6.1f} {r['worst_fit']:6.2f}  {r['dns_sig']:6.2f} {r['dns_ovrl']:6.2f}")
     return rows
 
 

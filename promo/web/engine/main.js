@@ -187,8 +187,13 @@ class Film {
   }
   async cachedFrame(frameIdx) {
     if (this.frameCache.has(frameIdx)) return this.frameCache.get(frameIdx);
-    const r = await fetch(`/cache/frames/${String(frameIdx).padStart(5, '0')}.jpg`);
-    if (!r.ok) throw new Error('no cached frame ' + frameIdx);
+    // exact frame, else the nearest cached one (partial caches exist while developing; the final render has every frame < 1500)
+    let r = null, used = frameIdx;
+    for (let d = 0; d <= 45 && !(r && r.ok); d++) for (const s of d === 0 ? [0] : [-1, 1]) {
+      used = frameIdx + s * d; if (used < 0) continue;
+      r = await fetch(`/cache/frames/${String(used).padStart(5, '0')}.jpg`); if (r.ok) break;
+    }
+    if (!r || !r.ok) throw new Error('no cached frame near ' + frameIdx + ' (run tools/mkcache.mjs)');
     const bmp = await createImageBitmap(await r.blob());
     if (this.frameCache.size > 160) { const k = this.frameCache.keys().next().value; this.frameCache.get(k).close?.(); this.frameCache.delete(k); }
     this.frameCache.set(frameIdx, bmp);
@@ -273,6 +278,32 @@ class Film {
       ctx.save(); ctx.fillStyle = `rgba(0,0,0,${clamp(1 - on * (1 - fade) + 0, 0, 1)})`; ctx.fillRect(0, 0, LW, LH); ctx.restore();
     }
     return { scene: sc.id, ms: performance.now() - t0, rects: this.log.rects, warnings: this.log.warnings.splice(0) };
+  }
+
+
+  // render frame idx and POST it to the render server (full-res JPEG) + optionally the small cache copy (Droste source)
+  async frameJob(idx, { cache = false, quality = this.quality, cacheQuality = 0.88 } = {}) {
+    const info = await this.renderFrame(idx / FPS);
+    const size = await this.postFrame('/frame', idx, 'image/jpeg', quality);
+    if (cache) {
+      if (!this._small) { this._small = this.mk(1280, 720); this._smallCtx = this._small.getContext('2d'); }
+      this._smallCtx.drawImage(this.out, 0, 0, 1280, 720);
+      const b = await new Promise((res) => this._small.toBlob(res, 'image/jpeg', cacheQuality));
+      const r = await fetch(`/cache?i=${idx}`, { method: 'POST', body: b }); if (!r.ok) throw new Error('cache post failed');
+    }
+    return { size, ms: info.ms, scene: info.scene, warnings: info.warnings };
+  }
+
+
+  // QA: render frame t then return luminance statistics of the finished frame (64x36 probe)
+  async lintFrame(t) {
+    const info = await this.renderFrame(t);
+    if (!this._probe) { this._probe = document.createElement('canvas'); this._probe.width = 64; this._probe.height = 36; this._probeCtx = this._probe.getContext('2d', { willReadFrequently: true }); }
+    this._probeCtx.drawImage(this.out, 0, 0, 64, 36);
+    const d = this._probeCtx.getImageData(0, 0, 64, 36).data; let sum = 0, sq = 0, dark = 0; const n = d.length / 4;
+    for (let i = 0; i < d.length; i += 4) { const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; sum += l; sq += l * l; if (l < 10) dark++; }
+    const mean = sum / n, std = Math.sqrt(Math.max(0, sq / n - mean * mean));
+    return { t, scene: info.scene, ms: Math.round(info.ms), mean: +mean.toFixed(1), std: +std.toFixed(1), dark: +(dark / n).toFixed(3), rects: info.rects, warnings: info.warnings };
   }
 
   async toBlob(type = 'image/jpeg', q = this.quality) { return new Promise((res) => this.out.toBlob(res, type, q)); }
