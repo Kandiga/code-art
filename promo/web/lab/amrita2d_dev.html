@@ -1,0 +1,55 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#222}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+import '/web/engine/main.js';
+await new Promise(r=>{const i=setInterval(()=>{if(window.film){clearInterval(i);r();}},20)});
+await window.film.init({scale:1});
+const S=window.film.S;
+const q=new URLSearchParams(location.search);
+const A=S.amrita2d;
+const cv=document.createElement('canvas'); cv.width=1920; cv.height=1080; document.body.appendChild(cv);
+const g=cv.getContext('2d');
+const T=S.cues.makeT(+(q.get('t')||5.0)); T.boil=7;
+const mode=q.get('mode')||'bodies';
+const bg={ink:'paper',line:'paper',clean:'#2b2840',phone:'#6B5BFF',hologram:'#0c1218',glow:'#0b0a1a'};
+const fillBg=(st,x0,y0,w,h)=>{ g.save(); g.beginPath(); g.rect(x0,y0,w,h); g.clip(); g.fillStyle=bg[st]==='paper'?'#F2EBDC':bg[st]; g.fillRect(x0,y0,w,h); g.restore(); };
+if(mode==='bodies'){
+  const styles=(q.get('styles')||'ink,line,clean,phone').split(',');
+  styles.forEach((st,i)=>{
+    const x0=i*480; fillBg(st,x0,0,480,1080);
+    const yaw=+(q.get('yaw')||0.45);
+    A.drawAmrita(g,T,S,{x:x0+240,y:200,size:170,yaw,style:st,expr:q.get('expr')||'neutral'});
+    A.drawAmrita(g,T,S,{x:x0+240,y:560,size:170,yaw:0,style:st,expr:'happy'});
+    A.drawAmrita(g,T,S,{x:x0+120,y:900,size:60,yaw,style:st,expr:'neutral'});
+    A.drawAmrita(g,T,S,{x:x0+330,y:900,size:100,yaw:-0.5,style:st,expr:'determined'});
+  });
+} else if(mode==='props'){
+  const st=q.get('style')||'ink'; fillBg(st,0,0,1920,1080);
+  const props=(q.get('which')||'crank,megaphone,viewfinder,clapper,slate,baton,brush').split(','); const big=q.get('big')?1:0;
+  props.forEach((p,i)=>{ const cols=big?2:4, cw=1920/cols, ch=big?540:540, col=i%cols, row=Math.floor(i/cols); A.drawAmrita(g,T,S,{x:(big?330:230)+col*cw,y:(big?270:260)+row*ch,size:big?170:120,yaw:0.5,style:st,expr:i%2?'happy':'determined',prop:p,propAnim:{clap:i===3?0.2:1,sound:1,hit:0.5,swing:1,paint:0.8,glow:1}}); });
+} else if(mode==='hero'){
+  const sts=(q.get('styles')||'ink,clean').split(',');
+  sts.forEach((st,i)=>{ const w=1920/sts.length; fillBg(st,i*w,0,w,1080); A.drawAmrita(g,T,S,{x:i*w+w/2-60,y:500,size:+(q.get('size')||400)/sts.length*1.0,yaw:+(q.get('yaw')||0.45),style:st,expr:q.get('expr')||'happy',prop:q.get('prop')||null}); });
+} else if(mode==='expr'){
+  const st=q.get('style')||'ink'; fillBg(st,0,0,1920,1080);
+  const ex=(q.get('list')||'neutral,blink,squint,happy,determined,surprised,sleepy,sad').split(','); const yaws=[0,0.45,-0.6];
+  ex.forEach((e,i)=>yaws.forEach((yw,j)=>A.drawAmrita(g,T,S,{x:130+i*240,y:140+j*340,size:+(q.get('size')||95),yaw:yw,style:st,expr:e,shadow:false})));
+} else if(mode==='fx'){
+  const st=q.get('style')||'ink'; fillBg(st,0,0,1920,1080);
+  const fxs=['sparkle','lines','sweat','confetti','zzz','heart','exclaim','poof'];
+  fxs.forEach((p,i)=>{ const col=i%4, row=Math.floor(i/4); A.drawAmrita(g,T,S,{x:240+col*480,y:300+row*540,size:130,yaw:0.4,style:st,expr:['happy','determined','worried','joy','sleepy','happy','surprised','happy'][i],fx:[p],fxT:0.6}); });
+} else if(mode==='holo'){
+  ['hologram','glow'].forEach((st,i)=>{ fillBg(st,i*960,0,960,1080);
+    A.drawAmrita(g,T,S,{x:i*960+480,y:300,size:210,yaw:0.45,style:st,expr:'neutral'});
+    A.drawAmrita(g,T,S,{x:i*960+250,y:800,size:90,yaw:-0.4,style:st,expr:'happy',prop:'slate'});
+    A.drawAmrita(g,T,S,{x:i*960+700,y:800,size:90,yaw:0.4,style:st,expr:'determined',prop:'baton'});
+  });
+} else if(mode==='mark'){
+  g.fillStyle='#F2EBDC'; g.fillRect(0,0,960,1080); g.fillStyle='#14121A'; g.fillRect(960,0,960,1080);
+  A.drawMark(g,S,{x:240,y:240,size:200}); A.drawMark(g,S,{x:720,y:240,size:200,eyes:true,expr:'happy'});
+  A.drawMark(g,S,{x:240,y:700,size:200,style:'mono',color:'#14121A'}); A.drawMark(g,S,{x:720,y:700,size:200,style:'ink',eyes:true});
+  A.drawMark(g,S,{x:1200,y:240,size:200,style:'mono',color:'#FFF3D6',eyes:true}); A.drawMark(g,S,{x:1680,y:240,size:200,iris:0.5});
+  A.drawMark(g,S,{x:1200,y:700,size:200,iris:0.2,play:false}); A.drawMark(g,S,{x:1680,y:700,size:200,yaw:0.5,eyes:true});
+}
+window.__done=true;
+</script></body></html>

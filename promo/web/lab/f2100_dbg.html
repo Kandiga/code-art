@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#222;color:#ddd;font:12px monospace}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// f2100 debug lab: render several (t, hide-list) configurations into one sheet.
+//   ?cfg=[{"t":45,"hide":["beams","haze"],"label":"x"},...]&scale=0.5&cols=2
+import '/web/engine/main.js';
+await new Promise(r=>{const i=setInterval(()=>{if(window.film){clearInterval(i);r();}},20)});
+const q=new URLSearchParams(location.search);
+const cfg=JSON.parse(q.get('cfg')||'[{"t":45}]'), scale=Number(q.get('scale')||0.5), cols=Number(q.get('cols')||2);
+await window.film.init({scale});
+const f=window.film, W=f.W, Hh=f.H, rows=Math.ceil(cfg.length/cols);
+const c=document.createElement('canvas'); c.width=W*cols; c.height=(Hh+16)*rows; document.body.appendChild(c);
+const g=c.getContext('2d'); g.fillStyle='#111'; g.fillRect(0,0,c.width,c.height);
+const log=[];
+for(let i=0;i<cfg.length;i++){
+  const k=cfg[i]; globalThis.__f2100dbg={hide:k.hide||[],solo:k.solo||null,opt:k.opt||{}};
+  const t0=performance.now(); const r=await f.renderFrame(k.t); const ms=performance.now()-t0;
+  // force GPU completion cost into the timing by reading a pixel
+  const x=(i%cols)*W, y=Math.floor(i/cols)*(Hh+16);
+  g.drawImage(f.out,x,y);
+  g.fillStyle='#fff'; g.font='12px monospace'; g.fillText(`t=${k.t} ${k.label||''} hide=${(k.hide||[]).join(',')} ${Math.round(r.ms)}ms`,x+4,y+Hh+12);
+  if(r.warnings.length) console.log('WARN',r.warnings.join('|'));
+}
+window.__sheet=c.toDataURL('image/png'); window.__done=true;
+</script></body></html>

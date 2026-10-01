@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { SR, Buf, isBuf, writeWav, ensureDir } from './core.mjs';
+import { reverb } from './verb.mjs';
 
 export class FfmpegError extends Error {
   constructor(msg, info) {
@@ -130,9 +131,10 @@ export function timeStretch(buf, ratio, opts = {}) {
 }
 
 // ---- images -------------------------------------------------------------------
+let _tmpCounter = 0;
 function tmpWav(buf, tag = 'x') {
   const dir = ensureDir(path.join(os.tmpdir(), 'amrita-audio'));
-  const f = path.join(dir, `${tag}_${process.pid}_${Math.floor(performance.now())}.wav`);
+  const f = path.join(dir, `${tag}_${process.pid}_${_tmpCounter++}.wav`);
   writeWav(f, buf);
   return f;
 }
@@ -220,4 +222,28 @@ export function convert(inFile, outFile, extra = []) {
 /** two-pass-free convenience: ffmpeg loudnorm single pass on a Buf (prefer meter.gainToLufs + limiter for mastering) */
 export function loudnorm(buf, I = -14, TP = -1.5, LRA = 11) {
   return filterChain(buf, `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}`);
+}
+
+/**
+ * shimmerReverb(x, {passes=3, shift=12, feedback=0.6, wet=0.6, decay=4, size=2, damp=0.3, tail=3, wetOnly=false}) -> Buf
+ * Reverb whose tail is repeatedly pitch-shifted (default +1 octave) and re-verbed: the classic "shimmer" bed.
+ * Each pass calls rubberband, so apply it to a short bus (the 42-50 s future section), not to 60 s of everything.
+ */
+export function shimmerReverb(x, opts = {}) {
+  const { passes = 3, shift = 12, feedback = 0.6, wet = 0.6, decay = 4, size = 2, damp = 0.3, tail = 3, wetOnly = false } = opts;
+  const src = asBuf(x);
+  const n = src.length + Math.round(tail * SR);
+  const acc = new Buf(n / SR);
+  let layer = src;
+  for (let p = 0; p < passes; p++) {
+    const w = reverb(layer, { wetOnly: true, wet: 1, decay, size, damp, tail: p === 0 ? tail : 0, lowCut: 150, highCut: 11000 });
+    const g = Math.pow(feedback, p);
+    for (let i = 0; i < Math.min(n, w.length); i++) { acc.L[i] += w.L[i] * g; acc.R[i] += w.R[i] * g; }
+    if (p < passes - 1) layer = pitchShift(w, shift, { transients: 'smooth', window: 'long', keepLength: true });
+  }
+  for (let i = 0; i < n; i++) {
+    acc.L[i] = acc.L[i] * wet + (!wetOnly && i < src.length ? src.L[i] : 0);
+    acc.R[i] = acc.R[i] * wet + (!wetOnly && i < src.length ? src.R[i] : 0);
+  }
+  return acc;
 }

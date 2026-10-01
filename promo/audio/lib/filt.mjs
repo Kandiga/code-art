@@ -4,7 +4,7 @@
 // scalar OR a Float32Array (per-sample modulation).
 // All functions return NEW arrays (input untouched). Buf in -> Buf out where noted.
 // =============================================================================
-import { SR, TWO_PI, Buf, isBuf, isArr, P, clamp, perChannel, dbToLin } from './core.mjs';
+import { SR, TWO_PI, isBuf, isArr, P, clamp, perChannel, dbToLin } from './core.mjs';
 
 // ---------------------------------------------------------------------------
 // biquad
@@ -76,9 +76,10 @@ export function biquad(x, type, freq, q = Math.SQRT1_2, gainDb = 0, opts = {}) {
   if (!(isArr(freq) || isArr(q) || isArr(gainDb))) {
     for (let i = 0; i < n; i++) {
       const v = x[i];
-      const y = b0 * v + z1;
+      let y = b0 * v + z1;
       z1 = b1 * v - a1 * y + z2;
       z2 = b2 * v - a2 * y;
+      if (v === 0 && y < 1e-24 && y > -1e-24) { y = 0; z1 = 0; z2 = 0; } // flush denormals when idle
       out[i] = y;
     }
     return out;
@@ -89,9 +90,10 @@ export function biquad(x, type, freq, q = Math.SQRT1_2, gainDb = 0, opts = {}) {
       b0 = c[0]; b1 = c[1]; b2 = c[2]; a1 = c[3]; a2 = c[4];
     }
     const v = x[i];
-    const y = b0 * v + z1;
+    let y = b0 * v + z1;
     z1 = b1 * v - a1 * y + z2;
     z2 = b2 * v - a2 * y;
+    if (v === 0 && y < 1e-24 && y > -1e-24) { y = 0; z1 = 0; z2 = 0; }
     out[i] = y;
   }
   return out;
@@ -142,6 +144,7 @@ export function onepole(x, type, freq, opts = {}) {
   for (let i = 0; i < n; i++) {
     if (fa) a = 1 - Math.exp((-TWO_PI * clamp(freq[i], 1, sr * 0.45)) / sr);
     y += a * (x[i] - y);
+    if (x[i] === 0 && y < 1e-24 && y > -1e-24) y = 0;
     out[i] = hp ? x[i] - y : y;
   }
   return out;
@@ -185,6 +188,7 @@ export function svf(x, type, freq, q = Math.SQRT1_2, opts = {}) {
     const v2 = ic2 + a2 * ic1 + a3 * v3;
     ic1 = 2 * v1 - ic1;
     ic2 = 2 * v2 - ic2;
+    if (v0 === 0 && ic1 < 1e-24 && ic1 > -1e-24 && ic2 < 1e-24 && ic2 > -1e-24) { ic1 = 0; ic2 = 0; }
     let y;
     switch (tp) {
       case 0: y = v2; break;
@@ -233,6 +237,7 @@ export function ladder(x, cutoff, res = 0.3, opts = {}) {
       s3 += g * (th(s2) - th(s3));
       s4 += g * (th(s3) - th(s4));
     }
+    if (xin === 0 && s1 < 1e-20 && s1 > -1e-20 && s4 < 1e-20 && s4 > -1e-20) { s1 = 0; s2 = 0; s3 = 0; s4 = 0; }
     out[i] = s4 * (1 + comp * k);
   }
   return out;
@@ -335,4 +340,3 @@ export function allpass1(x, f, opts = {}) {
 
 /** Buf helper: apply fn(Float32Array) to L and R and return a new Buf */
 export const eachChannel = perChannel;
-export { Buf };

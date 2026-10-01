@@ -42,6 +42,7 @@ export function kWeight(x, sr = SR) {
     a2 = a1; a1 = v; b2 = b1; b1 = y;
     const z = r0 * y + r1 * c1 + r2 * c2 - ra1 * d1 - ra2 * d2;
     c2 = c1; c1 = y; d2 = d1; d1 = z;
+    if (v === 0 && z < 1e-24 && z > -1e-24 && y < 1e-24 && y > -1e-24) { a1 = a2 = b1 = b2 = c1 = c2 = d1 = d2 = 0; }
     out[i] = z;
   }
   return out;
@@ -122,37 +123,50 @@ const TPC = [1, 2, 3].map((p) => {
   return c;
 });
 
+// max |inter-sample value| of channel x between samples i and i+1 (3 interpolated phases)
+function ispMax(x, i, n) {
+  let best = 0;
+  const lo = i + TP_K0, hi = i + TP_K0 + TP_N;
+  if (lo >= 0 && hi <= n) {
+    for (let p = 0; p < 3; p++) {
+      const c = TPC[p];
+      let s = 0;
+      for (let j = 0, q = lo; j < TP_N; j++, q++) s += x[q] * c[j];
+      if (s < 0) s = -s;
+      if (s > best) best = s;
+    }
+  } else {
+    for (let p = 0; p < 3; p++) {
+      const c = TPC[p];
+      let s = 0;
+      for (let j = 0; j < TP_N; j++) { const q = lo + j; if (q >= 0 && q < n) s += x[q] * c[j]; }
+      if (s < 0) s = -s;
+      if (s > best) best = s;
+    }
+  }
+  return best;
+}
+const abs = Math.abs;
+function localMax(x, i, n) {
+  let m = abs(x[i]);
+  if (i > 0) { const v = abs(x[i - 1]); if (v > m) m = v; }
+  if (i + 1 < n) { const v = abs(x[i + 1]); if (v > m) m = v; }
+  if (i + 2 < n) { const v = abs(x[i + 2]); if (v > m) m = v; }
+  return m;
+}
+
 /**
  * per-sample true-peak envelope: out[i] = max(|x[i]|, |inter-sample values in (i, i+1)|) over L and R.
- * `minLevel`: skip the interpolation where all neighbours are below this (cheap + exact for limiting).
+ * `minLevel`: skip the interpolation where all neighbours are below this (exact for limiting when
+ * minLevel <= ceiling/2, since band-limited overshoot of 4x oversampling rarely exceeds +6 dB).
  */
 export function truePeakEnvelope(L, R = null, minLevel = 0.05) {
   const n = L.length, out = new Float32Array(n);
-  const chans = R ? [L, R] : [L];
   for (let i = 0; i < n; i++) {
-    let m = 0, loc = 0;
-    for (const x of chans) {
-      const v = Math.abs(x[i]);
-      if (v > m) m = v;
-      for (let k = -2; k <= 3; k++) {
-        const j = i + k;
-        if (j >= 0 && j < n) { const w = Math.abs(x[j]); if (w > loc) loc = w; }
-      }
-    }
-    if (loc >= minLevel) {
-      for (const x of chans) {
-        for (let p = 0; p < 3; p++) {
-          const c = TPC[p];
-          let s = 0;
-          for (let j = 0; j < TP_N; j++) {
-            const q = i + TP_K0 + j;
-            if (q >= 0 && q < n) s += x[q] * c[j];
-          }
-          const a = Math.abs(s);
-          if (a > m) m = a;
-        }
-      }
-    }
+    let m = abs(L[i]);
+    if (R) { const v = abs(R[i]); if (v > m) m = v; }
+    if (localMax(L, i, n) >= minLevel) { const v = ispMax(L, i, n); if (v > m) m = v; }
+    if (R && localMax(R, i, n) >= minLevel) { const v = ispMax(R, i, n); if (v > m) m = v; }
     out[i] = m;
   }
   return out;
@@ -161,29 +175,14 @@ export function truePeakEnvelope(L, R = null, minLevel = 0.05) {
 /** true peak of a Buf or Float32Array over [t0,t1]: {lin, db, samplePeakDb, overDb} */
 export function truePeak(buf, t0 = 0, t1 = Infinity) {
   const L = isBuf(buf) ? buf.L : buf, R = isBuf(buf) ? buf.R : null;
-  const a = clamp(Math.round(t0 * SR), 0, L.length), b = clamp(t1 === Infinity ? L.length : Math.round(t1 * SR), a, L.length);
-  let sp = 0, tp = 0;
-  const chans = R ? [L, R] : [L];
-  for (const x of chans) {
-    for (let i = a; i < b; i++) {
-      const v = Math.abs(x[i]);
-      if (v > sp) sp = v;
-    }
-  }
-  tp = sp;
+  const n = L.length;
+  const a = clamp(Math.round(t0 * SR), 0, n), b = clamp(t1 === Infinity ? n : Math.round(t1 * SR), a, n);
+  let sp = 0;
+  for (const x of R ? [L, R] : [L]) for (let i = a; i < b; i++) { const v = abs(x[i]); if (v > sp) sp = v; }
+  let tp = sp;
   for (let i = a; i < b; i++) {
-    let loc = 0;
-    for (const x of chans) for (let k = -2; k <= 3; k++) { const j = i + k; if (j >= 0 && j < x.length) { const w = Math.abs(x[j]); if (w > loc) loc = w; } }
-    if (loc < 0.4 * tp) continue;
-    for (const x of chans) {
-      for (let p = 0; p < 3; p++) {
-        const c = TPC[p];
-        let s = 0;
-        for (let j = 0; j < TP_N; j++) { const q = i + TP_K0 + j; if (q >= 0 && q < x.length) s += x[q] * c[j]; }
-        const v = Math.abs(s);
-        if (v > tp) tp = v;
-      }
-    }
+    if (localMax(L, i, n) >= 0.4 * tp) { const v = ispMax(L, i, n); if (v > tp) tp = v; }
+    if (R && localMax(R, i, n) >= 0.4 * tp) { const v = ispMax(R, i, n); if (v > tp) tp = v; }
   }
   const db = (v) => (v > 1e-12 ? 20 * Math.log10(v) : -Infinity);
   return { lin: tp, db: db(tp), samplePeakDb: db(sp), overDb: db(tp) - db(sp) };

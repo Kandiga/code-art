@@ -403,16 +403,26 @@ function fdnCore(inL, inR, nOut, P) {
       const j = i - preN;
       pd[i] = j < x.length ? x[j] : 0;
     }
-    // early reflections
+    // early reflections (sparse-aware: only non-zero input samples are scattered)
     const er = new Float32Array(n);
     if (P.early > 0) {
       const r = mulberry32(P.seed + 77 + side * 13);
       const span = 0.012 + 0.042 * Math.sqrt(P.size);
+      const taps = [];
       for (let k = 0; k < 12; k++) {
         const t = 0.003 + (span - 0.003) * Math.pow(r(), 0.8);
-        const s = Math.round(t * sr);
-        const a = Math.exp(-t / (span * 0.6)) * (r() < 0.5 ? -1 : 1) * (0.5 + 0.5 * r());
-        for (let i = s; i < n; i++) er[i] += pd[i - s] * a;
+        taps.push([Math.round(t * sr), Math.exp(-t / (span * 0.6)) * (r() < 0.5 ? -1 : 1) * (0.5 + 0.5 * r())]);
+      }
+      let nz = 0;
+      for (let i = 0; i < n; i++) if (pd[i] !== 0) nz++;
+      if (nz < n / 8) {
+        for (let i = 0; i < n; i++) {
+          const v = pd[i];
+          if (v === 0) continue;
+          for (const [s, a] of taps) if (i + s < n) er[i + s] += v * a;
+        }
+      } else {
+        for (const [s, a] of taps) for (let i = s; i < n; i++) er[i] += pd[i - s] * a;
       }
     }
     // diffusion
@@ -556,19 +566,24 @@ export function reverb(x, opts = {}) {
 // ---------------------------------------------------------------------------
 /**
  * REVERB_PRESETS: name -> {engine:'fdn', ...reverb opts} | {engine:'ir', kind, ...convReverb opts}
- * names: room chamber hall bigHall cathedral plate spring projector (alias projector_room) phone (alias phone_speaker) cave
+ * names: room chamber hall bigHall cathedral plate spring projector (alias projector_room) cave
+ *        + phone (alias phone_speaker): not a reverb but the band-limited mono tiny-speaker device filter (phoneSpeaker opts)
  */
 export const REVERB_PRESETS = {
-  room: { engine: 'fdn', size: 0.45, decay: 0.55, damp: 0.5, preDelay: 0.004, early: 0.6, diffusion: 0.6, lowCut: 120, highCut: 10000 },
-  chamber: { engine: 'fdn', size: 0.75, decay: 1.3, damp: 0.45, preDelay: 0.01, early: 0.5, diffusion: 0.7, lowCut: 110 },
+  // NB: FDN sizes below ~0.7 get a peaky (metallic) response because modal density ~ sum of line lengths;
+  // 'room' therefore keeps size ~0.85 and gets its small-room character from the short RT60 + early reflections.
+  room: { engine: 'fdn', size: 0.85, decay: 0.5, damp: 0.55, preDelay: 0.004, early: 0.55, diffusion: 0.8, mod: 0.8, lowCut: 120, highCut: 10000 },
+  chamber: { engine: 'fdn', size: 1.0, decay: 1.3, damp: 0.45, preDelay: 0.01, early: 0.5, diffusion: 0.8, mod: 0.7, lowCut: 110 },
   hall: { engine: 'fdn', size: 1.7, decay: 2.5, damp: 0.38, preDelay: 0.028, early: 0.35, diffusion: 0.75, lowCut: 100, highCut: 11000 },
   bigHall: { engine: 'fdn', size: 2.4, decay: 3.8, damp: 0.42, preDelay: 0.04, early: 0.3, diffusion: 0.8, lowCut: 90, highCut: 10000 },
   cathedral: { engine: 'fdn', size: 3.2, decay: 6.5, damp: 0.5, preDelay: 0.055, early: 0.22, diffusion: 0.85, lowCut: 80, highCut: 8500, mod: 0.6 },
   cave: { engine: 'fdn', size: 3.6, decay: 9, damp: 0.6, preDelay: 0.08, early: 0.1, diffusion: 0.9, lowCut: 70, highCut: 6000, mod: 0.7 },
-  plate: { engine: 'fdn', size: 0.8, decay: 1.8, damp: 0.12, preDelay: 0, early: 0, diffusion: 1, lowCut: 160, highCut: 15000, mod: 0.8 },
+  plate: { engine: 'fdn', size: 1.0, decay: 1.8, damp: 0.12, preDelay: 0, early: 0, diffusion: 1, lowCut: 160, highCut: 15000, mod: 0.9 },
   spring: { engine: 'ir', kind: 'spring' },
   projector: { engine: 'ir', kind: 'projector_room' },
   projector_room: { engine: 'ir', kind: 'projector_room' },
+  phone: { engine: 'phone' }, // not a reverb: band-limited mono tiny speaker (400 Hz-4 kHz)
+  phone_speaker: { engine: 'phone' },
 };
 /**
  * applyReverb(x, preset, overrides) -> Buf. overrides: wet, dry, wetOnly, tail, + any reverb/convReverb option.
@@ -579,6 +594,7 @@ export function applyReverb(x, preset = 'hall', overrides = {}) {
   if (!p) throw new Error(`applyReverb: unknown preset "${preset}" (have ${Object.keys(REVERB_PRESETS).join(', ')})`);
   const { engine, kind, ...rest } = p;
   const o = { ...rest, ...overrides };
+  if (engine === 'phone') return phoneSpeaker(x, o);
   if (engine === 'ir') return convReverb(x, kind, o);
   return reverb(x, o);
 }

@@ -209,12 +209,19 @@ export function chordSpans(t0 = 0, t1 = DURATION, opts = {}) {
 // ---------------------------------------------------------------------------
 const DEFAULT_VEL = [0.88, 0.68, 0.74, 0.95];
 /**
- * motifEvents(t0, {transposeSemis=0, octave=0, stretch=1, notes=cues.MOTIF.notes, vel (number|array|fn), gate=1})
+ * The same four pitches (cues.MOTIF) as even quarter notes on beats 0,1,2,3 (the last one held 2 beats).
+ * This is the "turn" piano reading: E4 24.0, G4 24.5, A4 25.0, C5 25.5 when placed at bar 12.
+ */
+export const MOTIF_EVEN = cues.MOTIF.notes.map((n, i) => ({ beat: i, len: i === 3 ? 2 : 1, midi: n.midi }));
+/**
+ * motifEvents(t0, {transposeSemis=0, octave=0, stretch=1, rhythm='orig'|'even', notes, vel (number|array|fn), gate=1})
  * -> [{t, dur, midi, vel, beat}] ; t0 in seconds (use barStart(n) for bar n). stretch>1 = slower (augmentation).
- * Default motif = E4 G4 A4 C5 with rhythm [b0 len1][b1 len.5][b1.5 len.5][b2 len2].
+ * rhythm 'orig' (default) = cues.MOTIF rhythm [b0 len1][b1 len.5][b1.5 len.5][b2 len2] (E4 G4 A4 C5);
+ * rhythm 'even' = MOTIF_EVEN (one note per beat). `notes` overrides both.
  */
 export function motifEvents(t0, opts = {}) {
-  const { transposeSemis = 0, octave = 0, stretch = 1, notes = cues.MOTIF.notes, vel = null, gate = 1 } = opts;
+  const { transposeSemis = 0, octave = 0, stretch = 1, rhythm = 'orig', vel = null, gate = 1 } = opts;
+  const notes = opts.notes || (rhythm === 'even' ? MOTIF_EVEN : cues.MOTIF.notes);
   return notes.map((n, i) => ({
     t: t0 + n.beat * BEAT * stretch,
     dur: n.len * BEAT * stretch * gate,

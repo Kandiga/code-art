@@ -1,0 +1,155 @@
+<!doctype html><html><head><meta charset="utf-8"><title>crowd3d lab</title>
+<style>html,body{margin:0;background:#161418}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// crowd3d lab — contact sheets of every crowd3d export.   ?sheet=cast|kinds|audience|couch|particles|orch|all  &scale=0.5  &cols=2
+//   node tools/lab.mjs --page "web/lab/crowd3d.html?sheet=cast" --out out/stills/crowd_cast.png --w 1920 --h 1700
+import '/web/engine/main.js';
+import { subTimes } from '/web/engine/post.js';
+import * as C from '/web/engine/crowd3d.js';
+await new Promise((r) => { const i = setInterval(() => { if (window.film) { clearInterval(i); r(); } }, 20); });
+const q = new URLSearchParams(location.search);
+const scale = Number(q.get('scale') || 0.5), cols = Number(q.get('cols') || 2), sheetName = q.get('sheet') || 'cast';
+await window.film.init({ scale: 1, subframes: 4 });
+const S = window.film.S, THREE = S.THREE, cues = S.cues, renderer = S.renderer;
+const TW = Math.round(1920 * scale), TH = Math.round(TW / 2.39 / 2) * 2;
+const ms = [];
+
+// ---------------------------------------------------------------- lab stage
+function labStage({ wall = true, floorColor = '#0d0c12' } = {}) {
+  const scene = new THREE.Scene(); scene.background = new THREE.Color('#07060a'); scene.fog = new THREE.FogExp2('#07060a', 0.03);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshPhysicalMaterial({ color: floorColor, roughness: 0.55, metalness: 0.15, clearcoat: 0.4, clearcoatRoughness: 0.5 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  if (wall) { const w = new THREE.Mesh(new THREE.PlaneGeometry(60, 20), new THREE.MeshStandardMaterial({ color: '#1c1b24', roughness: 0.95 })); w.position.set(0, 10, -9); scene.add(w); }
+  const L = {};
+  L.key = new THREE.SpotLight('#ffe2b0', 260, 40, 0.55, 0.6, 2); L.key.position.set(3, 8, 5); L.key.castShadow = true; L.key.shadow.mapSize.set(1024, 1024); L.key.shadow.bias = -0.0004; L.key.target.position.set(0, 0.5, 0);
+  L.rim = new THREE.SpotLight('#9fd4ff', 300, 40, 0.7, 0.7, 2); L.rim.position.set(-3, 6, -6); L.rim.target.position.set(0, 0.8, 0);
+  L.rim2 = new THREE.SpotLight('#ff9a5a', 220, 40, 0.7, 0.7, 2); L.rim2.position.set(4, 5, -6); L.rim2.target.position.set(0, 0.8, 0);
+  L.fill = new THREE.PointLight('#7aa8ff', 30, 30, 2); L.fill.position.set(-5, 3, 5);
+  L.amb = new THREE.AmbientLight('#2a2f4a', 0.5);
+  for (const l of Object.values(L)) { scene.add(l); if (l.target) scene.add(l.target); }
+  return { scene, L };
+}
+const cam = (fov = 30) => new THREE.PerspectiveCamera(fov, TW / TH, 0.1, 120);
+function setCam(camera, [px, py, pz], [lx, ly, lz]) { camera.position.set(px, py, pz); camera.lookAt(lx, ly, lz); }
+
+// ---------------------------------------------------------------- sheets
+const sheets = {};
+sheets.cast = () => {
+  const { scene, L } = labStage(); const camera = cam(32);
+  const cast = C.createIconCast(THREE, { seed: 3 }); const marks = cast.map((c, i) => [(i - 2) * 1.45, 0, -0.4 + 0.35 * Math.abs(i - 2) * -1]);
+  cast.forEach((c) => scene.add(c.root));
+  const upd = (T) => {
+    cast.forEach((c, i) => {
+      c.idle(T, { groove: 0.6 }); c.pose({ yaw: -(i - 2) * 0.18 + 0.1, squash: 0, roll: 0 });
+      const t0 = 34.25 + 0.25 * i; c.idle(T, { groove: 0.6 });
+      c.hop(T, t0, [(i - 2) * 1.45 - 6, 0, marks[i][2]], marks[i], 0.8, 0.5); c.spot(T, t0 + 0.5);
+      c.popIn(T, t0 - 0.4);
+    });
+  };
+  return { scene, camera, upd, tiles: [33.9, 34.3, 34.55, 34.8, 35.05, 35.3, 35.55, 36.0].map((t) => ({ t, cam: [[0, 1.5, 7.2], [0, 0.55, 0]], dof: { focus: 7.3, strength: 0.5, maxPx: 6 } })) };
+};
+sheets.kinds = () => {
+  const { scene } = labStage(); const camera = cam(32);
+  const kinds = C.CAST_KINDS; const cast = C.createIconCast(THREE, { kinds, seed: 5 });
+  cast.forEach((c, i) => { scene.add(c.root); c.place((i - 3) * 1.25, 0, 0); c.pose({ yaw: 0.3 }); });
+  const upd = (T) => cast.forEach((c, i) => { c.idle(T, { amount: 0.6 }); });
+  return { scene, camera, upd, tiles: [0, 1].map((k) => ({ t: 40 + k * 0.7, cam: k ? [[1.0, 1.2, 5.5], [0, 0.5, 0]] : [[0, 1.2, 8], [0, 0.5, 0]], dof: { focus: 7, strength: 0.3, maxPx: 4 } })) };
+};
+
+sheets.audience = () => {
+  const { scene, L } = labStage({ wall: false }); scene.background = new THREE.Color('#050409'); scene.fog = new THREE.FogExp2('#08060a', 0.012); const camera = cam(36);
+  for (const l of Object.values(L)) l.visible = false;
+  const style = q.get('style') || 'silhouette', facing = q.get('facing') || 'screen';
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(15, 6.3), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffdca0').multiplyScalar(1.15), toneMapped: false })); scr.position.set(0, 4.6, -3.0); scene.add(scr);
+  const aud = C.createAudience(THREE, { rows: 9, cols: 18, spacing: 0.8, seed: 4, style, facing, curve: 0.25, aisles: [8] }); scene.add(aud.group);
+  const sl = new THREE.PointLight('#ffdca0', 90, 30, 2); sl.position.set(0, 3.5, -2.0); scene.add(sl);
+  const amb = new THREE.AmbientLight('#2a2540', 0.5); scene.add(amb);
+  aud.setLightColor('#ffcf8a');
+  const upd = (T) => aud.update(T, { react: (t) => (t > 40 && t < 42.2 ? Math.sin((t - 40) * 1.4) : 0), standT: 44, cheerT: 46 });
+  const P = [0, 5.6, 15], Lk = [0, 2.6, 0];
+  return { scene, camera, upd, tiles: [[39.0, P, Lk], [41.0, P, Lk], [43.0, [4, 3.4, 9.5], [-1, 2.0, 0]], [44.4, P, Lk], [45.0, [-6, 3.8, 11], [0, 2.4, 0]], [46.4, P, Lk]].map(([t, p, l]) => ({ t, cam: [p, l], dof: { focus: 11, strength: 0.35, maxPx: 5 } })) };
+};
+sheets.couch = () => {
+  const { scene } = labStage({ wall: false }); scene.background = new THREE.Color('#050409'); const camera = cam(34);
+  const holo = new THREE.Mesh(new THREE.SphereGeometry(0.6, 24, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color('#5fe3ff').multiplyScalar(2.5), toneMapped: false })); holo.position.set(0, 1.5, -3.5); scene.add(holo);
+  const pl = new THREE.PointLight('#5fe3ff', 60, 20, 2); pl.position.set(0, 1.5, -3.2); scene.add(pl);
+  const cs = [3, 4, 5].map((n, i) => { const c = C.createCouchGroup(THREE, { people: n, seed: 7 + i }); c.group.position.set(0, 0, i * 0.0); c.setLightColor('#5fe3ff'); return c; });
+  const which = Number(q.get('n') || 4) - 3; scene.add(cs[which].group);
+  const upd = (T) => cs[which].update(T, { awe: (t) => clamp01((t - 42.5) / 0.6) });
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  return { scene, camera, upd, tiles: [[42.0, [0, 1.6, 3.2], [0, 1.1, 0]], [43.0, [0, 1.6, 3.2], [0, 1.1, 0]], [43.0, [1.8, 1.5, 3.0], [0, 1.1, 0]], [43.5, [0, 2.0, 2.4], [0, 1.1, 0]]].map(([t, p, l]) => ({ t, cam: [p, l], dof: { focus: 3.2, strength: 0.4, maxPx: 5 } })) };
+};
+
+sheets.particles = () => {
+  const { scene, L } = labStage({ wall: false }); scene.background = new THREE.Color('#06040c'); scene.fog = new THREE.FogExp2('#0a0716', 0.02); const camera = cam(34);
+  for (const l of Object.values(L)) l.visible = false;
+  const floor = scene.children.find((o) => o.isMesh); if (floor) floor.material.color.set('#07060d');
+  const pa = C.createParticleAudience(THREE, { count: 84, seed: 3, bounds: { w: 15, d: 9, cx: 0, cz: 0, y: 0 }, layout: q.get('layout') || 'rows', focus: [0, 2, -30] }); scene.add(pa.group);
+  const upd = (T) => pa.update(T, { litT: 46.4, standT: 48.0, cheerT: 48.0, intensity: 1.0, hue: 0.58 + 0.12 * Math.min(1, Math.max(0, (T.t - 46) / 4)), assemble: [46.0, 46.9] });
+  const P = [0, 3.0, 11], Lk = [0, 1.1, -1];
+  return { scene, camera, upd, tiles: [[46.2, P, Lk], [46.6, P, Lk], [47.2, P, Lk], [47.9, P, Lk], [48.3, P, Lk], [49.0, [3, 1.6, 6], [0, 1.3, -2]]].map(([t, p, l]) => ({ t, cam: [p, l], dof: { focus: 12, strength: 0.4, maxPx: 6 } })) };
+};
+sheets.orch = () => {
+  const { scene, L } = labStage({ wall: false }); scene.background = new THREE.Color('#05040a'); scene.fog = new THREE.FogExp2('#08060e', 0.015); const camera = cam(40);
+  for (const l of Object.values(L)) l.visible = false;
+  const floor = scene.children.find((o) => o.isMesh); if (floor) floor.material.color.set('#09080e');
+  const orc = C.createOrchestraOfLight(THREE, { seed: 2, count: Number(q.get('count') || 32) }); scene.add(orc.group);
+  const am = S.amrita3d.createAmrita(THREE); am.root.position.set(0, 0.9, 0); am.root.rotation.y = Math.PI; am.pose({ yaw: 0 }); scene.add(am.root);
+  const pl = new THREE.PointLight('#ffb55a', 40, 20, 2); pl.position.set(0, 3, 2); scene.add(pl); scene.add(new THREE.AmbientLight('#2a2540', 0.6));
+  const upd = (T) => { orc.assemble(T, 36.0, 37.0); orc.hit(T, 37.0); am.eyes({ open: 1 }); };
+  const P = [0.8, 2.4, 6.5], Lk = [0, 1.3, -3];
+  return { scene, camera, upd, tiles: [[36.15, P, Lk], [36.45, P, Lk], [36.75, P, Lk], [36.98, P, Lk], [37.08, P, Lk], [37.25, P, Lk], [37.6, [5, 2.2, 5.5], [0, 1.2, -2]], [38.0, P, Lk]].map(([t, p, l]) => ({ t, cam: [p, l], dof: { focus: 9, strength: 0.4, maxPx: 6 } })) };
+};
+
+sheets.orch2 = () => {
+  const sh = sheets.orch(); const P = [[0.5, 1.6, 1.8], [-1.5, 1.4, 0.5], [3.5, 1.5, 1.5], [0, 6.5, 3.5]], K = [[0, 1.1, -3.0], [-3.0, 1.0, -2.2], [2, 1.0, -2.8], [0, 0, -3]];
+  sh.tiles = P.map((p, i) => ({ t: 38.3 + 0.1 * i, cam: [p, K[i]], dof: { focus: i === 3 ? 7 : 3.0, strength: 0.3, maxPx: 5 } })); return sh;
+};
+
+sheets.particles2 = () => {
+  const sh = sheets.particles(); const P = [[0, 1.9, 6.0], [2.5, 1.5, 3.5], [-3, 3.5, 7], [0, 1.4, 9]], K = [[0, 1.0, -1.5], [0, 1.0, -1.5], [0, 1.0, -2], [0, 1.2, -2]], TT = [48.5, 48.6, 47.6, 46.9];
+  sh.tiles = P.map((p, i) => ({ t: TT[i], cam: [p, K[i]], dof: { focus: i === 3 ? 10 : 6, strength: 0.3, maxPx: 5 } })); return sh;
+};
+
+sheets.particles3 = () => {
+  const { scene, L } = labStage({ wall: false }); scene.background = new THREE.Color('#06040c'); const camera = cam(30);
+  for (const l of Object.values(L)) l.visible = false;
+  const pa = C.createParticleAudience(THREE, { count: 6, seed: 3, bounds: { w: 5, d: 0.2, cx: 0, cz: 0, y: 0 }, layout: 'rows', focus: [0, 2, -30] }); scene.add(pa.group);
+  const upd = (T) => pa.update(T, { litT: 40, standT: T.t > 50 ? 50 : 1e6, cheerT: 1e6, intensity: 1.0, hue: 0.58 });
+  return { scene, camera, upd, tiles: [[46.0, [0, 1.3, 7], [0, 1.0, 0]], [47.0, [1, 1.3, 4.5], [0.5, 1.0, 0]], [50.9, [0, 1.6, 7.5], [0, 1.1, 0]], [51.3, [0, 1.6, 7.5], [0, 1.1, 0]]].map(([t, p, l]) => ({ t, cam: [p, l], dof: { focus: 7, strength: 0.0, maxPx: 0 } })) };
+};
+
+// heaviest-config benchmark: ?sheet=bench&scale=1  (prints ms per full frame: 4 sub-frames + DOF + bloom)
+sheets.bench = () => {
+  const { scene, L } = labStage({ wall: false }); scene.background = new THREE.Color('#050409'); scene.fog = new THREE.FogExp2('#08060a', 0.012); const camera = cam(36);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(26, 9), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffdca0').multiplyScalar(1.1), toneMapped: false })); scr.position.set(0, 6, -3.5); scene.add(scr);
+  const aud = C.createAudience(THREE, { rows: 20, cols: 20, spacing: 0.8, seed: 4, style: 'silhouette', curve: 0.25, aisles: [9] }); scene.add(aud.group); aud.setLightColor('#ffcf8a');
+  const orc = C.createOrchestraOfLight(THREE, { seed: 2, count: 32 }); orc.group.position.set(0, 0, 22); scene.add(orc.group);
+  const pa = C.createParticleAudience(THREE, { count: 120, seed: 3, bounds: { w: 16, d: 8, cx: 0, cz: 22 }, focus: [0, 2, 0] }); scene.add(pa.group);
+  for (const l of Object.values(L)) l.visible = false;
+  scene.add(new THREE.AmbientLight('#2a2540', 0.5));
+  const upd = (T) => { aud.update(T, { react: (t) => 0.6, standT: 44, cheerT: 46 }); orc.assemble(T, 36, 37); orc.hit(T, 37); pa.update(T, { litT: 40, standT: 44 }); };
+  return { scene, camera, upd, tiles: [[45.0, [0, 6.5, 19], [0, 2.6, 0]], [45.0, [0, 6.5, 19], [0, 2.6, 0]], [45.0, [0, 6.5, 19], [0, 2.6, 0]]].map(([t, p, l], i) => ({ t: t + i * 0.01, cam: [p, l], dof: { focus: 14, strength: 0.4, maxPx: 8 } })) };
+};
+const which = sheetName === 'all' ? Object.keys(sheets) : sheetName.split(',');
+
+// ---------------------------------------------------------------- render
+const tilesAll = [];
+for (const name of which) {
+  const sh = sheets[name](); renderer.setSize(TW, TH, false);
+  for (const tl of sh.tiles) {
+    const t0 = performance.now();
+    setCam(sh.camera, tl.cam[0], tl.cam[1]);
+    S.post.render({ scene: sh.scene, camera: sh.camera, w: TW, h: TH, times: subTimes(tl.t, 30, 4, 0.5), update: (ts) => sh.upd(cues.makeT(ts)), dof: tl.dof, bloom: { strength: 0.4 }, exposure: 1 });
+    const c = document.createElement('canvas'); c.width = TW; c.height = TH; c.getContext('2d').drawImage(renderer.domElement, 0, 0);
+    ms.push(performance.now() - t0); tilesAll.push({ c, label: `${name} t=${tl.t.toFixed(2)}  ${Math.round(ms[ms.length - 1])}ms` });
+  }
+}
+const rows = Math.ceil(tilesAll.length / cols), LAB = 22;
+const sheet = document.createElement('canvas'); sheet.width = TW * cols; sheet.height = (TH + LAB) * rows; document.body.appendChild(sheet);
+const g = sheet.getContext('2d'); g.fillStyle = '#161418'; g.fillRect(0, 0, sheet.width, sheet.height); g.font = '14px monospace'; g.textBaseline = 'middle';
+tilesAll.forEach((t, i) => { const x = (i % cols) * TW, y = Math.floor(i / cols) * (TH + LAB); g.drawImage(t.c, x, y + LAB); g.fillStyle = '#fff'; g.fillText(t.label, x + 6, y + LAB / 2); });
+console.log(`SHEET ${sheet.width}x${sheet.height} tiles=${tilesAll.length} avg ${Math.round(ms.reduce((a, b) => a + b, 0) / ms.length)}ms/tile @${TW}x${TH}`);
+window.__done = true;
+</script></body></html>

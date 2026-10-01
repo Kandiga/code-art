@@ -65,6 +65,7 @@ export function envelope(x, opts = {}) {
     const v = a[i];
     const k = v > y ? ka : kr;
     y = k * y + (1 - k) * v;
+    if (y < 1e-20) y = 0;
     out[i] = y;
   }
   return out;
@@ -85,7 +86,16 @@ export function compressor(x, opts = {}) {
   if (scHpHz > 0) key = isBuf(key) ? Buf.from(biquad(key.L, 'hp', scHpHz), biquad(key.R, 'hp', scHpHz)) : biquad(key, 'hp', scHpHz);
   const a = absMax(key);
   let lvl = a;
-  if (detect === 'rms') {
+  if (detect === 'peak') {
+    // peak detector: instant attack, 20 ms release (bridges the ripple of low-frequency waveforms)
+    lvl = new Float32Array(n);
+    const kd = Math.exp(-1 / (0.02 * sr));
+    let e = 0;
+    for (let i = 0; i < n; i++) {
+      e = a[i] > e ? a[i] : e * kd;
+      lvl[i] = e;
+    }
+  } else if (detect === 'rms') {
     lvl = new Float32Array(n);
     const k = Math.exp(-1 / ((rmsMs / 1000) * sr));
     let m = 0;
@@ -107,6 +117,7 @@ export function compressor(x, opts = {}) {
     else g = slope * over;
     const k = g < prev ? ka : kr;
     prev = k * prev + (1 - k) * g;
+    if (prev > -1e-12 && prev < 1e-12) prev = 0;
     gr[i] = prev;
   }
   const mk = autoMakeup ? -(slope * (-T)) * 0.5 : 0;
@@ -230,7 +241,7 @@ export function limiter(x, opts = {}) {
   const n = x.length;
   const ceil = dbToLin(ceilingDb);
   const L = Math.max(1, Math.round((lookaheadMs / 1000) * sr));
-  const p = truePeak ? truePeakEnvelope(isBuf(x) ? x.L : x, isBuf(x) ? x.R : null) : absMax(x);
+  const p = truePeak ? truePeakEnvelope(isBuf(x) ? x.L : x, isBuf(x) ? x.R : null, ceil * 0.5) : absMax(x);
   const req = new Float32Array(n);
   for (let i = 0; i < n; i++) req[i] = p[i] > ceil ? ceil / p[i] : 1;
   // sliding minimum over [i, i+L-1] (monotonic deque)

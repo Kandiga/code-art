@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Re-score every candidate take in work/cmp/<voice>/s<seed>_<id>.wav with the final (padded) ASR protocol,
+DNSMOS and voice metrics; print the selection table.  python rescore.py [voice-substring ...]"""
+import json, os, sys, glob
+import numpy as np
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from analyze import asr_wer, VOCAB_PROMPT, read_wav_mono, voice_metrics, dnsmos
+from compare import cue_lines
+
+WORK = os.path.join(HERE, "work")
+cache_f = os.path.join(WORK, "rescore.json")
+cache = json.load(open(cache_f)) if os.path.exists(cache_f) else {}
+lines = {l["id"]: l for l in cue_lines()["vo"]}
+filt = sys.argv[1:]
+voices = sorted(d for d in os.listdir(os.path.join(WORK, "cmp")) if not filt or any(f in d for f in filt))
+rows = []
+for v in voices:
+    files = sorted(glob.glob(os.path.join(WORK, "cmp", v, "s*_vo*.wav")))
+    if not files:
+        continue
+    err = {"base.en+p": 0, "tiny.en+p": 0, "base.en": 0}
+    nref = 0
+    conf, f0, hnr, tilt, alpha, f0sd = [], [], [], [], [], []
+    she = 0
+    fit = {}
+    per_seed_y = {}
+    for fpath in files:
+        b = os.path.basename(fpath)
+        seed, lid = b[:-4].split("_", 1)
+        ln = lines[lid]
+        y, sr = read_wav_mono(fpath)
+        k = f"{v}|{b}"
+        if k not in cache:
+            c = {}
+            for m in err:
+                nm, _, fl = m.partition("+")
+                c[m] = asr_wer(fpath, ln["text"], nm, prompt=VOCAB_PROMPT if fl else None)
+            c["metrics"] = voice_metrics(y.astype(np.float64), sr)
+            c["dur"] = len(y) / sr
+            cache[k] = c
+            json.dump(cache, open(cache_f, "w"))
+        c = cache[k]
+        for m in err:
+            err[m] += c[m]["errors"]
+        nref += c["base.en+p"]["nref"]
+        conf.append(c["base.en+p"]["conf"])
+        mt = c["metrics"]
+        f0.append(mt.get("f0_med", 0)); hnr.append(mt.get("hnr", 0)); tilt.append(mt.get("tilt_db_oct", 0)); alpha.append(mt.get("alpha_ratio_db", 0)); f0sd.append(mt.get("f0_sd_st", 0))
+        if lid.startswith("vo4"):
+            she += c["base.en+p"]["errors"] + c["tiny.en+p"]["errors"]
+        fit.setdefault(lid, []).append(c["dur"] / (ln["maxEnd"] - ln["t0"]))
+    s1 = [f for f in files if os.path.basename(f).startswith("s1_")]
+    ys = []
+    for f in s1:
+        y, sr = read_wav_mono(f)
+        ys.append(np.concatenate([y, np.zeros(int(0.25 * sr), np.float32)]))
+    dk = f"dns|{v}"
+    if dk not in cache:
+        cache[dk] = dnsmos(np.concatenate(ys), sr); json.dump(cache, open(cache_f, "w"))
+    rows.append(dict(voice=v, n=len(files), wer_b=err["base.en+p"] / nref, wer_t=err["tiny.en+p"] / nref, wer_np=err["base.en"] / nref,
+                     she=she, conf=float(np.mean(conf)), f0=float(np.mean(f0)), f0sd=float(np.mean(f0sd)), hnr=float(np.mean(hnr)),
+                     tilt=float(np.mean(tilt)), alpha=float(np.mean(alpha)), fit=max(float(np.mean(x)) for x in fit.values()),
+                     fit_vo6a=float(np.mean(fit["vo6a"])), fit_vo3b=float(np.mean(fit["vo3b"])), sig=cache[dk]["sig"], ovrl=cache[dk]["ovrl"]))
+print(f"{'voice':40s} n  WERb  WERt  WERnp She  conf   F0 F0sd  HNR  tilt  alpha  fit6a fit3b  SIG  OVRL")
+for r in sorted(rows, key=lambda r: (r["wer_b"] + r["wer_t"], -r["ovrl"])):
+    print(f"{r['voice']:40s} {r['n']:2d} {100*r['wer_b']:4.1f}% {100*r['wer_t']:4.1f}% {100*r['wer_np']:4.1f}% {r['she']:3d} {r['conf']:.3f} {r['f0']:4.0f} {r['f0sd']:4.1f} {r['hnr']:5.1f} {r['tilt']:5.1f} {r['alpha']:6.1f} {r['fit_vo6a']:5.2f} {r['fit_vo3b']:5.2f} {r['sig']:5.2f} {r['ovrl']:5.2f}")
+json.dump(rows, open(os.path.join(WORK, "rescore_table.json"), "w"), indent=1)

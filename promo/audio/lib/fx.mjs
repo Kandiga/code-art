@@ -7,7 +7,7 @@
 // =============================================================================
 import { SR, TWO_PI, Buf, isBuf, isArr, P, clamp, dbToLin, perChannel, mulberry32, nextPow2, kaiser, resampleBy, balanceGains } from './core.mjs';
 import { drift } from './gen.mjs';
-import { allpass1, onepole, biquad } from './filt.mjs';
+import { biquad } from './filt.mjs';
 
 const toBuf = (x) => (isBuf(x) ? x : Buf.from(x, Float32Array.from(x)));
 
@@ -69,7 +69,9 @@ export function delay(x, timeSec, feedback = 0.4, mix = 0.35, opts = {}) {
     }
     if (sat > 0) fb = Math.tanh(fb * (1 + sat)) / (1 + sat * 0.5);
     const xin = i < nIn ? x[i] : 0;
-    line[wp & mask] = xin + fb * feedback;
+    let wv = xin + fb * feedback;
+    if (wv < 1e-20 && wv > -1e-20) wv = 0;
+    line[wp & mask] = wv;
     wp++;
     out[i] = wetOnly ? w * mix : (i < nIn ? x[i] : 0) + w * mix;
   }
@@ -103,8 +105,11 @@ export function pingPong(x, timeSec, feedback = 0.45, mix = 0.35, opts = {}) {
       hB += hpA * (fb - hB); fb -= hB;
     }
     // A feeds B, B feeds A; input enters line A (first) only
-    lA[i & mask] = (first ? m : 0) + fb * feedback;
-    lB[i & mask] = (first ? 0 : m) + fa * feedback;
+    let va = (first ? m : 0) + fb * feedback, vb = (first ? 0 : m) + fa * feedback;
+    if (va < 1e-20 && va > -1e-20) va = 0;
+    if (vb < 1e-20 && vb > -1e-20) vb = 0;
+    lA[i & mask] = va;
+    lB[i & mask] = vb;
     const wl = first ? a : b, wr = first ? b : a;
     const mid = 0.5 * (wl + wr);
     const wL = mid + (wl - mid) * width, wR = mid + (wr - mid) * width;
@@ -221,7 +226,8 @@ export function flanger(x, opts = {}) {
       ph += rate / sr;
       if (ph > 1) ph -= 1;
       line[i & mask] = ch[i] + fb * feedback;
-      const w = hermite(line, mask, i, d);
+      let w = hermite(line, mask, i, d);
+      if (w < 1e-20 && w > -1e-20) w = 0;
       fb = w;
       out[i] = ch[i] * (1 - 0.5 * mix) + w * mix;
     }
@@ -486,7 +492,8 @@ export function schroederAllpass(x, d, g) {
   let p = 0;
   for (let i = 0; i < n; i++) {
     const del = line[p];
-    const v = x[i] + g * del;
+    let v = x[i] + g * del;
+    if (v < 1e-20 && v > -1e-20) v = 0; // flush denormals
     line[p] = v;
     out[i] = del - g * v;
     p = p + 1 > d ? 0 : p + 1;
@@ -544,4 +551,43 @@ export function lowpassSweep(x, f0, f1, mode = 'exp') {
   }
   return biquad(x, 'lp', f, 0.9);
 }
-export { allpass1, onepole };
+
+/**
+ * granularCloud(src, seconds, opts) -> Buf   texture generator (shimmer beds, risers, dream clouds, rewinds)
+ * src: mono Float32Array (or Buf, mixed to mono). Grains are Hann-windowed, randomly positioned, pitched, panned.
+ * opts: {grainMs=90, density=40 (grains/s, scalar|Float32Array over time), pitch=0 (semis scalar | [lo,hi] | fn(rng,t)),
+ *        pos=[0,1] (read position, fraction of src; moving from pos[0] to pos[1] over `seconds`), posJitter=0.05,
+ *        spread=0.8, gainDb=0, seed=1, reverse=0 (probability a grain is reversed)}
+ */
+export function granularCloud(src, seconds, opts = {}) {
+  const { grainMs = 90, density = 40, pitch = 0, pos = [0, 1], posJitter = 0.05, spread = 0.8, gainDb = 0, seed = 1, reverse = 0 } = opts;
+  const m = isBuf(src) ? Float32Array.from(src.L, (v, i) => 0.5 * (v + src.R[i])) : src;
+  const n = Math.round(seconds * SR), L = new Float32Array(n), R = new Float32Array(n);
+  const rng = mulberry32(seed);
+  const gl = Math.max(16, Math.round((grainMs / 1000) * SR));
+  const win = new Float32Array(gl);
+  for (let i = 0; i < gl; i++) win[i] = 0.5 - 0.5 * Math.cos((TWO_PI * (i + 0.5)) / gl);
+  const g0 = dbToLin(gainDb) / Math.sqrt(Math.max(1, (typeof density === 'number' ? density : 40) * (grainMs / 1000)));
+  let t = 0;
+  while (t < seconds) {
+    const d = typeof density === 'number' ? density : density[Math.min(density.length - 1, Math.round((t / seconds) * (density.length - 1)))];
+    t += (1 / Math.max(0.5, d)) * (0.5 + rng());
+    const i0 = Math.round(t * SR);
+    if (i0 >= n) break;
+    const semis = typeof pitch === 'function' ? pitch(rng, t) : Array.isArray(pitch) ? pitch[0] + (pitch[1] - pitch[0]) * rng() : pitch;
+    const ratio = Math.pow(2, semis / 12);
+    const rev = rng() < reverse;
+    const p0 = (pos[0] + (pos[1] - pos[0]) * (t / seconds) + (rng() - 0.5) * 2 * posJitter) * m.length;
+    const pan = (rng() * 2 - 1) * spread, a = (pan + 1) * (Math.PI / 4), pl = Math.cos(a) * Math.SQRT2 * 0.7071, pr = Math.sin(a) * Math.SQRT2 * 0.7071;
+    for (let i = 0; i < gl && i0 + i < n; i++) {
+      const sp = p0 + (rev ? gl - 1 - i : i) * ratio;
+      const k = Math.floor(sp);
+      if (k < 0 || k + 1 >= m.length) continue;
+      const fr = sp - k;
+      const v = (m[k] + (m[k + 1] - m[k]) * fr) * win[i] * g0;
+      L[i0 + i] += v * pl;
+      R[i0 + i] += v * pr;
+    }
+  }
+  return Buf.from(L, R);
+}

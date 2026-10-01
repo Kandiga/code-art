@@ -321,6 +321,7 @@ export function expDecay(n, tau, opts = {}) {
   for (let i = 0; i < n; i++) {
     out[i] = v;
     v *= k;
+    if (v < 1e-30 && v > -1e-30) v = 0;
   }
   return out;
 }
@@ -334,7 +335,7 @@ export function perc(n, opts = {}) {
   let v = 1;
   for (let i = 0; i < n; i++) {
     out[i] = i < aN ? i / aN : v;
-    if (i >= aN) v *= k;
+    if (i >= aN) { v *= k; if (v < 1e-30) v = 0; }
   }
   return out;
 }
@@ -405,6 +406,7 @@ export function slew(x, attack = 0.01, release = 0.1, sr = SR) {
     const v = x[i];
     const k = v > y ? ka : kr;
     y = k * y + (1 - k) * v;
+    if (v === 0 && y < 1e-20 && y > -1e-20) y = 0;
     out[i] = y;
   }
   return out;
@@ -534,4 +536,25 @@ export function glide(f0, f1, n, mode = 'exp', curveK = 0) {
     o[i] = mode === 'exp' ? f0 * Math.pow(f1 / f0, x) : f0 + (f1 - f0) * x;
   }
   return o;
+}
+
+/**
+ * stepGate(n, opts) - rhythmic gate / stutter envelope (0..1) for retrigger / chop effects.
+ * opts: {stepSec (grid step in seconds, REQUIRED - e.g. cues.BEAT/4), t0=0 (grid origin, s), duty=0.5 (open fraction of a step),
+ *        pattern=null (e.g. 'x.xxx.x.' per step, 'x' open; repeats), attack=0.002, release=0.01 (s), floor=0 (gate-closed level)}
+ */
+export function stepGate(n, opts = {}) {
+  const { stepSec, t0 = 0, duty = 0.5, pattern = null, attack = 0.002, release = 0.01, floor = 0, sr = SR } = opts;
+  if (!stepSec) throw new Error('stepGate: stepSec is required');
+  const pat = pattern ? [...pattern].filter((c) => c !== ' ' && c !== '|') : null;
+  const raw = new Float32Array(n);
+  const step = stepSec * sr, off = t0 * sr;
+  for (let i = 0; i < n; i++) {
+    const x = (i - off) / step;
+    if (x < 0) { raw[i] = 1; continue; }
+    const k = Math.floor(x), f = x - k;
+    const on = pat ? pat[k % pat.length] === 'x' || pat[k % pat.length] === 'X' : true;
+    raw[i] = on && f < duty ? 1 : floor;
+  }
+  return slew(raw, attack, release, sr);
 }

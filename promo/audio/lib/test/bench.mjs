@@ -1,0 +1,28 @@
+// Quick benchmark of the heavy primitives on 60 s stereo. node audio/lib/test/bench.mjs
+import * as dsp from '../dsp.mjs';
+import { measure, truePeak } from '../meter.mjs';
+const { SR, Buf } = dsp;
+const n = 60 * SR;
+const src = Buf.from(dsp.noise('pink', n, 1, { rms: 0.15 }), dsp.noise('pink', n, 2, { rms: 0.15 }));
+const t = (label, fn) => { const a = process.hrtime.bigint(); const r = fn(); console.log(label.padEnd(52), (Number(process.hrtime.bigint() - a) / 1e6).toFixed(0).padStart(6), 'ms'); return r; };
+t('biquad x6 (stereo)', () => { let b = src; for (let k = 0; k < 6; k++) b = dsp.biquad(b, 'peak', 400 * (k + 1), 1, 1.5); return b; });
+t('biquad modulated cutoff (stereo)', () => dsp.biquad(src, 'lp', dsp.curve(n, [[0, 200], [60, 12000]], 'exp'), 2));
+t('svf modulated (stereo)', () => dsp.svf(src, 'lp', dsp.curve(n, [[0, 200], [60, 12000]], 'exp'), 2));
+t('ladder modulated (mono channel)', () => dsp.ladder(src.L, dsp.curve(n, [[0, 200], [60, 12000]], 'exp'), 0.5));
+t('FDN reverb dense', () => dsp.reverb(src, { wet: 0.3 }));
+t('FDN reverb sparse (4 clicks)', () => { const s = new Buf(60); for (const k of [1, 10, 25, 40]) s.L[k * SR] = s.R[k * SR] = 1; return dsp.reverb(s, { wet: 1, decay: 2.5 }); });
+t('convolution reverb hall (dense, 4.6 s IR)', () => dsp.convReverb(src, 'hall', { wet: 0.3 }));
+t('convolution reverb cathedral (9 s IR)', () => dsp.convReverb(src, 'cathedral', { wet: 0.3 }));
+t('chorus', () => dsp.chorus(src));
+t('ensemble (6 voices)', () => dsp.ensemble(src));
+t('pingPong delay', () => dsp.pingPong(src, 0.375, 0.5, 0.4));
+t('compressor', () => dsp.compressor(src));
+t('limiter (true-peak, loud material)', () => dsp.limiter(src.clone().gain(12), { ceilingDb: -1.5 }));
+t('waveshape tanh x4 oversampled (mono channel)', () => dsp.waveshape(src.L, 'tanh', 4, { oversample: 4 }));
+t('meter.measure (LUFS+LRA+TP+...)', () => measure(src));
+t('truePeak only', () => truePeak(src));
+t('osc saw 60 s (mono)', () => dsp.osc('saw', 110, n));
+t('unison 7-voice saw 10 s', () => dsp.unison('saw', 110, 10 * SR));
+t('resampleBy 44.1k->48k (60 s mono)', () => dsp.resample(src.L, 44100, 48000));
+t('writeWav 60 s float32', () => dsp.writeWav('/tmp/_bench.wav', src));
+t('readWav 60 s', () => dsp.readWav('/tmp/_bench.wav'));

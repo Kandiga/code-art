@@ -67,3 +67,16 @@ def f0_track(y, sr, fmin=60.0, fmax=420.0, step=0.01):
     snd = parselmouth.Sound(np.asarray(y, dtype=np.float64), sampling_frequency=sr)
     p = snd.to_pitch(time_step=step, pitch_floor=fmin, pitch_ceiling=fmax)
     return p.xs(), p.selected_array["frequency"]
+
+
+def change_voice(y, sr, formant_ratio=1.0, median_hz=0.0, range_factor=1.0, fmin=60.0, fmax=420.0):
+    """Praat 'Change gender': formant_ratio<1 = bigger/deeper vocal tract, median_hz = new median F0
+    (0 = keep), range_factor>1 = more melodic intonation, <1 = calmer / flatter. Duration unchanged."""
+    import parselmouth
+    from parselmouth.praat import call
+    snd = parselmouth.Sound(np.asarray(y, dtype=np.float64), sampling_frequency=sr)
+    out = call(snd, "Change gender", fmin, fmax, formant_ratio, median_hz, range_factor, 1.0)
+    z = out.values[0].astype(np.float64)
+    if len(z) < len(y):
+        z = np.pad(z, (0, len(y) - len(z)))
+    return z[: len(y)]

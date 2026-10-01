@@ -1,0 +1,186 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>amrita2d contact sheet</title>
+<style>body{margin:0;background:#1b1a22}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// =====================================================================================================================
+// Amrita 2D — contact sheet.  Run:
+//   node tools/lab.mjs --page web/lab/amrita2d.html --out out/stills/amrita2d_lab.png --w 2400 --h 5400
+// Sub-sheets (smaller, faster):  ?sheet=expr | era | props | motion | marks | size   (all = default)
+//   expr   : 10 expressions x 3 yaw angles                       era    : 6 styles x (native, B&W, sepia, three-strip, teal-orange)
+//   props  : 7+ props, each in 3 styles + animation states        motion : squash/stretch/anticipation strips + fx
+//   marks  : drawMark flat / mono / ink / with eyes / iris        size   : 120 px and 600 px silhouettes, colour + B&W
+// =====================================================================================================================
+import '/web/engine/main.js';
+await new Promise((r) => { const i = setInterval(() => { if (window.film) { clearInterval(i); r(); } }, 20); });
+await window.film.init({ scale: 1 });
+const S = window.film.S, A = S.amrita2d, P = S.pencil, C = S.BRAND.palette;
+const q = new URLSearchParams(location.search), which = q.get('sheet') || 'all';
+const W = 2400;
+const T = S.cues.makeT(+(q.get('t') || 5.0)); T.boil = 7;
+const sections = [];
+const want = (n) => which === 'all' || which === n;
+const font = (px, w = 600) => `${w} ${px}px Inter, sans-serif`;
+
+// ---- tiny helpers ---------------------------------------------------------------------------------------------------
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const BG = { ink: 'paper', line: 'paper', clean: ['#3a3556', '#14121c'], phone: ['#7C6CFF', '#4a3fcf'], hologram: ['#0e1a22', '#05090d'], glow: ['#1c1236', '#07050f'] };
+function bgFill(g, st, w, h, seed = 3) {
+  const b = BG[st];
+  if (b === 'paper') { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(P.paperCanvas(Math.round(w), Math.round(h), { seed }), 0, 0); g.restore(); return; }
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, b[0]); gr.addColorStop(1, b[1]); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+}
+const label = (g, txt, x, y, o = {}) => { g.save(); g.font = font(o.size || 26, o.w || 700); g.fillStyle = o.color || '#EDE7D8'; g.textAlign = o.align || 'left'; g.fillText(txt, x, y); g.restore(); };
+const header = (g, txt, y) => { g.fillStyle = '#EDE7D8'; g.fillRect(40, y + 52, W - 80, 2); label(g, txt, 40, y + 42, { size: 36, w: 800 }); return y + 80; };
+const PAD = 40;
+
+// ---- section: expressions x yaw -------------------------------------------------------------------------------------
+if (want('expr')) {
+  const ex = ['neutral', 'blink', 'squint', 'happy', 'determined', 'surprised', 'sleepy', 'sad', 'smug', 'wink'], yaws = [0, 0.45, -0.6], cw = W / 10, rh = 270, st = q.get('style') || 'ink';
+  sections.push({ h: 80 + rh * 3 + 20, draw(g, y0) {
+    let y = header(g, `EXPRESSIONS x 3 YAW ANGLES (style: ${st})`, y0);
+    g.save(); g.beginPath(); g.rect(0, y, W, rh * 3); g.clip(); bgFill(g, st, W, rh * 3 + y, 5); g.restore();
+    ex.forEach((e, i) => { yaws.forEach((yw, j) => {
+      const cx = cw * i + cw / 2, cy = y + rh * j + rh / 2 + 6;
+      const d = { x: cx, y: cy, size: 98, yaw: yw, style: st, expr: e, shadow: false };
+      A.drawAmrita(g, T, S, d);
+      if (j === 0) label(g, e.toUpperCase(), cx, y + 18, { size: 20, align: 'center', color: st === 'ink' || st === 'line' ? '#2A2833' : '#EDE7D8' });
+    }); });
+    // interpolation row: neutral -> happy -> surprised via numbers
+    return y + rh * 3 + 20;
+  } });
+  // blends: smooth interpolation via o.eye numbers
+  sections.push({ h: 80 + 250, draw(g, y0) {
+    let y = header(g, 'SMOOTH INTERPOLATION (o.eye numbers: neutral -> happy -> determined -> sleepy; look left/up/right)', y0);
+    g.save(); g.beginPath(); g.rect(0, y, W, 230); g.clip(); bgFill(g, st, W, 230 + y, 6); g.restore();
+    const n = 12;
+    for (let i = 0; i < n; i++) {
+      const u = i / (n - 1), e = u < 0.34 ? A.mixEye(A.eyeFor('neutral'), A.eyeFor('happy'), u / 0.34) : u < 0.67 ? A.mixEye(A.eyeFor('happy'), A.eyeFor('determined'), (u - 0.34) / 0.33) : A.mixEye(A.eyeFor('determined'), A.eyeFor('sleepy'), (u - 0.67) / 0.33);
+      e.lookX = Math.sin(u * 6.28) * 0.9; e.lookY = Math.cos(u * 6.28) * 0.5;
+      A.drawAmrita(g, T, S, { x: W / n * i + W / n / 2, y: y + 118, size: 82, yaw: 0.4, style: st, eye: e, shadow: false });
+    }
+    return y + 250;
+  } });
+}
+
+// ---- section: era styles x grades -----------------------------------------------------------------------------------
+if (want('era')) {
+  const styles = [['line', 'crank', 'bw_flicker', '1895'], ['ink', 'megaphone', 'sepia', '1902 / 1927 / 1939'], ['ink', 'viewfinder', 'warm70mm', '1960 / 1977 (ink)'], ['clean', 'clapper', 'clean90s', '1993 / 2009'], ['phone', 'slate', 'phone', '2025'], ['hologram', 'slate', 'stage', '2050'], ['glow', 'baton', 'stage', '2100 / 2150']];
+  const cols = [['native', null], ['B&W flicker', 'bw_flicker'], ['sepia', 'sepia'], ['three-strip', 'threestrip'], ['teal-orange', 'tealorange']];
+  const cw = W / 5, ch = Math.round(cw * 780 / 1260);
+  sections.push({ h: 80 + styles.length * (ch + 4) + 10, async draw(g, y0) {
+    let y = header(g, 'ERA STYLES x GRADE  (drawing -> engine grade preset: native | bw_flicker | sepia | threestrip | tealorange)', y0);
+    for (let r = 0; r < styles.length; r++) {
+      const [st, prop, , nm] = styles[r];
+      const src = mk(1920, 1080), sg = src.getContext('2d'); bgFill(sg, st, 1920, 1080, 3);
+      A.drawAmrita(sg, T, S, { x: 770, y: 520, size: 215, yaw: 0.42, style: st, expr: r % 2 ? 'happy' : 'determined', prop, propAnim: { clap: 0.25, sound: 1, glow: 1, rec: true, swing: 0.8 }, fx: r === 3 ? ['sparkle'] : [] });
+      for (let c = 0; c < 5; c++) {
+        let img = src; if (cols[c][1]) img = S.gradeCanvas(src, cols[c][1], { t: 1.0 + r * 0.37 });
+        g.drawImage(img, 330, 240, 1260, 780, c * cw, y + r * (ch + 4), cw, ch);
+      }
+      label(g, `${st}  +  ${prop}   (${nm})`, 14, y + r * (ch + 4) + 26, { size: 22, color: st === 'ink' || st === 'line' ? '#2A2833' : '#EDE7D8' });
+    }
+    cols.forEach(([n], c) => label(g, n.toUpperCase(), c * cw + cw - 14, y + 26, { size: 20, align: 'right', color: '#9a96a8' }));
+    return y + styles.length * (ch + 4) + 10;
+  } });
+}
+
+// ---- section: props --------------------------------------------------------------------------------------------------
+if (want('props')) {
+  const list = [['crank', { crank: 0.6 }, 'crank 0.6 rad'], ['crank', { crank: 2.4 }, 'crank 2.4 rad'], ['megaphone', { sound: 1 }, 'megaphone + sound'], ['viewfinder', { rec: true }, 'viewfinder'], ['clapper', { clap: 0.1 }, 'clap open (0.1)'], ['clapper', { clap: 1, hit: 0.8 }, 'clap shut + hit'], ['slate', { glow: 1 }, 'neural slate'], ['baton', { angle: -0.2, swing: 1 }, 'baton + swing'], ['brush', { paint: 0.9 }, 'brush paints light']];
+  const cw = W / 9, ch = 300, rows = ['ink', 'line', 'clean', 'phone', 'hologram', 'glow'];
+  sections.push({ h: 80 + rows.length * ch + 10, draw(g, y0) {
+    let y = header(g, 'PROPS x STYLES  (each prop alone, size 100)', y0);
+    rows.forEach((st, r) => {
+      g.save(); g.beginPath(); g.rect(0, y + r * ch, W, ch); g.clip(); bgFill(g, st, W, y + (r + 1) * ch, 4 + r); g.restore();
+      list.forEach(([k, anim, nm], i) => { A.drawProp(g, T, S, k, { x: cw * i + cw / 2, y: y + r * ch + ch / 2 + 6, size: 105, anim: { t: 1.3, ...anim }, boil: 7, style: st }); if (r === 0) label(g, nm, cw * i + cw / 2, y + 22, { size: 18, align: 'center', color: '#2A2833' }); });
+      label(g, st, 12, y + r * ch + ch - 14, { size: 20, color: st === 'ink' || st === 'line' ? '#2A2833' : '#EDE7D8' });
+    });
+    return y + rows.length * ch + 10;
+  } });
+  const pr = ['crank', 'megaphone', 'viewfinder', 'clapper', 'slate', 'baton', 'brush'], rh = 330;
+  sections.push({ h: 80 + 2 * rh + 10, draw(g, y0) {
+    let y = header(g, 'AMRITA + PROP, floating at her side (ink / clean)', y0);
+    ['ink', 'clean'].forEach((st, r) => {
+      g.save(); g.beginPath(); g.rect(0, y + r * rh, W, rh); g.clip(); bgFill(g, st, W, y + (r + 1) * rh, 8 + r); g.restore();
+      pr.forEach((k, i) => A.drawAmrita(g, T, S, { x: (W / 7) * i + 140, y: y + r * rh + 150, size: 78, yaw: 0.45, style: st, expr: ['determined', 'happy', 'squint', 'happy', 'neutral', 'determined', 'joy'][i], prop: k, propAnim: { t: 1.1, clap: 0.2, sound: 1, glow: 1, swing: 1, paint: 0.8 }, shadow: { y: 118, a: 0.8 } }));
+    });
+    return y + 2 * rh + 10;
+  } });
+}
+
+// ---- section: motion (squash & stretch, anticipation, fx) -----------------------------------------------------------
+if (want('motion')) {
+  const rh = 360, st = 'ink';
+  sections.push({ h: 80 + rh * 3 + 20, draw(g, y0) {
+    let y = header(g, 'SQUASH & STRETCH  (poseAt hop / pop / anticipate+dash)  -  ground shadow shrinks with height', y0);
+    g.save(); g.beginPath(); g.rect(0, y, W, rh * 3); g.clip(); bgFill(g, st, W, y + rh * 3, 11); g.restore();
+    const strips = [['hop', 12], ['pop', 12], ['dash', 12]];
+    strips.forEach(([kind, n], r) => {
+      for (let i = 0; i < n; i++) {
+        let u = i / (n - 1), po;
+        if (kind === 'dash') { po = u < 0.4 ? A.poseAt('anticipate', u / 0.4, { dir: 1 }) : A.poseAt('dash', (u - 0.4) / 0.6, { dir: 1 }); }
+        else po = A.poseAt(kind, u);
+        const R = 72, cx = (W / n) * i + W / n / 2 + (kind === 'dash' ? (u < 0.4 ? 0 : (u - 0.4) / 0.6 * 70) : 0), base = y + r * rh + 230;
+        A.drawAmrita(g, T, S, { x: cx + (po.dx || 0) * R, y: base - (po.dy || 0) * R * 1.0, size: R * (po.scale || 1), yaw: 0.35, roll: po.roll || 0, squash: po.squash || 0, style: st, expr: kind === 'hop' && u > 0.78 ? 'squint' : kind === 'hop' && u > 0.3 && u < 0.78 ? 'happy' : 'neutral', groundY: base + R * 1.25, fx: kind === 'dash' && u > 0.5 ? [{ kind: 'lines', n: 4, len: 0.9 }] : [] });
+        label(g, u.toFixed(2), cx, y + r * rh + 24, { size: 16, align: 'center', color: '#6a6678' });
+      }
+      label(g, kind, 12, y + r * rh + rh - 12, { size: 22, color: '#2A2833' });
+    });
+    return y + rh * 3 + 20;
+  } });
+  const fxs = ['sparkle', 'lines', 'sweat', 'confetti', 'zzz', 'heart', 'exclaim', 'question', 'poof'];
+  sections.push({ h: 80 + 300 * 2 + 10, draw(g, y0) {
+    let y = header(g, 'EMOTIVE EXTRAS  (o.fx)   -  ink (top) and clean (bottom)', y0);
+    ['ink', 'clean'].forEach((s2, r) => {
+      g.save(); g.beginPath(); g.rect(0, y + r * 300, W, 300); g.clip(); bgFill(g, s2, W, y + (r + 1) * 300, 15 + r); g.restore();
+      fxs.forEach((f, i) => { A.drawAmrita(g, T, S, { x: (W / 9) * i + W / 18, y: y + r * 300 + 160, size: 70, yaw: 0.4, style: s2, expr: ['happy', 'determined', 'worried', 'joy', 'sleepy', 'happy', 'surprised', 'worried', 'happy'][i], fx: [f], fxT: f === 'poof' ? 0.35 : 0.7, shadow: false }); label(g, f, (W / 9) * i + W / 18, y + r * 300 + 24, { size: 18, align: 'center', color: s2 === 'ink' ? '#2A2833' : '#EDE7D8' }); });
+    });
+    return y + 610;
+  } });
+}
+
+// ---- section: marks --------------------------------------------------------------------------------------------------
+if (want('marks')) {
+  sections.push({ h: 80 + 520 + 10, draw(g, y0) {
+    let y = header(g, 'drawMark  (flat | with eyes | ink | mono | iris 1 / 0.5 / 0.2 closing + play)', y0);
+    g.fillStyle = '#F2EBDC'; g.fillRect(0, y, W / 2, 520); g.fillStyle = '#14121A'; g.fillRect(W / 2, y, W / 2, 520);
+    const cy = y + 150, cy2 = y + 400, R = 105;
+    A.drawMark(g, S, { x: 150, y: cy, size: R }); A.drawMark(g, S, { x: 400, y: cy, size: R, eyes: true, expr: 'happy' }); A.drawMark(g, S, { x: 650, y: cy, size: R, style: 'ink', eyes: true, boil: 7 }); A.drawMark(g, S, { x: 900, y: cy, size: R, style: 'mono', color: '#14121A' });
+    A.drawMark(g, S, { x: 1150, y: cy, size: R, style: 'mono', color: '#14121A', eyes: true });
+    A.drawMark(g, S, { x: 150, y: cy2, size: R, iris: 1 }); A.drawMark(g, S, { x: 400, y: cy2, size: R, iris: 0.55 }); A.drawMark(g, S, { x: 650, y: cy2, size: R, iris: 0.2, play: false }); A.drawMark(g, S, { x: 900, y: cy2, size: R, yaw: 0.5, eyes: true }); A.drawMark(g, S, { x: 1150, y: cy2, size: R, iris: 1.3 });
+    A.drawMark(g, S, { x: 1400, y: cy, size: R * 1.2 }); A.drawMark(g, S, { x: 1700, y: cy, size: R * 1.2, style: 'mono', color: '#FFF3D6' }); A.drawMark(g, S, { x: 2000, y: cy, size: R * 1.2, eyes: true, expr: 'surprised' }); A.drawMark(g, S, { x: 2250, y: cy, size: R * 0.9, style: 'mono', color: '#FFB62E', eyes: true });
+    for (let i = 0; i < 5; i++) A.drawMark(g, S, { x: 1320 + i * 190, y: cy2, size: 40 + i * 22, eyes: i > 1 });
+    return y + 530;
+  } });
+}
+
+// ---- section: size test ----------------------------------------------------------------------------------------------
+if (want('size')) {
+  const cwid = 800, chh = 450;
+  sections.push({ h: 80 + 2 * chh + 20, async draw(g, y0) {
+    const y = header(g, 'SIZE TEST: 120 px and 600 px diameter silhouettes - colour / B&W / sepia / 1895 line / teal-orange / phone', y0);
+    const cell = (st, grade, col, row, nm) => {
+      const src = mk(1920, 1080), sg = src.getContext('2d'); bgFill(sg, st, 1920, 1080, 3);
+      A.drawAmrita(sg, T, S, { x: 960, y: 340, size: 300, yaw: 0.42, style: st, expr: 'happy' });
+      A.drawAmrita(sg, T, S, { x: 300, y: 830, size: 60, yaw: 0.42, style: st, expr: 'neutral' }); A.drawAmrita(sg, T, S, { x: 560, y: 830, size: 60, yaw: 0, style: st, expr: 'determined' });
+      A.drawAmrita(sg, T, S, { x: 1500, y: 830, size: 60, yaw: -0.4, style: st, expr: 'happy' }); A.drawAmrita(sg, T, S, { x: 1700, y: 830, size: 38, yaw: 0.3, style: st, expr: 'neutral', shadow: false });
+      const img = grade ? S.gradeCanvas(src, grade, { t: 2.0 }) : src;
+      g.drawImage(img, 0, 0, 1920, 1080, col * cwid, y + row * chh, cwid, cwid * 9 / 16);
+      label(g, nm, col * cwid + 10, y + row * chh + 26, { size: 22, color: st === 'ink' || st === 'line' ? '#2A2833' : '#EDE7D8' });
+    };
+    cell('ink', null, 0, 0, 'ink - colour'); cell('ink', 'bw_flicker', 1, 0, 'ink - B&W flicker'); cell('ink', 'sepia', 2, 0, 'ink - sepia');
+    cell('line', 'bw_flicker', 0, 1, 'line - B&W flicker (1895)'); cell('clean', 'tealorange', 1, 1, 'clean - teal-orange'); cell('phone', 'phone', 2, 1, 'phone');
+    return y + 2 * chh + 20;
+  } });
+}
+
+// ---- assemble ----------------------------------------------------------------------------------------------------------
+let total = 20; sections.forEach((s) => { total += s.h; });
+const cv = mk(W, total); cv.style.width = '100vw'; document.body.appendChild(cv);
+const g = cv.getContext('2d'); g.fillStyle = '#1b1a22'; g.fillRect(0, 0, W, total);
+let y = 10;
+for (const s of sections) { const ny = await s.draw(g, y); y += s.h; }
+console.log('sheet height', total);
+window.__height = total; window.__done = true;
+</script></body></html>

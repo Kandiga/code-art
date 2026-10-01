@@ -62,8 +62,13 @@ VOCAB_PROMPT = "Amrita Cinema Studio. Meet Amrita. Your story. Directed."
 def asr_wer(path, ref, model="base.en", beam=5, prompt=None):
     """Transcribe wav, return dict(hyp, wer, errors, nref, conf) (conf = mean word probability).
     prompt: optional Whisper initial_prompt (vocabulary hint, e.g. the brand name 'Amrita')."""
+    import scipy.signal as ss
     m = get_asr(model)
-    segs, _ = m.transcribe(path, language="en", beam_size=beam, word_timestamps=True,
+    y, sr = read_wav_mono(path)
+    y = ss.resample_poly(y, 16000, sr) if sr != 16000 else y
+    # Whisper hallucinates ("we'll be right back") on clips that end abruptly: give it 0.4 s lead / 0.8 s tail of silence
+    y = np.concatenate([np.zeros(int(0.4 * 16000), np.float32), y.astype(np.float32), np.zeros(int(0.8 * 16000), np.float32)])
+    segs, _ = m.transcribe(y, language="en", beam_size=beam, word_timestamps=True,
                            condition_on_previous_text=False, vad_filter=False, temperature=0.0,
                            initial_prompt=prompt)
     words, probs, text = [], [], ""

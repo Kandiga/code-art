@@ -43,7 +43,7 @@ def main():
     seeds = [int(s) for s in arg("--seeds", "1,2").split(",")]
     asrs = arg("--asr", "tiny.en,base.en").split(",")
     os.makedirs(WORK, exist_ok=True)
-    resf = os.path.join(WORK, "compare.json")
+    resf = os.path.join(WORK, arg("--results", "compare.json"))
     res = json.load(open(resf)) if os.path.exists(resf) else {}
     if cmd == "run":
         from synth import run_job
@@ -57,8 +57,9 @@ def main():
                         continue
                     wav = os.path.join(WORK, "cmp", v, f"s{seed}_{ln['id']}.wav")
                     if not os.path.exists(wav):
-                        run_job({"id": ln["id"], "voice": v, "seed": seed, "text": ln["text"], "out": wav,
-                                 "speaker": 0})
+                        vname, _, spk = v.partition("#")
+                        run_job({"id": ln["id"], "voice": vname, "seed": seed, "text": ln["text"], "out": wav,
+                                 "speaker": int(spk or 0)})
                     y, sr = read_wav_mono(wav)
                     r = res.get(key, {})
                     r.update(voice=v, seed=seed, id=ln["id"], dur=len(y) / sr, win=ln["maxEnd"] - ln["t0"])
@@ -109,7 +110,7 @@ def table(res, voices):
                 y, sr = read_wav_mono(os.path.join(WORK, "cmp", v, f"s{r['seed']}_{r['id']}.wav"))
                 ys.append(np.concatenate([y, np.zeros(int(0.25 * sr), np.float32)]))
             res[dk] = dnsmos(np.concatenate(ys), sr)
-            json.dump(res, open(os.path.join(WORK, "compare.json"), "w"), indent=1)
+            json.dump(res, open(resf, "w"), indent=1)
         row["dns_sig"], row["dns_ovrl"] = res[dk]["sig"], res[dk]["ovrl"]
         rows.append(row)
     ms = sorted({k[4:] for r in rows for k in r if k.startswith("wer_")})
