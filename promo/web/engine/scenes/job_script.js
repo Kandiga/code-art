@@ -86,8 +86,9 @@ export function makeBeam(THREE, { color = '#ffd9a0', length = 10, radius = 1.8, 
         float lf = smoothstep(0.0,0.10,vH)*pow(max(1.0-vH,0.0),1.15);
         float n = 1.0 - uNoise + uNoise*(0.5+0.5*sin(vW.x*2.3+uTime*0.35)*sin(vW.y*1.9-uTime*0.27+vW.z*1.3));
         gl_FragColor = vec4(uColor*e*lf*n*uI, 1.0); }`,
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide, fog: false,   // front faces only (half the overdraw); intensity compensated below
   });
+  mat.uniforms.uI.value = intensity * 1.8;
   const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; mesh.renderOrder = 6;
   const dir = new THREE.Vector3(), down = new THREE.Vector3(0, -1, 0);
   mesh.userData.aim = (from, to, len = length) => { dir.subVectors(to, from); const d = dir.length(); dir.multiplyScalar(1 / d); mesh.position.copy(from); mesh.quaternion.setFromUnitVectors(down, dir); mesh.scale.setScalar(len / length); mesh.userData.dir = dir.clone(); return mesh; };
@@ -355,7 +356,7 @@ export default {
     ]));
     const camera = new THREE.PerspectiveCamera(lensFov(45), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
-    const refl = stage.reflect ? stage.reflect(A.root, { strength: 0.8 }) : null;
+    if (stage.reflect) stage.reflect(A.root, { strength: 0.8 });
     A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(-0.7, -0.45, 0.6); stylus.group.rotation.z = 0.6;
@@ -440,7 +441,7 @@ export default {
     const ringsG = makeRings(THREE, rings); scene.add(ringsG);
 
     const tmp = { v: new THREE.Vector3(), v2: new THREE.Vector3(), c: new THREE.Color(), q: new THREE.Quaternion(), e: new THREE.Euler() };
-    return { scene, camera, stage, A, refl, THREE, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
+    return { scene, camera, stage, A, THREE, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
   },
 
   update(st, T, S) {
@@ -557,8 +558,6 @@ export default {
     st.beamKey.material.uniforms.uTime.value = t; st.beamRim.material.uniforms.uTime.value = t;
     st.ringsG.userData.update(t, camera);
 
-    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
-    { const D = globalThis.__dbg || {}; if (st.refl) st.refl.setVisible(!D.noRefl); for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } }
     // ---------------- DOF: focus rides from Amrita to the folding pages and back to Amrita + booklet
     const f = smooth(seg(lt, 0.97, 1.12)), f2 = smooth(seg(lt, 1.52, 1.85));
     const mx = lerp(AM[0], REST[0], 0.5), my = lerp(AM[1], REST[1], 0.5), mz = lerp(AM[2], REST[2], 0.5);

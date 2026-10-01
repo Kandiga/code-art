@@ -47,12 +47,20 @@ def save_clip(group, cid, y, meta):
     sf.write(path, y.astype(np.float32), SR, subtype='PCM_16')
     yq = sf.read(path, dtype='float64')[0]  # what the renderer will read
     pk = float(np.abs(yq).max())
-    thr = pk * lin(-35)
+    thr = pk * lin(-32)
     idx = np.nonzero(np.abs(yq) > thr)[0]
     meta = dict(meta)
     meta.update(id=cid, file=f'{group}/{cid}.wav', group=group, dur=round(len(yq) / SR, 4), peakDb=round(float(db(pk)), 2),
-                rmsDb=round(active_rms_db(yq), 2), onset=round(float(idx[0] / SR), 4) if len(idx) else 0.0)
+                rmsDb=round(active_rms_db(yq), 2), onset=round(float(idx[0] / SR), 4) if len(idx) else 0.0, lead=lead_time(yq))
     return meta
+
+
+def lead_time(yq):
+    """seconds between the -45 dB and the -32 dB (re peak) crossing = how soft the lead-in of the clip is."""
+    pk = float(np.abs(yq).max())
+    a = np.nonzero(np.abs(yq) > pk * lin(-45))[0]
+    b = np.nonzero(np.abs(yq) > pk * lin(-32))[0]
+    return round(float((b[0] - a[0]) / SR), 4) if len(a) and len(b) else 0.0
 
 
 def load_manifest():
@@ -294,7 +302,19 @@ def stage_asr(force=False, quick=False):
     log('asr:', n)
 
 
-STAGES = dict(words=stage_words, synth=stage_synth, whistles=stage_whistles, walla=stage_walla, claps=stage_claps, asr=stage_asr)
+def stage_reindex(force=False, quick=False):
+    """recompute dur / peak / rms / onset (-32 dB re peak) of every cached clip from the WAV files (no re-synthesis)."""
+    man = load_manifest()
+    for c in man['clips']:
+        yq = sf.read(os.path.join(LIB, c['file']), dtype='float64')[0]
+        pk = float(np.abs(yq).max())
+        idx = np.nonzero(np.abs(yq) > pk * lin(-32))[0]
+        c.update(dur=round(len(yq) / SR, 4), peakDb=round(float(db(pk)), 2), rmsDb=round(active_rms_db(yq), 2), onset=round(float(idx[0] / SR), 4) if len(idx) else 0.0, lead=lead_time(yq))
+    save_json(MANIFEST, man)
+    log('reindex:', len(man['clips']))
+
+
+STAGES = dict(reindex=stage_reindex, words=stage_words, synth=stage_synth, whistles=stage_whistles, walla=stage_walla, claps=stage_claps, asr=stage_asr)
 
 
 def main():

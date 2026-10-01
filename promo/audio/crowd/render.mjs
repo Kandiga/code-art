@@ -27,8 +27,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUTDOOR_BEFORE = 22.0; // events before the 22.0 s cut belong to Act I (a platform, not the cinema hall)
 export const CLAP_SPEEDS = [0.955, 1.0, 1.05];
 const CLAP_DIST = [0.08, 0.32, 0.58, 0.85];
-const APPLAUSE_DB = 0; // trim for the claps (per-clap gains are already physical)
+const APPLAUSE_DB = -17; // trim for the claps (per-clap gains are physical; calibrated so the applause climax peaks near -7 dBFS (solo, before the master limiter))
 
+const VOICE_DB = 3; // trim for all voice clips (kind gains in voices.mjs are relative)
 const distClass = (d) => (d < 0.2 ? 0 : d < 0.45 ? 1 : d < 0.7 ? 2 : 3);
 
 /** sorted copy of the cue events with a stable index */
@@ -51,7 +52,7 @@ export function planCrowd(lib, events = cues.CROWD) {
       ps = a.placements;
       extra = { series: a.series, people: a.people.length };
       const ex = applauseExtras(ev, rng);
-      for (const e of ex) ps.push(...planVoices({ t: e.t, kind: e.kind, n: 1 }, ev.index, lib, rng, { gain: e.kind === 'whistle' ? -3 : -2.5 }).map((p) => ({ ...p, layer: 'applause-voice' })));
+      for (const e of ex) ps.push(...planVoices({ t: e.t, kind: e.kind, n: 1 }, ev.index, lib, rng, { gain: e.kind === 'whistle' ? -9 : -9.5 }).map((p) => ({ ...p, layer: 'applause-voice' })));
     } else if (ev.kind === 'murmur') ps = planMurmur(ev, ev.index, lib, rng);
     else if (ev.kind === 'clap') ps = planClaps(ev, ev.index, lib, rng);
     else if (KINDS[ev.kind]) ps = planVoices(ev, ev.index, lib, rng);
@@ -93,7 +94,7 @@ export function synthPlacements(lib, placements, seconds = 60) {
       let x = lib.samples(meta);
       const speed = Math.pow(2, (p.semis || 0) / 12);
       if (Math.abs(speed - 1) > 1e-3) x = resampleBy(x, speed);
-      placeVoice(buses, x, p.t - meta.onset / speed, { gainDb: p.gainDb, pan: p.pan, dist: p.dist, room: p.room });
+      placeVoice(buses, x, p.t - meta.onset / speed, { gainDb: p.gainDb + VOICE_DB, pan: p.pan, dist: p.dist, room: p.room });
     } else if (p.k === 'w') {
       const meta = lib.byId.get(p.id);
       const full = lib.samples(meta);
@@ -107,7 +108,7 @@ export function synthPlacements(lib, placements, seconds = 60) {
       const speed = Math.pow(2, (p.semis || 0) / 12);
       if (Math.abs(speed - 1) > 1e-3) x = resampleBy(x, speed);
       const on = p.srcStart === 0 ? meta.onset / speed : 0;
-      placeVoice(buses, x, p.t - on, { gainDb: p.gainDb, pan: p.pan, dist: p.dist, room: p.room, send: p.send || 1 });
+      placeVoice(buses, x, p.t - on, { gainDb: p.gainDb + VOICE_DB, pan: p.pan, dist: p.dist, room: p.room, send: p.send || 1 });
     }
   }
   return buses;
@@ -125,6 +126,8 @@ export async function renderCrowd(opts = {}) {
   writeWav(stem, out);
   const report = {
     stem, seconds: out.seconds, events: info,
+    // every non-clap placement (voices / murmur fragments), for verification and for the mixer's reference
+    plan: sel.filter((p) => p.k !== 'c').map((p) => ({ ev: p.ev, k: p.k, t: +p.t.toFixed(4), id: p.id, person: p.person, tag: p.tag, gainDb: +p.gainDb.toFixed(2), pan: +p.pan.toFixed(2), dist: +p.dist.toFixed(2), room: p.room, ...(p.srcStart != null ? { srcStart: +p.srcStart.toFixed(3), len: +p.len.toFixed(3) } : {}) })),
     totals: {
       events: info.length, placements: sel.length, claps: sel.filter((p) => p.k === 'c').length,
       voices: sel.filter((p) => p.k !== 'c').length, distinctVoices: new Set(sel.filter((p) => p.k !== 'c').map((p) => p.person)).size,

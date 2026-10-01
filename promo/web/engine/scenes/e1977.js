@@ -25,7 +25,7 @@ const BOOM = 15.0;                                 // = SFX model_explosion
 const FINDER_T = 14.25;                            // = extra cue viewfinder_on
 const SETTLE = T0 + 1.3;                           // ship at rest from here
 const TG = { x: 560, y: 322 };                     // the distant target
-const PLANET = { cx: 296, cy: 556, r: 156, tilt: -0.2 };
+const PLANET = { cx: 262, cy: 512, r: 148, tilt: -0.2 };
 const VPT = [1600, 690], FIN = [PORT.cx, PORT.cy]; // dolly vanishing point / rest position of the porthole
 const INK = '#16132B', INK2 = '#2B2547';
 const AM = { x: 268, y: 808, R: 96 };
@@ -171,7 +171,7 @@ function drawPlanet(ctx, B) {
   P.ink(ctx, P.circlePts(cx, cy, r, 64), { closed: true, color: INK2, width: 3.4, boil: B, seed: 52, amp: 1.2, passes: 2, step: 12, alpha: 0.95 });
   drawRingHalf(ctx, B, false);
   // a little moon
-  const mxn = 168, myn = 262, mr = 15;
+  const mxn = 150, myn = 235, mr = 14;
   ctx.fillStyle = '#D9D2C2'; ctx.beginPath(); ctx.arc(mxn, myn, mr, 0, TAU); ctx.fill();
   ctx.save(); ctx.beginPath(); ctx.arc(mxn, myn, mr, 0, TAU); ctx.clip(); ctx.fillStyle = 'rgba(20,24,70,0.7)'; ctx.beginPath(); ctx.arc(mxn - 9, myn + 6, mr * 1.1, 0, TAU); ctx.fill(); ctx.restore();
   P.ink(ctx, P.circlePts(mxn, myn, mr, 20), { closed: true, color: INK2, width: 2, boil: B, seed: 55, amp: 0.6, passes: 2, step: 7 });
@@ -188,8 +188,8 @@ function drawSkyLayer(g, S, B) {
   hatchField(g, B, { ...box, angle: -0.72, gap: 8, seg: 80, color: '#2F43BD', alpha: 0.34, width: 1.4, seed: 13, dens: (x, y) => clamp(0.12 + 1.1 * n2(x, y, 17) - 0.45, 0, 1) * clamp(0.5 + (y - 90) / 900, 0, 1) });
   hatchField(g, B, { ...box, angle: -0.8, gap: 13, seg: 70, color: '#8B9AF5', alpha: 0.2, width: 1.2, seed: 21, dens: (x, y) => clamp(1 - Math.hypot(x - 380, y - 760) / 620, 0, 1) });
   // nebula patches (violet / magenta / teal) in coloured pencil
-  hatchField(g, B, { x0: 980, y0: 120, x1: 1920, y1: 520, angle: -0.5, gap: 7, seg: 80, color: '#7C4FD8', alpha: 0.30, width: 1.5, seed: 31, dens: (x, y) => clamp(n2(x * 1.3, y * 1.3, 44) * 1.5 - 0.5, 0, 1) * clamp(1 - Math.hypot(x - 1500, y - 300) / 560, 0, 1) });
-  hatchField(g, B, { x0: 980, y0: 120, x1: 1920, y1: 520, angle: -0.95, gap: 9, seg: 70, color: '#D43D90', alpha: 0.26, width: 1.4, seed: 33, dens: (x, y) => clamp(n2(x * 1.5, y * 1.5, 46) * 1.4 - 0.55, 0, 1) * clamp(1 - Math.hypot(x - 1620, y - 250) / 420, 0, 1) });
+  hatchField(g, B, { x0: 980, y0: 120, x1: 1920, y1: 520, angle: -0.5, gap: 7, seg: 80, color: '#7C4FD8', alpha: 0.42, width: 1.5, seed: 31, dens: (x, y) => clamp(n2(x * 1.3, y * 1.3, 44) * 1.5 - 0.5, 0, 1) * clamp(1 - Math.hypot(x - 1500, y - 300) / 560, 0, 1) });
+  hatchField(g, B, { x0: 980, y0: 120, x1: 1920, y1: 520, angle: -0.95, gap: 9, seg: 70, color: '#D43D90', alpha: 0.36, width: 1.4, seed: 33, dens: (x, y) => clamp(n2(x * 1.5, y * 1.5, 46) * 1.4 - 0.55, 0, 1) * clamp(1 - Math.hypot(x - 1620, y - 250) / 420, 0, 1) });
   hatchField(g, B, { x0: 1100, y0: 600, x1: 1920, y1: 990, angle: -0.6, gap: 9, seg: 70, color: '#1FB5A6', alpha: 0.2, width: 1.4, seed: 35, dens: (x, y) => clamp(n2(x * 1.4, y * 1.4, 48) * 1.3 - 0.45, 0, 1) * clamp(1 - Math.hypot(x - 1700, y - 820) / 460, 0, 1) });
   drawStars(g, B);
   drawPlanet(g, B);
@@ -473,7 +473,7 @@ function drawWires(ctx, B, t, pose) {
 
 // ================================================================== lasers: muzzle flash, tapered bolt with halo, impact
 function boltState(k, t) {
-  const tk = ZAPS[k], tf = tk - 0.0667, head = clamp((t - tf) / 0.0667), tail = clamp((t - tf - 0.0333) / 0.0667), after = t - tk;
+  const tk = ZAPS[k], tf = tk - 0.0667, head = clamp((t - tf) / 0.0667), tail = t <= tk ? Math.max(0, head - 0.8) : clamp(0.2 + ((t - tk) / 0.04) * 0.8), after = t - tk;
   return { tk, tf, head, tail, after, on: t >= tf - 1e-4 && t < tk + 0.2 };
 }
 function drawBolts(ctx, B, t, pose) {
@@ -482,9 +482,9 @@ function drawBolts(ctx, B, t, pose) {
     const b = boltState(k, t); if (!b.on) continue;
     const m = XF(MUZ[k]), q = [TG.x, TG.y + 6];
     const hx = lerp(m[0], q[0], b.head), hy = lerp(m[1], q[1], b.head), tx = lerp(m[0], q[0], b.tail), ty = lerp(m[1], q[1], b.tail);
-    const dx = q[0] - m[0], dy = q[1] - m[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L, w0 = 13 + 15 * s, w1 = 4.5;
+    const dx = q[0] - m[0], dy = q[1] - m[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L, w0 = 8 + 10 * s, w1 = 3.6;
     const wAt = (f) => lerp(w0, w1, f);
-    const vis = b.after < 0.0334;                 // the bolt itself exists for ~3 frames, then a thin afterglow
+    const vis = b.after < 0.045;                 // the bolt itself exists for ~3 frames, then a thin afterglow
     if (vis && b.head > 0.001) {
       const f0 = b.tail, f1 = b.head, quad = (sc) => [[tx + nx * wAt(f0) * sc, ty + ny * wAt(f0) * sc], [hx + nx * wAt(f1) * sc * 0.8, hy + ny * wAt(f1) * sc * 0.8], [hx - nx * wAt(f1) * sc * 0.8, hy - ny * wAt(f1) * sc * 0.8], [tx - nx * wAt(f0) * sc, ty - ny * wAt(f0) * sc]];
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
@@ -495,8 +495,8 @@ function drawBolts(ctx, B, t, pose) {
       const o1 = wAt((f0 + f1) / 2) * 0.9;
       [-1, 1].forEach((sg, i) => P.ink(ctx, [[tx + nx * o1 * sg, ty + ny * o1 * sg], [(tx + hx) / 2 + nx * o1 * sg * 1.1, (ty + hy) / 2 + ny * o1 * sg * 1.1], [hx + nx * o1 * sg * 0.7, hy + ny * o1 * sg * 0.7]], { closed: false, color: '#FF9DB8', width: 2.2, boil: B, seed: 300 + k * 5 + i, amp: 1.3, passes: 2, step: 12, alpha: 0.85 }));
       glow(ctx, hx, hy, 46, '#FF4F8A', 0.55);
-    } else if (b.after >= 0.0334 && b.after < 0.17) {
-      const a = Math.exp(-(b.after - 0.0334) / 0.05) * 0.5;
+    } else if (b.after >= 0.045 && b.after < 0.17) {
+      const a = Math.exp(-(b.after - 0.045) / 0.05) * 0.5;
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,120,170,${a})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); ctx.restore();
     }
     // muzzle flash (spiky star + halo)
@@ -530,7 +530,7 @@ function puff(ctx, B, x, y, r, col, seed, o = {}) {
   const sm = P.smoothPts(pts, { closed: true, n: 3 });
   ctx.save(); ctx.globalAlpha *= o.alpha ?? 1; ctx.fillStyle = col; trace(ctx, sm); ctx.fill();
   if (o.hatch) P.hatch(ctx, sm, { color: o.hatch, angle: o.ang ?? -0.7, gap: Math.max(4, r * 0.16), width: 1.5, alpha: 0.55, boil: B, seed: seed + 3, shade: (px, py) => clamp(((py - y) / r + 1) * 0.5 + 0.2, 0, 1), comp: 'multiply' });
-  if (o.lit) { ctx.save(); trace(ctx, sm); ctx.clip(); const g = ctx.createRadialGradient(x + o.lit[0] * r, y + o.lit[1] * r, 0, x + o.lit[0] * r, y + o.lit[1] * r, r * 1.3); g.addColorStop(0, P.rgba(o.litC ?? '#FFB060', 0.8)); g.addColorStop(1, P.rgba(o.litC ?? '#FFB060', 0)); ctx.fillStyle = g; ctx.fillRect(x - r * 2, y - r * 2, r * 4, r * 4); ctx.restore(); }
+  if (o.lit) { ctx.save(); trace(ctx, sm); ctx.clip(); const g = ctx.createRadialGradient(x + o.lit[0] * r, y + o.lit[1] * r, 0, x + o.lit[0] * r, y + o.lit[1] * r, r * 1.3); g.addColorStop(0, P.rgba(o.litC ?? '#FFB060', 0.55)); g.addColorStop(1, P.rgba(o.litC ?? '#FFB060', 0)); ctx.fillStyle = g; ctx.fillRect(x - r * 2, y - r * 2, r * 4, r * 4); ctx.restore(); }
   P.ink(ctx, sm, { closed: true, color: o.ink ?? INK, width: o.w ?? 2.8, boil: B, seed: seed + 7, amp: 1.3, passes: 2, step: 9, alpha: 0.95 * (o.alpha ?? 1) });
   ctx.restore();
 }
@@ -546,8 +546,9 @@ function drawExplosion(ctx, B, t) {
     ctx.save(); ctx.strokeStyle = `rgba(255,236,190,${ra})`; ctx.lineWidth = 7 * (1 - d / 0.45) + 1.5; ctx.beginPath(); ctx.ellipse(x, y, rr, rr * 0.82, 0, 0, TAU); ctx.stroke(); ctx.restore();
     P.ink(ctx, P.ellipsePts(x, y, rr * 1.04, rr * 0.86, 0, 60), { closed: true, color: '#FFE9B0', width: 2.2, boil: B, seed: 401, amp: 3, passes: 2, step: 16, alpha: 0.7 * ra });
   }
+  glow(ctx, x, y, 300, '#FF8A2A', 0.5 * Math.exp(-Math.max(0, d) / 0.45) * (d > 0.05 ? 1 : 0));
   // 2. jagged star burst (three nested stars, spikes re-roll with every boil frame)
-  const burstK = lerp(0.6, 1, outBack(clamp(d / 0.12), 1.2)), burstA = 1 - smooth((d - 0.2) / 0.2);
+  const burstK = lerp(0.6, 1, outBack(clamp(d / 0.12), 1.2)), burstA = 1 - smooth((d - 0.3) / 0.22);
   if (burstA > 0.01) {
     const R = 210 * burstK * (1 + 0.25 * clamp(d, 0, 0.5)), spikes = (n, seed, r0) => { const pts = []; for (let i = 0; i < n * 2; i++) { const a = (i * Math.PI) / n + hash(seed, 1, 1) * 6, rr = (i % 2 ? r0 * (0.38 + 0.18 * hash(seed, i, B)) : r0 * (0.8 + 0.5 * hash(seed, i, B + 9))); pts.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.9]); } return pts; };
     ctx.save(); ctx.globalAlpha = burstA;
@@ -560,13 +561,13 @@ function drawExplosion(ctx, B, t) {
     ctx.restore();
   }
   // 3. cauliflower fireball: layered puffs, hot core -> sooty rim, cooling to dark red
-  const fk = clamp(d / 0.85), fa = 1 - smooth((fk - 0.62) / 0.38), grow = outCubic(clamp(d / 0.35));
+  const fk = clamp(d / 0.85), fa = 1 - smooth((fk - 0.74) / 0.26), grow = outCubic(clamp(d / 0.35));
   if (fa > 0.01 && d > 0.03) {
     for (let i = 0; i < 11; i++) {
       const a = hash(i, 6, 1) * TAU, dist = (30 + 90 * hash(i, 6, 2)) * grow * (1 + 0.25 * fk), r = (34 + 46 * hash(i, 6, 3)) * (0.35 + 0.65 * grow) * (1 + 0.2 * fk);
       const px = x + Math.cos(a) * dist, py = y + Math.sin(a) * dist * 0.8 - 40 * fk * (0.4 + hash(i, 6, 4));
-      const cool = clamp(fk * 0.95 + hash(i, 6, 5) * 0.25, 0, 1), col = mx(mx('#FFE04A', '#FF7A22', clamp(cool * 1.5, 0, 1)), '#9A2E1C', clamp(cool * 1.6 - 0.75, 0, 1));
-      puff(ctx, B, px, py, r, col, 600 + i, { alpha: fa, hatch: '#7A1E10', ink: '#4A1410', w: 3, lit: [-0.2, -0.3], litC: '#FFF0A0' });
+      const cool = clamp(fk * 0.95 + hash(i, 6, 5) * 0.25, 0, 1), col = mx(mx('#FFDA3A', '#FF7E1C', clamp(cool * 1.6, 0, 1)), '#C23A18', clamp(cool * 1.5 - 0.8, 0, 1));
+      puff(ctx, B, px, py, r, col, 600 + i, { alpha: fa, hatch: '#B8300F', ink: '#5A1A10', w: 3.2, lit: [-0.2, -0.3], litC: '#FFF0A0' });
     }
     puff(ctx, B, x, y - 10 * fk, 70 * (0.5 + 0.5 * grow) * (1 - 0.3 * fk), '#FFF3B0', 640, { alpha: fa * (1 - fk * 0.6), ink: '#C8501E', w: 2.4 });
   }
@@ -585,18 +586,22 @@ function drawExplosion(ctx, B, t) {
     const pts = P.xform([[-sz, -sz * 0.5], [sz * 0.8, -sz * 0.7], [sz, sz * 0.5], [-sz * 0.4, sz * 0.8]], { x: px, y: py, rot });
     ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = c; trace(ctx, pts); ctx.fill(); P.ink(ctx, pts, { closed: true, color: INK, width: 2.2, boil: B, seed: 700 + i, amp: 0.7, passes: 2, step: 6 }); ctx.restore();
   });
-  // 5. smoke curls: sooty puffs drifting up and sideways with ink spirals (they linger through the dive)
-  const sk = d - 0.28;
+  // 5. smoke: sooty puffs drifting up and sideways (miniature pyro), ink spirals inside, curl ribbons trailing up (they linger through the dive)
+  const sk = d - 0.2;
   if (sk > 0) {
-    for (let i = 0; i < 9; i++) {
-      const u = clamp(sk / 0.8), born = hash(i, 9, 1) * 0.3, uu = clamp((u - born) / (1 - born)); if (uu <= 0) continue;
-      const a = hash(i, 9, 2) * TAU, r0 = 50 + 60 * hash(i, 9, 3);
-      const px = x + Math.cos(a) * r0 * (0.4 + uu) + 52 * uu * (hash(i, 9, 4) - 0.2) + 14 * Math.sin(uu * 4 + i), py = y + Math.sin(a) * r0 * 0.5 - 150 * uu * (0.5 + hash(i, 9, 5)) + 20 * uu;
-      const r = (26 + 30 * hash(i, 9, 6)) * (0.5 + 0.8 * uu), al = clamp(uu * 6, 0, 1) * (1 - smooth((uu - 0.55) / 0.45)) * 0.92;
-      puff(ctx, B, px, py, r, mx('#3B3346', '#6B6076', 0.4 + 0.4 * hash(i, 9, 7)), 800 + i, { alpha: al, hatch: '#1A1424', ink: '#1A1424', w: 2.4, lit: [0, 0.55], litC: '#FF8A3A' });
-      // curl scribble inside the puff
+    for (let i = 0; i < 13; i++) {
+      const u = clamp(sk / 0.85), born = hash(i, 9, 1) * 0.3, uu = clamp((u - born) / (1 - born)); if (uu <= 0) continue;
+      const a = hash(i, 9, 2) * TAU, r0 = 40 + 70 * hash(i, 9, 3);
+      const px = x + Math.cos(a) * r0 * (0.4 + uu) + 70 * uu * (hash(i, 9, 4) - 0.1) + 16 * Math.sin(uu * 4 + i), py = y + Math.sin(a) * r0 * 0.5 - 170 * uu * (0.5 + hash(i, 9, 5)) + 20 * uu;
+      const r = (34 + 36 * hash(i, 9, 6)) * (0.5 + 0.8 * uu), al = clamp(uu * 6, 0, 1) * (1 - smooth((uu - 0.7) / 0.3)) * 0.95;
+      puff(ctx, B, px, py, r, mx('#3B3346', '#6B6076', 0.4 + 0.4 * hash(i, 9, 7)), 800 + i, { alpha: al, hatch: '#120C1C', ink: '#120C1C', w: 2.6, lit: [0, 0.55], litC: '#FF8A3A' });
       const cp = []; for (let k = 0; k <= 16; k++) { const aa = k * 0.55 + i, rr = r * (0.15 + 0.62 * k / 16); cp.push([px + Math.cos(aa) * rr, py + Math.sin(aa) * rr * 0.9]); }
       ctx.save(); ctx.globalAlpha = al; P.ink(ctx, cp, { closed: false, color: '#D8CFE4', width: 1.8, boil: B, seed: 820 + i, amp: 0.9, passes: 1, step: 7, alpha: 0.7 }); ctx.restore();
+    }
+    for (let i = 0; i < 3; i++) {                   // curl ribbons: pencil spirals climbing out of the burst
+      const u = clamp((sk - i * 0.05) / 0.8); if (u <= 0) continue;
+      const pts = []; for (let k = 0; k <= 26; k++) { const v = k / 26 * u, a = v * 11 + i * 2, rr = 14 + 40 * v; pts.push([x + (i - 1) * 60 + Math.cos(a) * rr + 30 * v * (i - 1), y - 30 - 260 * v + Math.sin(a) * rr * 0.35]); }
+      ctx.save(); ctx.globalAlpha = (1 - smooth((u - 0.6) / 0.4)) * 0.9; P.ink(ctx, pts, { closed: false, color: i % 2 ? '#3A2E48' : '#6B6076', width: 4, boil: B, seed: 840 + i, amp: 1.2, passes: 2, step: 9, alpha: 0.9, taper: true }); ctx.restore();
     }
   }
   ctx.restore();
@@ -626,7 +631,7 @@ function drawAmrita(ctx, T, S, ship, lights) {
   g.setTransform(S.scale, 0, 0, S.scale, (ox - st.x) * S.scale, (oy - st.y) * S.scale);
   // near-silhouette: blue shadow on the side away from the ship's glow, bright rim from the flashes (clipped to the disc: the prop stays untouched)
   g.save(); g.beginPath(); g.arc(st.x, st.y, R * 1.04, 0, TAU); g.clip(); g.globalCompositeOperation = 'source-atop';
-  const sg = g.createLinearGradient(st.x - R * 1.2, st.y + R * 0.9, st.x + R * 1.1, st.y - R * 0.8); sg.addColorStop(0, 'rgba(8,10,60,0.5)'); sg.addColorStop(0.6, 'rgba(14,20,90,0.2)'); sg.addColorStop(1, 'rgba(60,70,170,0.0)');
+  const sg = g.createLinearGradient(st.x - R * 1.2, st.y + R * 0.9, st.x + R * 1.1, st.y - R * 0.8); sg.addColorStop(0, 'rgba(8,10,60,0.34)'); sg.addColorStop(0.6, 'rgba(14,20,90,0.12)'); sg.addColorStop(1, 'rgba(60,70,170,0.0)');
   g.fillStyle = sg; g.fillRect(st.x - R * 4, st.y - R * 4, R * 8, R * 8);
   const fl = Math.max(0, ...ZAPS.map((z) => (t > z - 0.04 && t < z + 0.4 ? Math.exp(-Math.max(0, t - z + 0.03) / 0.08) : 0)));
   const boom = t >= BOOM ? Math.exp(-(t - BOOM) / 0.35) : 0;
@@ -640,12 +645,13 @@ function drawAmrita(ctx, T, S, ship, lights) {
   // ---- the VIEWFINDER: rests at her side, snaps up at 14.25 and tracks the shot (ship -> the explosion at 15.0 -> the porthole)
   const aimAt = (() => {
     const A = [ship.x, ship.y], B2 = [TG.x, TG.y - 20], k1 = smooth((t - (BOOM + 0.04)) / 0.12), k2 = smooth((t - (BOOM + 0.5)) / 0.25);
-    const p1 = [lerp(A[0], B2[0], k1), lerp(A[1], B2[1], k1)]; return [lerp(p1[0], PORT.cx, k2 * 0), lerp(p1[1], PORT.cy, k2 * 0)];
+    const p1 = [lerp(A[0], B2[0], k1), lerp(A[1], B2[1], k1)]; return [lerp(p1[0], PORT.cx, k2), lerp(p1[1], PORT.cy, k2)];
   })();
   const ang = Math.atan2(aimAt[1] - st.y, aimAt[0] - st.x), up = spring(t - FINDER_T, 3.2, 0.5), rise = t < FINDER_T ? 0 : clamp(up, 0, 1.15);
-  const dist = lerp(R * 1.75, R * 2.15, rise), size = lerp(R * 0.85, R * 1.45, rise);
+  const dist = lerp(R * 1.75, R * 2.15, rise), size = lerp(R * 0.85, R * 1.6, rise);
   const rx = st.x + Math.cos(ang) * dist * rise + R * 1.75 * (1 - rise), ry = st.y + Math.sin(ang) * dist * rise + R * 0.45 * (1 - rise) - 6 * (1 - rise);
   const wob = 0.025 * Math.sin(t * 5.3) + (t >= BOOM && t < BOOM + 0.25 ? 0.05 * Math.sin((t - BOOM) * 60) * Math.exp(-(t - BOOM) / 0.1) : 0);
+  glow(ctx, rx, ry, size * 1.5, '#FFB62E', 0.16 * rise);
   ctx.save(); ctx.translate(rx, ry); ctx.rotate(lerp(0.3, ang * 0.55, rise) + wob);
   S.amrita2d.drawProp(ctx, T, S, 'viewfinder', { x: 0, y: 0, size, anim: { t, rec: t >= FINDER_T }, boil: T.boil, seed: 41, style: 'ink' });
   ctx.restore();
@@ -662,8 +668,8 @@ export default {
     // flash that lights the sky / planet (the target blows up in front of it)
     const bd = t - BOOM;
     if (bd >= 0 && bd < 0.9) {
-      glow(ctx, TG.x, TG.y, 1100, '#FFB060', 0.42 * Math.exp(-bd / 0.3));
-      glow(ctx, PLANET.cx + 80, PLANET.cy - 80, 380, '#FFC070', 0.3 * Math.exp(-bd / 0.25));
+      glow(ctx, TG.x, TG.y, 1000, '#FF9A50', 0.28 * Math.exp(-bd / 0.3));
+      glow(ctx, PLANET.cx + 90, PLANET.cy - 90, 300, '#FFB060', 0.12 * Math.exp(-bd / 0.25));
     }
     const hitPulse = Math.max(0, ...ZAPS.slice(0, 2).map((z) => (t >= z && t < z + 0.15 ? Math.exp(-(t - z) / 0.05) : 0)));
     drawTarget(ctx, B, t, hitPulse);

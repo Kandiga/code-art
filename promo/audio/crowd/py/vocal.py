@@ -134,7 +134,7 @@ def _post(y, hp=70.0):
 # --------------------------------------------------------------------------------------------------------------------
 def gasp(person, rng, style=None):
     sex = person['sex']
-    style = style or rng.choice(['breath', 'ah', 'oh', 'squeak'], p=[0.15, 0.35, 0.3, 0.2])
+    style = style or rng.choice(['breath', 'ah', 'oh', 'squeak'], p=[0.08, 0.32, 0.30, 0.30])
     dur = rng.uniform(0.22, 0.42) * (0.9 if sex == 'k' else 1.0)
     n = int((dur + 0.08) * SR)
     vowel_a, vowel_b = {'breath': ('x', 'a'), 'ah': ('A', 'a'), 'oh': ('o', 'O'), 'squeak': ('I', 'ae')}[style]
@@ -143,21 +143,22 @@ def gasp(person, rng, style=None):
     # inhale: turbulent airflow through the (ingressive) vocal tract: formant-shaped, tilted (-9 dB/oct above ~2.5 kHz)
     noise = butter(rng.randn(n), 'hp', 320, 2)
     y_n = vocal_tract(noise, Ft, bw_scale=1.5, mode='parallel', amps=(0.9, 1.0, 0.65, 0.3, 0.12))
-    y_n = butter(y_n, 'lp', 5200 if style == 'breath' else 4300, 2)
+    y_n = butter(y_n, 'lp', 4200 if style == 'breath' else 3500, 3)
     a_att = rng.uniform(0.012, 0.028)
     a_pk = dur * rng.uniform(0.35, 0.6)
     env_n = env_ad(n, [(0, 0), (a_att, 0.5), (a_pk, 1.0), (dur * 0.88, 0.7), (dur, 0.12), (dur + 0.012, 0.0)])
     env_n *= 1 + 0.12 * smooth_noise(n, rng, 40)
     y = y_n * env_n
-    v_mix = {'breath': 0.45, 'ah': 1.15, 'oh': 1.1, 'squeak': 1.6}[style]
-    f0a = person['f0'] * (1.55 if style == 'squeak' else 1.2)
-    f0 = curve(n, [(0, f0a * 0.9), (dur * 0.7, f0a * (1.5 if style == 'squeak' else 1.25)), (dur, f0a * 1.35)], log=True, smooth_ms=10)
-    src, asp, U = glottal_source(f0, 0.74, 1.7, rng, jitter=0.02, shimmer=0.1, tilt_hz=5200, breath=0.12)
-    v = vocal_tract(src + asp * 0.4, Ft, bw_scale=1.25, mode='cascade')
+    v_mix = {'breath': 0.7, 'ah': 2.0, 'oh': 2.0, 'squeak': 2.6}[style]
+    f0a = person['f0'] * (1.6 if style == 'squeak' else 1.25)
+    f0 = curve(n, [(0, f0a * 0.88), (dur * 0.7, f0a * (1.6 if style == 'squeak' else 1.4)), (dur, f0a * 1.5)], log=True, smooth_ms=10)
+    src, asp, U = glottal_source(f0, 0.52, 1.7, rng, jitter=0.02, shimmer=0.1, tilt_hz=10000, breath=0.05)
+    v = vocal_tract(src + asp * 0.4, Ft, bw_scale=1.1, mode='cascade')
     v = butter(v, 'hp', 260, 2)
+    v = biquad_filter(v, 'highshelf', 1600.0, 0.7, 6.0)  # strained / pressed ingressive phonation: strong upper harmonics
     env_v = env_ad(n, [(0, 0), (a_att + 0.01, 0.55), (a_pk + 0.02, 1.0), (dur * 0.85, 0.8), (dur, 0.1), (dur + 0.01, 0)])
     sc = np.sqrt(np.mean(y ** 2) + 1e-12) / (np.sqrt(np.mean((v * env_v) ** 2)) + 1e-12)
-    y = y * (0.6 if style != 'breath' else 1.0) + v * env_v * sc * v_mix
+    y = y * (0.13 if style != 'breath' else 0.8) + v * env_v * sc * v_mix
     return _post(y, 150)
 
 
@@ -178,33 +179,52 @@ def laugh(person, rng, style=None):
     t = 0.0
     out = np.zeros(int((ns * 0.28 + 0.6) * SR))
     dec = rng.uniform(*cfg['dec'])
+    amps = []
+    starts = []
     for k in range(ns):
-        dur = rng.uniform(0.09, 0.14) * (1.0 - 0.02 * k)
+        dur = rng.uniform(0.08, 0.15) * (1.0 - 0.02 * k)
         n = int((dur + 0.08) * SR)
-        f0s = f0pk * cfg['fall'] ** k * (1 + 0.07 * rng.randn())
-        f0 = curve(n, [(0, f0s * 1.06), (dur * 0.35, f0s * 1.02), (dur + 0.05, f0s * 0.84)], log=True, smooth_ms=6)
-        keys = [(0, VOWELS and cfg['v'][0]), (dur * 0.5, cfg['v'][1]), (dur + 0.08, cfg['v'][1])]
-        # jaw swing: F1 up at onset
+        f0s = f0pk * cfg['fall'] ** k * (1 + 0.08 * rng.randn())
+        intra = rng.uniform(0.86, 1.0)  # how far this 'ha' falls in pitch
+        f0 = curve(n, [(0, f0s * (1.0 + 0.1 * rng.rand())), (dur * 0.35, f0s * 1.0), (dur + 0.05, f0s * intra)], log=True, smooth_ms=6)
+        keys = [(0, cfg['v'][0]), (dur * 0.5, cfg['v'][1]), (dur + 0.08, cfg['v'][1])]
         Ft = form_tracks(person, n, keys)
         Ft[0] *= curve(n, [(0, 0.82), (0.025, 1.0), (dur + 0.08, 0.95)], smooth_ms=8)
-        src, asp, U = glottal_source(f0, cfg['oq'], 1.7, rng, jitter=0.014, shimmer=0.09, tilt_hz=3200 + 800 * rng.rand(), breath=cfg['br'] * person['breath'])
+        src, asp, U = glottal_source(f0, cfg['oq'] - 0.06, 1.7, rng, jitter=0.014, shimmer=0.09, tilt_hz=5000 + 900 * rng.rand(), breath=cfg['br'] * person['breath'])
         voiced = vocal_tract(src + asp, Ft, bw_scale=1.2, mode='cascade')
-        h_noise = vocal_tract(rng.randn(n), Ft, bw_scale=2.0, mode='parallel', amps=(0.8, 1.0, 0.9, 0.7, 0.5))
+        h_noise = vocal_tract(rng.randn(n), Ft, bw_scale=2.0, mode='parallel', amps=(0.9, 1.0, 0.7, 0.35, 0.15))
+        h_noise = butter(h_noise, 'lp', 4200, 2)
         att = 0.010
-        hold = rng.uniform(0.012, 0.03)
-        # voiced env: 'h' first (aspiration only), voicing onset ~22 ms later, exponential decay
-        env_v = env_ad(n, [(0, 0), (0.018, 0), (0.030, 1.0), (0.030 + hold, 0.85), (dur, 0.18), (dur + 0.05, 0)])
+        hold = rng.uniform(0.012, 0.035)
+        env_v = env_ad(n, [(0, 0), (0.016, 0), (0.028, 1.0), (0.028 + hold, 0.85), (dur, 0.18), (dur + 0.05, 0)])
         env_h = env_ad(n, [(0, 0), (att, 0.9), (0.03, 0.55), (dur * 0.9, 0.25), (dur + 0.07, 0)])
         sc = np.sqrt(np.mean(voiced ** 2) + 1e-12)
         sh = np.sqrt(np.mean(h_noise ** 2) + 1e-12)
-        y = voiced / sc * env_v + h_noise / sh * env_h * (0.10 + 0.06 * person['breath'])
-        amp = (dec ** k) * (1.0 if k else 1.25) * rng.uniform(0.85, 1.12)
+        y = voiced / sc * env_v + h_noise / sh * env_h * (0.07 + 0.04 * person['breath'])
+        amp = (dec ** k) * (1.0 if k else 1.25) * rng.uniform(0.8, 1.2)
+        amps.append(amp)
+        starts.append(t)
         a = int(t * SR)
         if a + n > len(out):
             out = np.pad(out, (0, a + n - len(out)))
         out[a:a + n] += y * amp
-        gap = rng.uniform(*cfg['gap']) * (1 + 0.06 * k) * (1 + 0.10 * rng.randn())
-        t += max(0.08, gap)
+        gap = rng.uniform(*cfg['gap']) * (1 + 0.06 * k) * (1 + 0.18 * np.clip(rng.randn(), -1.5, 1.5))
+        if rng.rand() < 0.12:  # a quick doublet
+            gap *= 0.7
+        t += max(0.075, gap)
+    # exhalation riding under the whole laugh: breath noise swelling between the voiced bursts (the 'h' of 'ha ha ha')
+    nb = len(out)
+    swell = np.zeros(nb)
+    for a_, am in zip(starts, amps):
+        i0 = int(a_ * SR)
+        j = np.arange(min(nb - i0, int(0.2 * SR)))
+        swell[i0:i0 + len(j)] = np.maximum(swell[i0:i0 + len(j)], am * np.exp(-j / (0.07 * SR)))
+    swell = np.convolve(swell, np.hanning(int(0.03 * SR)) / np.hanning(int(0.03 * SR)).sum(), mode='same')
+    Fb = form_tracks(person, nb, [(0, cfg['v'][0]), (nb / SR, cfg['v'][1])])
+    breath = vocal_tract(butter(rng.randn(nb), 'hp', 350, 2), Fb, 2.2, 'parallel', amps=(0.9, 1.0, 0.6, 0.25, 0.1))
+    breath = butter(breath, 'lp', 4000, 2)
+    breath *= swell / (np.sqrt(np.mean(breath ** 2)) + 1e-9)
+    out = out + breath * 0.5 * np.sqrt(np.mean(out ** 2) + 1e-12) * 0.35
     # trailing exhale 'hhh' / inhale
     if rng.rand() < 0.55:
         nT = int(0.22 * SR)

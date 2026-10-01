@@ -1,0 +1,540 @@
+{
+ "stem": "/home/user/code-art/promo/audio/build/stems/crowd.wav",
+ "checks": {
+  "loudness": {
+   "integratedLufs": -19,
+   "momentaryMax": -12.7,
+   "shortTermMax": -14.8,
+   "truePeakDb": -3.2,
+   "rmsDb": -28.1
+  },
+  "voices": {
+   "clips": 111,
+   "distinctClips": 111,
+   "distinctPeople": 80
+  },
+  "applause": {
+   "claps": 2026,
+   "perSecond": {
+    "49": 22,
+    "50": 116,
+    "51": 132,
+    "52": 244,
+    "53": 363,
+    "54": 396,
+    "55": 330,
+    "56": 328,
+    "57": 95
+   },
+   "fineStructure1ms_vs_50ms_dB": {
+    "early": {
+     "claps": {
+      "p99": 6.4,
+      "p50": -2.9,
+      "over6": 1.7
+     },
+     "noiseSameEnvelope": {
+      "p99": 2.5,
+      "p50": -0.8,
+      "over6": 0
+     }
+    },
+    "rise": {
+     "claps": {
+      "p99": 4.9,
+      "p50": -1.1,
+      "over6": 0.21
+     },
+     "noiseSameEnvelope": {
+      "p99": 2,
+      "p50": -0.3,
+      "over6": 0
+     }
+    },
+    "climax": {
+     "claps": {
+      "p99": 4.5,
+      "p50": -0.8,
+      "over6": 0
+     },
+     "noiseSameEnvelope": {
+      "p99": 1.9,
+      "p50": -0.2,
+      "over6": 0
+     }
+    }
+   },
+   "syncSeries": [
+    {
+     "t": 49,
+     "level": 0.15,
+     "active": 1,
+     "r": 1,
+     "sync": 0
+    },
+    {
+     "t": 49.5,
+     "level": 0.184,
+     "active": 3,
+     "r": 0.426,
+     "sync": 0.003
+    },
+    {
+     "t": 50.01,
+     "level": 0.24,
+     "active": 14,
+     "r": 0.127,
+     "sync": 0.029
+    },
+    {
+     "t": 50.51,
+     "level": 0.309,
+     "active": 28,
+     "r": 0.14,
+     "sync": 0.173
+    },
+    {
+     "t": 51.01,
+     "level": 0.388,
+     "active": 35,
+     "r": 0.141,
+     "sync": 0.557
+    },
+    {
+     "t": 51.51,
+     "level": 0.475,
+     "active": 43,
+     "r": 0.286,
+     "sync": 0.958
+    },
+    {
+     "t": 52.02,
+     "level": 0.569,
+     "active": 52,
+     "r": 0.696,
+     "sync": 0.883
+    },
+    {
+     "t": 52.52,
+     "level": 0.67,
+     "active": 61,
+     "r": 0.591,
+     "sync": 0.436
+    },
+    {
+     "t": 53.02,
+     "level": 0.777,
+     "active": 70,
+     "r": 0.161,
+     "sync": 0.115
+    },
+    {
+     "t": 53.53,
+     "level": 0.89,
+     "active": 81,
+     "r": 0.099,
+     "sync": 0.016
+    },
+    {
+     "t": 54.03,
+     "level": 1,
+     "active": 90,
+     "r": 0.049,
+     "sync": 0.002
+    },
+    {
+     "t": 54.53,
+     "level": 1,
+     "active": 90,
+     "r": 0.133,
+     "sync": 0.033
+    },
+    {
+     "t": 55.04,
+     "level": 1,
+     "active": 90,
+     "r": 0.168,
+     "sync": 0.3
+    },
+    {
+     "t": 55.54,
+     "level": 1,
+     "active": 90,
+     "r": 0.159,
+     "sync": 0.771
+    },
+    {
+     "t": 56.04,
+     "level": 1,
+     "active": 90,
+     "r": 0.383,
+     "sync": 0.554
+    },
+    {
+     "t": 56.55,
+     "level": 0.912,
+     "active": 83,
+     "r": 0.167,
+     "sync": 0.111
+    },
+    {
+     "t": 57.05,
+     "level": 0.545,
+     "active": 50,
+     "r": 0.201,
+     "sync": 0.006
+    },
+    {
+     "t": 57.55,
+     "level": 0.145,
+     "active": 14,
+     "r": 0.071,
+     "sync": 0
+    }
+   ],
+   "maxOrderParameter": 0.78
+  }
+ },
+ "events": [
+  {
+   "i": 0,
+   "t": 5,
+   "kind": "gasp",
+   "n": 4,
+   "voices": 4,
+   "persons": 4,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -4.1,
+    "-40": -0.8,
+    "-30": 0.8
+   },
+   "spreadS": 0.331
+  },
+  {
+   "i": 1,
+   "t": 5.25,
+   "kind": "murmur",
+   "n": 4,
+   "voices": 4,
+   "persons": 4,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -6.3,
+    "-40": -3.8,
+    "-30": 2.9
+   },
+   "spreadS": 0.018
+  },
+  {
+   "i": 2,
+   "t": 42.5,
+   "kind": "gasp",
+   "n": 3,
+   "voices": 3,
+   "persons": 3,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -2,
+    "-40": -0.1,
+    "-30": 0.7
+   },
+   "spreadS": 0.213
+  },
+  {
+   "i": 3,
+   "t": 43.25,
+   "kind": "laugh",
+   "n": 2,
+   "voices": 2,
+   "persons": 2,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -0.9,
+    "-40": -0.5,
+    "-30": 0.3
+   },
+   "spreadS": 0.316
+  },
+  {
+   "i": 4,
+   "t": 43.75,
+   "kind": "oh",
+   "n": 2,
+   "voices": 2,
+   "persons": 2,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -1,
+    "-40": -0.4,
+    "-30": 0.1
+   },
+   "spreadS": 0.269
+  },
+  {
+   "i": 5,
+   "t": 44.5,
+   "kind": "whoa",
+   "n": 4,
+   "voices": 4,
+   "persons": 4,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -4.3,
+    "-40": -0.1,
+    "-30": 2.8
+   },
+   "spreadS": 0.2
+  },
+  {
+   "i": 6,
+   "t": 45.25,
+   "kind": "no_way",
+   "n": 2,
+   "voices": 2,
+   "persons": 2,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -2.5,
+    "-40": -0.3,
+    "-30": 2.7
+   },
+   "spreadS": 0.201
+  },
+  {
+   "i": 7,
+   "t": 45.5,
+   "kind": "murmur",
+   "n": 6,
+   "voices": 6,
+   "persons": 6,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -2.4,
+    "-40": 0,
+    "-30": 4.9
+   },
+   "spreadS": 0.872
+  },
+  {
+   "i": 8,
+   "t": 46.5,
+   "kind": "gasp",
+   "n": 8,
+   "voices": 8,
+   "persons": 8,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -1.7,
+    "-40": -0.1,
+    "-30": 0.8
+   },
+   "spreadS": 0.227
+  },
+  {
+   "i": 9,
+   "t": 47,
+   "kind": "whoa",
+   "n": 10,
+   "voices": 10,
+   "persons": 10,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -10.5,
+    "-40": 0,
+    "-30": 3.1
+   },
+   "spreadS": 0.291
+  },
+  {
+   "i": 10,
+   "t": 47.5,
+   "kind": "laugh",
+   "n": 6,
+   "voices": 6,
+   "persons": 6,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -11.2,
+    "-40": 0.1,
+    "-30": 0.1
+   },
+   "spreadS": 0.294
+  },
+  {
+   "i": 11,
+   "t": 48,
+   "kind": "cheer",
+   "n": 12,
+   "voices": 12,
+   "persons": 12,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -0.6,
+    "-40": 0.1,
+    "-30": 3.4
+   },
+   "spreadS": 0.325
+  },
+  {
+   "i": 12,
+   "t": 49,
+   "kind": "applause",
+   "n": 90,
+   "voices": 6,
+   "persons": 6,
+   "claps": 2026,
+   "clapSamples": 192,
+   "hands": 48,
+   "onsetMs": {
+    "-50": 0.1,
+    "-40": 0.5,
+    "-30": 1
+   },
+   "spreadS": 8.892
+  },
+  {
+   "i": 13,
+   "t": 49.5,
+   "kind": "whoa",
+   "n": 8,
+   "voices": 8,
+   "persons": 8,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -4.5,
+    "-40": -0.1,
+    "-30": 2.9
+   },
+   "spreadS": 0.27
+  },
+  {
+   "i": 14,
+   "t": 53.5,
+   "kind": "cheer",
+   "n": 20,
+   "voices": 20,
+   "persons": 20,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -0.7,
+    "-40": 0,
+    "-30": 5.1
+   },
+   "spreadS": 0.336
+  },
+  {
+   "i": 15,
+   "t": 54.25,
+   "kind": "cheer",
+   "n": 14,
+   "voices": 14,
+   "persons": 14,
+   "claps": 0,
+   "clapSamples": 0,
+   "hands": 0,
+   "onsetMs": {
+    "-50": -1.5,
+    "-40": 0.1,
+    "-30": 1.9
+   },
+   "spreadS": 0.32
+  }
+ ],
+ "totals": {
+  "events": 16,
+  "claps": 2026,
+  "voiceClips": 111
+ },
+ "pass": true,
+ "ok": [
+  "duration 60.000 s - 60.0000",
+  "true peak <= -3 dBTP - -3.20 dBTP",
+  "no clipped samples",
+  "DC offset < 1e-4",
+  "no NaN/Inf",
+  "silent before the first event (5 s)",
+  "silence 10.8-42.5 s (< -90 dBFS) - -Infinity dBFS peak",
+  "stem tail at 60 s < -70 dBFS - -119.8 dBFS",
+  "sound at 42.5-58 s",
+  "event 0 gasp@5: first onset within +-20 ms - {\"-50\":-4.1,\"-40\":-0.8,\"-30\":0.8} ms",
+  "event 0 gasp: 4 distinct people - 4",
+  "event 0 gasp: reaction spread 0-0.35 s - 0.331 s",
+  "event 1 murmur@5.25: first onset within +-20 ms - {\"-50\":-6.3,\"-40\":-3.8,\"-30\":2.9} ms",
+  "event 1 murmur: 4 distinct voices",
+  "event 2 gasp@42.5: first onset within +-20 ms - {\"-50\":-2,\"-40\":-0.1,\"-30\":0.7} ms",
+  "event 2 gasp: 3 distinct people - 3",
+  "event 2 gasp: reaction spread 0-0.35 s - 0.213 s",
+  "event 3 laugh@43.25: first onset within +-20 ms - {\"-50\":-0.9,\"-40\":-0.5,\"-30\":0.3} ms",
+  "event 3 laugh: 2 distinct people - 2",
+  "event 3 laugh: reaction spread 0-0.35 s - 0.316 s",
+  "event 4 oh@43.75: first onset within +-20 ms - {\"-50\":-1,\"-40\":-0.4,\"-30\":0.1} ms",
+  "event 4 oh: 2 distinct people - 2",
+  "event 4 oh: reaction spread 0-0.35 s - 0.269 s",
+  "event 5 whoa@44.5: first onset within +-20 ms - {\"-50\":-4.3,\"-40\":-0.1,\"-30\":2.8} ms",
+  "event 5 whoa: 4 distinct people - 4",
+  "event 5 whoa: reaction spread 0-0.35 s - 0.2 s",
+  "event 6 no_way@45.25: first onset within +-20 ms - {\"-50\":-2.5,\"-40\":-0.3,\"-30\":2.7} ms",
+  "event 6 no_way: 2 distinct people - 2",
+  "event 6 no_way: reaction spread 0-0.35 s - 0.201 s",
+  "event 7 murmur@45.5: first onset within +-20 ms - {\"-50\":-2.4,\"-40\":0,\"-30\":4.9} ms",
+  "event 7 murmur: 6 distinct voices",
+  "event 8 gasp@46.5: first onset within +-20 ms - {\"-50\":-1.7,\"-40\":-0.1,\"-30\":0.8} ms",
+  "event 8 gasp: 8 distinct people - 8",
+  "event 8 gasp: reaction spread 0-0.35 s - 0.227 s",
+  "event 9 whoa@47: first onset within +-20 ms - {\"-50\":-10.5,\"-40\":0,\"-30\":3.1} ms",
+  "event 9 whoa: 10 distinct people - 10",
+  "event 9 whoa: reaction spread 0-0.35 s - 0.291 s",
+  "event 10 laugh@47.5: first onset within +-20 ms - {\"-50\":-11.2,\"-40\":0.1,\"-30\":0.1} ms",
+  "event 10 laugh: 6 distinct people - 6",
+  "event 10 laugh: reaction spread 0-0.35 s - 0.294 s",
+  "event 11 cheer@48: first onset within +-20 ms - {\"-50\":-0.6,\"-40\":0.1,\"-30\":3.4} ms",
+  "event 11 cheer: 12 distinct people - 12",
+  "event 11 cheer: reaction spread 0-0.35 s - 0.325 s",
+  "event 12 applause@49: first onset within +-20 ms - {\"-50\":0.1,\"-40\":0.5,\"-30\":1} ms",
+  "event 13 whoa@49.5: first onset within +-20 ms - {\"-50\":-4.5,\"-40\":-0.1,\"-30\":2.9} ms",
+  "event 13 whoa: 8 distinct people - 8",
+  "event 13 whoa: reaction spread 0-0.35 s - 0.27 s",
+  "event 14 cheer@53.5: first onset within +-20 ms - {\"-50\":-0.7,\"-40\":0,\"-30\":5.1} ms",
+  "event 14 cheer: 20 distinct people - 20",
+  "event 14 cheer: reaction spread 0-0.35 s - 0.336 s",
+  "event 15 cheer@54.25: first onset within +-20 ms - {\"-50\":-1.5,\"-40\":0.1,\"-30\":1.9} ms",
+  "event 15 cheer: 14 distinct people - 14",
+  "event 15 cheer: reaction spread 0-0.35 s - 0.32 s",
+  "voice clips never repeated (library big enough) - 0 repeats of 111",
+  "applause: thousands of individual claps - 2026",
+  "applause: >= 150 distinct clap samples - 192",
+  "applause early: individual-clap transients (1 ms/50 ms envelope p99 > filtered-noise reference + 3 dB) - 6.4 dB vs noise 2.5 dB",
+  "applause rise: individual-clap transients (1 ms/50 ms envelope p99 > filtered-noise reference + 2 dB) - 4.9 dB vs noise 2 dB",
+  "applause climax: individual-clap transients (1 ms/50 ms envelope p99 > filtered-noise reference + 2 dB) - 4.5 dB vs noise 1.9 dB"
+ ],
+ "bad": []
+}

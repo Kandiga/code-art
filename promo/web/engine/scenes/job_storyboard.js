@@ -189,7 +189,7 @@ export default {
   id: 'job_storyboard', kind: '3d', ratio: 2.39,
   setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#03050a'); scene.fog = new THREE.FogExp2('#080c14', 0.024);
-    const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'neutral', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false, ...((globalThis.__dbg || {}).stageOpts || {}) }); scene.add(stage.group);
+    const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'neutral', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false }); scene.add(stage.group);
     if (stage.setLook) stage.setLook('neutral', { intensity: 0.7 });
     scene.environment = makeEnv(THREE, renderer, [
       { w: 7, h: 3.5, pos: [-5, 4, 5], color: '#dbe9ff', i: 2.4 }, { w: 2.2, h: 8, pos: [6, 3, -4], color: '#ffd9b0', i: 2.2 },
@@ -197,6 +197,8 @@ export default {
     ]);
     scene.environmentIntensity = 0.3;
     // perf: unlit baked backdrop instead of the PBR cyc; no shadow maps (blob decal below); drop the weak stage fill light
+    // perf: this set-up shows a lot of floor; the library floor shader (~2 CPU-s/frame at 1080p in software GL) is swapped for a plain glossy PBR floor (its mirror/haze extras are barely visible here)
+    stage.floor.material = new THREE.MeshStandardMaterial({ color: '#0a0b12', roughness: 0.3, metalness: 0.45 });
     stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
     stage.cyc.visible = false; scene.add(makeBackdrop(THREE, S, [
       { x: -2.5, y: 3.6, rx: 6, ry: 3.4, color: '110,150,230', a: 0.2 }, { x: 2.5, y: 2.6, rx: 5.5, ry: 3.0, color: '140,170,240', a: 0.12 },
@@ -204,7 +206,7 @@ export default {
     ], { base: ['#04060b', '#090d16'] }));
     const camera = new THREE.PerspectiveCamera(lensFov(35), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
-    const refl = stage.reflect ? stage.reflect(A.root, { strength: 0.8 }) : null; A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(0.82, 0.12, 0.45); stylus.group.rotation.z = -0.9;
     const glowTex = radialTexture(THREE, S);
     const sprite = (col, sx, sy, op = 1) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(...col), transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); m.scale.set(sx, sy, 1); m.renderOrder = 4; return m; };
@@ -236,7 +238,7 @@ export default {
       const p = buildPanel(THREE, t, k); scene.add(p.g); p.g.visible = false;
       const ghost = new THREE.Mesh(new THREE.PlaneGeometry(PW + 0.13, (PW + 0.13) * 380 / 640), new THREE.MeshBasicMaterial({ map: brk, transparent: true, opacity: 0, alphaTest: 0.25, depthWrite: true, blending: THREE.AdditiveBlending, color: new THREE.Color(1.6, 1.1, 0.4), fog: false }));
       ghost.position.set(CELLS[k][0], CELLS[k][1], CELLS[k][2] - 0.02); ghost.renderOrder = 3; scene.add(ghost);
-      const halo = sprite([0.55, 0.72, 1.0], 2.1, 1.35, 0); halo.position.set(CELLS[k][0], CELLS[k][1], CELLS[k][2] - 0.25); scene.add(halo);
+      const halo = sprite([0.55, 0.72, 1.0], 1.7, 1.1, 0); halo.position.set(CELLS[k][0], CELLS[k][1], CELLS[k][2] - 0.25); scene.add(halo);
       return { ...p, ghost, halo, cell: CELLS[k] };
     });
     // whoosh speed-lines (camera-facing billboard, radial streaks)
@@ -264,7 +266,7 @@ export default {
     const ringsG = makeRings(THREE, rings); scene.add(ringsG);
 
     const tmp = { v: new THREE.Vector3(), v2: new THREE.Vector3(), v3: new THREE.Vector3(), q: new THREE.Quaternion() };
-    return { scene, camera, stage, A, refl, THREE, stylus, tipHalo, panels, bulbs, whoosh, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, poolGrid, poolAm, blob, tmp, KEYP, RIMP };
+    return { scene, camera, stage, A, THREE, stylus, tipHalo, panels, bulbs, whoosh, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, poolGrid, poolAm, blob, tmp, KEYP, RIMP };
   },
 
   update(st, T, S) {
@@ -300,7 +302,7 @@ export default {
       p.ghost.material.opacity = a < 0 ? 0.55 * gIn : (0.5 * Math.exp(-a / 0.1) + 1.4 * Math.exp(-a / 0.035));
       p.ghost.visible = p.ghost.material.opacity > 0.01;
       p.g.visible = pr >= 0;
-      if (pr < 0) { p.halo.material.opacity = 0; return; }
+      if (pr < 0) { p.halo.material.opacity = 0; p.halo.visible = false; return; }
       const pc = clamp(pr), ee = Math.pow(pc, 1.8), v = 1 - ee;
       const mx = (HAND[0] + c[0]) / 2, my = Math.max(HAND[1], c[1]) + 0.55, mz = 1.2;
       let x = v * v * HAND[0] + 2 * v * ee * mx + ee * ee * c[0], y = v * v * HAND[1] + 2 * v * ee * my + ee * ee * c[1], z = v * v * HAND[2] + 2 * v * ee * mz + ee * ee * c[2];
@@ -317,7 +319,7 @@ export default {
       p.layers.forEach((m, i) => { m.position.z = LAYER_Z[i] * 1.2 * ep + 0.0016 * i; m.material.color.setScalar(0.8 * lerp(1, LAYER_SHADE[i], smooth(pp)) + 0.55 * pPop * (0.4 + 0.2 * i) + 0.7 * bump); });
       p.frameMat.emissiveIntensity = 1.5 * bump + 1.3 * pPop + (pp > 0 ? 0.05 : 0);
       p.lip.position.z = 0.4 * Dp + 0.002; p.lipMat.color.setRGB(2.2, 1.35, 0.4).multiplyScalar(0.55 + 0.9 * bump + 0.6 * pPop + 0.25 * ep);
-      p.halo.visible = true; p.halo.material.opacity = clamp((a >= 0 ? 0.06 : 0) + 0.45 * bump + 0.35 * pPop + 0.05 * ep, 0, 1);
+      p.halo.material.opacity = clamp(0.45 * bump + 0.35 * pPop, 0, 1); p.halo.visible = p.halo.material.opacity > 0.02;
       flash += bump * 0.5 + pPop * 0.6;
     });
 
@@ -339,8 +341,6 @@ export default {
     for (const d of [st.dustA, st.dustB]) { d.material.uniforms.uTime.value = t; d.material.uniforms.uPx.value = px; }
     st.beamKey.material.uniforms.uTime.value = t; st.beamRim.material.uniforms.uTime.value = t; st.ringsG.userData.update(t, camera);
 
-    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
-    { const D = globalThis.__dbg || {}; if (st.refl) st.refl.setVisible(!D.noRefl); for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } }
     const fp = tmp.v.set(lerp(AM[0], GRID[0], 0.45), 1.15, lerp(AM[2], GRID[2], 0.85));
     return { dof: { focus: camera.position.distanceTo(fp), strength: 0.6, maxPx: 13, bokeh: 1.4 }, bloom: { strength: 0.34 + 0.2 * imp + 0.3 * popK + 0.06 * Math.min(1, flash), radius: 0.5, threshold: 1.15 } };
   },

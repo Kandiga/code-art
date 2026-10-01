@@ -242,6 +242,11 @@ function drawAnamorphic(ctx, t) {
   });
   ctx.restore();
 }
+// the horn's shock ring: a thin ring of light rolls out from the sun across the whole sky (outside the disc)
+function drawHornRing(ctx, t) {
+  const dt = t - HORN_T; if (dt < 0 || dt > 1.0) return; const k = outCubic(dt / 1.0), r = 150 + 700 * k;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,236,176,${0.55 * (1 - k) * (1 - k)})`; ctx.lineWidth = 5 * (1 - k) + 1; ctx.beginPath(); ctx.arc(SUN.cx, SUN.cy, r, 0, TAU); ctx.stroke(); ctx.restore();
+}
 function drawGhosts(ctx, t) {
   const dx = 960 - SUN.cx, dy = 560 - SUN.cy, lt = t - T0;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -536,6 +541,7 @@ export default {
     const am = drawAmrita(ctx, T, S);
     drawFinder(ctx, T, S, am);
     drawGhosts(ctx, t);
+    drawHornRing(ctx, t);
     ctx.restore();
     // the sun is the very last thing painted: pristine, exactly (1100,400) r=130
     drawSunDisc(ctx, B, t, true);

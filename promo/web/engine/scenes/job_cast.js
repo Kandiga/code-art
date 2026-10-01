@@ -144,7 +144,7 @@ const HDR = [[2.9, 1.9, 0.55], [2.9, 0.75, 0.45], [1.5, 1.1, 3.2], [0.45, 2.7, 2
 const POSE = [{ yaw: 0.28, roll: -0.14 }, { yaw: -0.10, roll: 0.12 }, { yaw: 0.0, roll: -0.05 }, { yaw: 0.14, roll: 0.20 }, { yaw: -0.24, roll: -0.20 }];
 const AM = [3.75, 1.02, 1.05];                    // Amrita's centre
 const FALL = 0.5;                                 // drop-hop duration (s): lands exactly on the foot_tap
-const BEAM_APEX_Y = 7.25;
+const BEAM_APEX_Y = 6.7;
 
 export default {
   id: 'job_cast', kind: '3d', ratio: 2.39,
@@ -155,7 +155,7 @@ export default {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#04050a'); scene.fog = new THREE.FogExp2('#0a0b16', 0.012);
     const stage = createStage(THREE, { THREE, S, renderer }, { look: 'neutral', table: false, cases: false, cables: false, grips: false, tubes: false, marks: false });
     scene.add(stage.group);
-    stageSetLook(stage, { ...LOOKS.neutral, washL: ['#2c4688', 0.46], washR: ['#6a3c92', 0.42], pool: ['#e49a4c', 0.5], haze: ['#7a8cc4', 0.5] }, { intensity: 1 });
+    stageSetLook(stage, { ...LOOKS.neutral, washL: ['#2c4688', 0.46], washR: ['#6a3c92', 0.42], pool: ['#e49a4c', 0.5], haze: ['#7a8cc4', 0.5] }, { intensity: 1.45 });
     scene.environment = makeEnv(THREE, renderer, [
       { w: 7, h: 3.5, pos: [-5, 4, 6], color: '#ffe2b8', i: 4.5 }, { w: 2.4, h: 8, pos: [7, 3, -4], color: '#9fd4ff', i: 3.2 },
       { w: 9, h: 2, pos: [0, 8, 1], color: '#ffffff', i: 1.4 }, { w: 6, h: 2, pos: [3, 0.5, 6], color: '#ffb870', i: 0.9 },
@@ -179,10 +179,10 @@ export default {
     // ---- marks, beams, haze, rings, sparks
     const marks = MARKS.map(([x, z], k) => { const m = makeMarkDecal(THREE, COLS[k], k); m.position.set(x, 0.012, z); scene.add(m); return m; });
     const beams = MARKS.map(([x, z], k) => {
-      const b = createBeam(THREE, { from: [x + (k - 2) * 0.55, BEAM_APEX_Y, z - 1.7], to: [x, 0, z], color: BEAMC[k], angle: 0.092, intensity: 0, noise: 1, steps: 9, soft: 0.5, falloff: 0.9, streak: 0.35, gain: 0.34, poolIntensity: 0.0, glow: false, pool: false, seed: k });
+      const b = createBeam(THREE, { from: [x + (k - 2) * 0.55, BEAM_APEX_Y, z - 1.7], to: [x, 0, z], color: BEAMC[k], angle: 0.092, intensity: 0, noise: 1, steps: 9, soft: 0.5, falloff: 0.9, streak: 0.55, gain: 0.34, glow: false, pool: false, seed: k });
       b.material.depthWrite = true; scene.add(b.object); return b;
     });
-    const haze = createHaze(THREE, { count: 520, seed: 5, bounds: { min: [-9, 0.2, -7], max: [9, 6.5, 6] }, size: 0.022, intensity: 1, ambient: 0.05, boost: 2.6, color: '#9db4e8', drift: [0.01, 0.02, 0.005], turbulence: 0.25 });
+    const haze = createHaze(THREE, { count: 520, seed: 5, bounds: { min: [-9, 0.2, -7], max: [9, 6.5, 6] }, size: 0.03, intensity: 1, ambient: 0.05, boost: 3.0, color: '#9db4e8', drift: [0.01, 0.02, 0.005], turbulence: 0.25 });
     haze.attachBeams(beams); scene.add(haze.object);
     const rings = [], bursts = [];
     MARKS.forEach(([x, z], k) => {
@@ -224,9 +224,13 @@ export default {
   update(st, T, S) {
     const { THREE, camera, A, cast, marks, beams, haze, sparks, ringsG, stage, tmp, taps, ready, amRim } = st;
     const t = T.t, lt = clamp(T.lt, 0, 2), imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
-    beams.forEach((b) => { b.object.visible = !D.noBeams; }); haze.object.visible = !D.noHaze; st.bokeh.visible = !D.noBokeh; st.sparks.visible = !D.noSparks; st.ringsG.visible = !D.noRings;
-    marks.forEach((m) => { m.visible = !D.noMarks; }); A.root.visible = !D.noAmrita; cast.forEach((c) => { if (D.noCast) c.root.visible = false; }); stage.group.visible = !D.noStage; st.amRim.visible = !D.noAmRim;
-    stage.cyc.visible = !D.noCyc; stage.truss.visible = !D.noTruss; stage.group.traverse((o) => { if (o.name && o.name.startsWith('mist')) o.visible = !D.noMist; }); stage.floor.visible = !D.noFloor;
+    if (globalThis.__dbg) {                                                   // developer toggles (tools only; never set in the render)
+      beams.forEach((b) => { b.object.visible = !D.noBeams; }); haze.object.visible = !D.noHaze; st.bokeh.visible = !D.noBokeh; st.sparks.visible = !D.noSparks; st.ringsG.visible = !D.noRings;
+      marks.forEach((m) => { m.visible = !D.noMarks; }); A.root.visible = !D.noAmrita; cast.forEach((c) => { if (D.noCast) c.root.visible = false; }); stage.group.visible = !D.noStage; st.amRim.visible = !D.noAmRim;
+      stage.cyc.visible = !D.noCyc; stage.truss.visible = !D.noTruss; stage.group.traverse((o) => { if (o.name && o.name.startsWith('mist')) o.visible = !D.noMist; }); stage.floor.visible = !D.noFloor;
+      { const m = stage.floorMat, key = (D.flClear ? 1 : 0) + (D.flBump ? 2 : 0) + (D.flRough ? 4 : 0);
+        if (st._flKey !== key) { st._flKey = key; if (D.flClear) m.clearcoat = 0; if (D.flBump) m.bumpMap = null; if (D.flRough) m.roughnessMap = null; if (key) m.needsUpdate = true; } }
+    }
     stage.update(t);
 
     // landing envelope helpers
@@ -238,7 +242,7 @@ export default {
     // ---------------- icons ----------------
     cast.forEach((c, k) => {
       const tk = taps[k], t0 = tk - FALL, [mx, mz] = MARKS[k];
-      const to = [mx, 0, mz], from = [mx - 1.9 + 0.3 * k, k === 0 ? 3.5 : 4.7, mz - 0.7 + 0.2 * k];
+      const to = [mx, 0, mz], from = [mx - 1.0 + 0.12 * k, k === 0 ? 3.4 : 4.7, mz - 0.55 + 0.15 * k];
       const P = POSE[k], yawBase = 0.18 * (k - 2) * -0.5 - 0.12;
       c.root.visible = t >= t0 - 0.02;
       c.pose({ yaw: yawBase });
@@ -327,6 +331,6 @@ export default {
 
     // DOF: the five icons (~10 m); Amrita is at the same depth band
     const fd = tmp.v.set(0.9, 0.9, -0.2).distanceTo(camera.position);
-    return { dof: { focus: fd, strength: 0.45, maxPx: 8, bokeh: 1.1 }, bloom: { strength: 0.42 + 0.35 * imp + (rdy >= 0 ? 0.3 * Math.exp(-rdy / 0.3) : 0), radius: 0.6, threshold: 0.85 }, exposure: 1 };
+    return { dof: { focus: fd, strength: 0.45, maxPx: 8, bokeh: 1.1 }, bloom: { strength: 0.42 + 0.3 * imp + (rdy >= 0 ? 0.14 * Math.exp(-rdy / 0.25) : 0), radius: 0.6, threshold: 0.85 }, exposure: 1 };
   },
 };

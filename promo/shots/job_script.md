@@ -1,6 +1,6 @@
 # job_script — SCRIPT (26.0 – 28.0) · "She writes."
 
-Look: warm amber / cream key, cool steel-blue rim, string-light bokeh, ghost light, haze + two volumetric cones. Lens ≈ 45 mm
+Look: warm amber / cream key, cool steel-blue rim, string-light bokeh, ghost light, haze + two volumetric cones. Lens 45 mm
 (vfov 19°), camera very low (y 0.2–0.4 m), slow drift in (z 6.7 → 5.9) + 3.5 % FOV punch on the snap. Amrita on the right
 third, face turned toward the words (lead room), glowing stylus floats at her left, slate at her right. Label zone
 (bottom-left) is floor + haze only. DOF: focus = Amrita, racks to the page stack 27.0–27.1, back to Amrita + booklet 27.5–27.85.
@@ -18,6 +18,8 @@ words bigger/hotter, small words smaller). Two lines on a gentle concave arc (R 
 | 27.500 | 1.500 | 3.5 % FOV punch, bloom kick | **snap**: boards slam, booklet squashes, flash + two rings + 90 sparks; spine, 3 brass brads (30 ms apart) and 5 colour tabs (45 ms apart) spring on; Amrita bounces and smiles | page_snap |
 | 27.52 → 27.9 | 1.52–1.9 | focus on booklet + Amrita | booklet floats beside her on a spring (1.5 Hz, ζ 0.5): arc lift 0.16 m, yaw −0.46 to show spine + tabs, grows to 1.35×; sparkle trail | sparkle_up (27.625, extra) |
 | 27.9 → 28.0 | 1.9–2.0 | | idle hover + glints, poster frame: Amrita (happy) · SCRIPT booklet · stylus · slate | |
+
+Perf notes: the 16 half-pages + flaps + cover are unlit MeshBasicMaterial (tinted per frame: warm glow, fold shading) because overlapping PBR pages cost ~4 CPU-s/frame; baked backdrop instead of the PBR cyc; light cones are front-face-only; no shadow maps (Amrita's contact shadow is a decal); stage.reflect() mirrors Amrita in the glossy floor.
 
 Notes: titles are engine-drawn ("SCRIPT", zone `label`, x 110–870 / y 760–950): nothing but floor/haze sits there. All motion is a pure
 function of `T.t` (4 sub-frames = motion blur). Kit (beams, dust, sparks, rings, glyph extrusion, env) is exported from the scene file

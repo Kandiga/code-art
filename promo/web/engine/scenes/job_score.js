@@ -94,7 +94,11 @@ export default {
     const orch = createOrchestraOfLight(THREE, { seed: 2, count: 30, radius: 2.8, rowGap: 1.25, arc: 3.5, size: 1.05, sparks: 220, pointSize: 0.046 });
     scene.add(orch.group);
     // mirrored copy under the glossy floor (same geometry/material, flipped in Y) -> light reflections of the whole orchestra
-    const mir = new THREE.Points(orch.points.geometry, orch.points.material); mir.scale.y = -1; mir.frustumCulled = false; mir.renderOrder = -11; mir.onBeforeRender = orch.points.onBeforeRender; mir.name = 'orch-mirror';
+    const om = orch.points.material, mirMat = new THREE.ShaderMaterial({
+      uniforms: om.uniforms, vertexShader: om.vertexShader, fragmentShader: om.fragmentShader.replace('gl_FragColor = vec4(vCol, a);', 'gl_FragColor = vec4(vCol * 3.2, a);'),   // shares every uniform with the orchestra; brighter, because the glossy floor only lets ~15 % through
+      transparent: true, depthWrite: true, depthTest: true, blending: THREE.AdditiveBlending, toneMapped: false,
+    });
+    const mir = new THREE.Points(orch.points.geometry, mirMat); mir.scale.y = -1; mir.frustumCulled = false; mir.renderOrder = -11; mir.onBeforeRender = orch.points.onBeforeRender; mir.name = 'orch-mirror';
     scene.add(mir);
 
     // ---- beams from above, haze, shock decal, rings, sparks, ribbons, rays, flash
@@ -120,8 +124,8 @@ export default {
       { t: tHit, pos: [0, AM_Y, 0.2], r0: 0.35, r1: 6.8, dur: 0.55, color: [1.6, 1.1, 0.5] },
       { t: tHit + 0.04, pos: [0, AM_Y, 0.2], r0: 0.2, r1: 4.2, dur: 0.4, color: [1.1, 1.1, 1.0] },
       { t: tHit + 0.12, pos: [0, AM_Y, 0.2], r0: 0.2, r1: 8.5, dur: 0.7, color: [0.7, 1.0, 2.0] },
-      { t: tHit + BEAT, pos: [0, AM_Y, 0.2], r0: 0.4, r1: 3.6, dur: 0.45, color: [1.1, 0.8, 0.4] },
-      { t: tHit + 2 * BEAT - 0.02, pos: [0, AM_Y, 0.2], r0: 0.4, r1: 3.0, dur: 0.4, color: [0.6, 0.7, 1.1] },
+      { t: tHit + BEAT, pos: [0, AM_Y, 0.2], r0: 0.85, r1: 4.2, dur: 0.45, color: [0.8, 0.58, 0.28] },
+      { t: tHit + 2 * BEAT - 0.02, pos: [0, AM_Y, 0.2], r0: 0.85, r1: 3.6, dur: 0.4, color: [0.45, 0.55, 0.9] },
     ];
     const ringsG = makeRings(THREE, rings); scene.add(ringsG);
     const TIP = [1.25, 1.2, 0.85];                      // approx. baton tip at the ictus (refined by propAnchor in update)
@@ -164,9 +168,13 @@ export default {
     const t = T.t, lt = clamp(T.lt, 0, 2), imp = Math.min(1, T.impact);
     const age = t - tHit, a0 = Math.max(age, 0);
     stage.update(t);
-    st.orch.group.visible = !D.noOrch; st.mir.visible = !D.noOrch && !D.noMirror; haze.object.visible = !D.noHaze; sparks.visible = !D.noSparks; ringsG.visible = !D.noRings; rib.forEach((r) => { r.object.visible = !D.noRibbons; });
-    stage.group.visible = !D.noStage; stage.cyc.visible = !D.noCyc; stage.truss.visible = !D.noTruss; stage.group.traverse((o) => { if (o.name && o.name.startsWith('mist')) o.visible = !D.noMist; });
-    shock.visible = !D.noShock; A.root.visible = !D.noAmrita; beams.forEach((b) => { b.object.visible = !D.noBeams; }); flash.visible = !D.noFlash; halo.visible = !D.noHalo; st.podium.visible = !D.noPodium;
+    if (globalThis.__dbg) {                                                   // developer toggles (tools only; never set in the render)
+      st.orch.group.visible = !D.noOrch; st.mir.visible = !D.noOrch && !D.noMirror; haze.object.visible = !D.noHaze; sparks.visible = !D.noSparks; ringsG.visible = !D.noRings; rib.forEach((r) => { r.object.visible = !D.noRibbons; });
+      stage.group.visible = !D.noStage; stage.cyc.visible = !D.noCyc; stage.truss.visible = !D.noTruss; stage.group.traverse((o) => { if (o.name && o.name.startsWith('mist')) o.visible = !D.noMist; });
+      shock.visible = !D.noShock; A.root.visible = !D.noAmrita; beams.forEach((b) => { b.object.visible = !D.noBeams; }); flash.visible = !D.noFlash; halo.visible = !D.noHalo; st.podium.visible = !D.noPodium; stage.floor.visible = !D.noFloor;
+      { const m = stage.floorMat, key = (D.flClear ? 1 : 0) + (D.flBump ? 2 : 0) + (D.flRough ? 4 : 0);
+        if (st._flKey !== key) { st._flKey = key; if (D.flClear) m.clearcoat = 0; if (D.flBump) m.bumpMap = null; if (D.flRough) m.roughnessMap = null; if (key) m.needsUpdate = true; } }
+    }
 
     // ---- the music: energy envelope (tuning swell -> HIT -> sustained with a pulse on every beat)
     const asm = clamp((t - tAsm0) / (tAsm1 - tAsm0));
@@ -176,7 +184,7 @@ export default {
     const hitEnv = age >= 0 ? Math.exp(-age / 0.22) : 0;                     // body of the hit
     const flashEnv = age >= -0.01 ? Math.exp(-a0 / 0.07) * smooth((age + 0.01) / 0.012) : 0; // the white-hot instant
     const energy = age < 0 ? 0.08 + 0.3 * smooth(asm) + 0.12 * Math.max(0, Math.sin(asm * 22)) * asm : 0.7 + 0.25 * beatEnv + 0.9 * hitEnv;
-    orch.update(T, { assemble: [tAsm0, tAsm1], hits: [tHit], intensity: (D.orchK ?? 1) * (age < 0 ? 0.6 + 0.3 * smooth(asm) : (0.95 + 0.2 * beatEnv) * lerp(0.36, 1.0, smooth(a0 / 0.55))), play: age < 0 ? 0.22 + 0.3 * asm : 0.9 + 0.1 * smooth(age / 0.2) });
+    orch.update(T, { assemble: [tAsm0, tAsm1], hits: [tHit], intensity: (D.orchK ?? 1) * (age < 0 ? 0.85 + 0.15 * smooth(asm) : (0.95 + 0.2 * beatEnv) * lerp(0.36, 1.0, smooth(a0 / 0.55))), play: age < 0 ? 0.22 + 0.3 * asm : 0.9 + 0.1 * smooth(age / 0.2) });
     haze.update(t); sparks.userData.update(t); ringsG.userData.update(t, camera); shock.userData.set(t);
     rib.forEach((r, i) => { r.update(t); r.uniforms.uInt.value = (asm < 0.35 ? 0 : 0.04 * smooth((asm - 0.35) / 0.65)) + (age >= 0 ? 0.3 * smooth(age / 0.05) * (0.5 + 1.0 * hitEnv + 0.5 * beatEnv) : 0); });
     rib[0].uniforms.uWave.value = 0.14 + 0.25 * hitEnv; rib[1].uniforms.uWave.value = 0.18 + 0.3 * hitEnv; rib[2].uniforms.uWave.value = 0.12 + 0.2 * beatEnv;
@@ -186,7 +194,7 @@ export default {
       const o = BEAMS[i];
       let k;
       if (o.on === 0) k = 0.55 + 0.25 * asm + (age >= 0 ? 0.4 * hitEnv + 0.1 * beatEnv : 0);
-      else if (o.on < 0.9) k = 0.18 * smooth(seg(t, tAsm0 + 0.2, tAsm0 + 1.0)) + 0.14 * asm + (age >= 0 ? 0.4 + 0.4 * hitEnv + 0.1 * beatEnv : 0);
+      else if (o.on < 0.9) k = 0.3 * smooth(seg(t, tAsm0 + 0.15, tAsm0 + 0.9)) + 0.2 * asm + (age >= 0 ? 0.4 + 0.4 * hitEnv + 0.1 * beatEnv : 0);
       else k = age >= 0 ? (0.5 + 0.5 * hitEnv + 0.12 * beatEnv) * smooth(age / 0.035) : 0.0;
       setBeamK(b, k * o.k); b.update(t);
     });
@@ -200,7 +208,7 @@ export default {
     A.pose({ yaw: yawBase + hv.yawD, roll: hv.roll - 0.05 * (age >= 0 ? Math.sin(age * TAU / 2) * smooth(age / 0.5) : 0), bob: hv.bob + (age >= 0 ? 0.06 * Math.exp(-age / 0.2) : -0.02 * smooth(seg(t, tHit - 0.4, tHit - 0.04))), squash });
     // baton
     const pb = batonPhase(t, tAsm0, tHit);
-    A.setProp('baton', { t: pb * BEAT, ictus: 0, beat: BEAT, amp: 1.9, scale: 2.4, side: 1, trail: 1.0, float: 0.0, rotY: -0.25 });
+    A.setProp('baton', { t: pb * BEAT, ictus: 0, beat: BEAT, amp: 1.9, scale: 3.0, side: 1, trail: 1.0, float: 0.0, rotY: -0.25 });
     A.glow(0.1 + 0.3 * hitEnv + 0.1 * beatEnv);
     A.propAnchor(tmp.v);                                                   // baton tip (world)
     // eyes: determined while she builds it, WIDE on the downbeat, then radiant joy; they follow the baton / the beat
@@ -216,11 +224,11 @@ export default {
 
     // ---- camera: orbit (40 mm) from the right side of the podium to the front, crane-down; pull-back during the hang, SLAM push on the hit
     const u = smooth(lt / 2);
-    const th = lerp(0.62, -0.1, u), rho0 = lerp(10.4, 9.0, u);
+    const th = lerp(0.62, -0.1, u), rho0 = lerp(9.6, 8.2, u);
     const rx = Math.cos(th), rz = -Math.sin(th);                           // camera-right on the floor plane
     const pull = 0.3 * smooth(seg(t, tHit - 0.55, tHit - 0.02)) * (age < 0 ? 1 : 0);
     const push = age >= 0 ? 1.15 * (1 - Math.exp(-a0 / 0.07)) * (0.55 + 0.45 * Math.exp(-a0 / 0.7)) : 0;
-    const rho = rho0 + pull - push, hgt = lerp(4.5, 3.1, u) - 0.1 * push;
+    const rho = rho0 + pull - push, hgt = lerp(4.3, 3.0, u) - 0.1 * push;
     const shk = imp * 0.06;
     camera.position.set(Math.sin(th) * rho + shk * noise1(t * 53, 1), hgt + shk * 0.7 * noise1(t * 47, 2), -0.6 + Math.cos(th) * rho + shk * noise1(t * 59, 3));
     camera.fov = lensFov(40) * (1 - 0.05 * hitEnv * smooth(age / 0.03) - 0.02 * smooth(seg(t, tHit - 0.5, tHit)) * (age < 0 ? 1 : 0));

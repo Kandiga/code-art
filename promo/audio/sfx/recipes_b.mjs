@@ -21,9 +21,18 @@ import { kit } from './recipes_a.mjs';
 const { SR, Buf, clamp } = dsp;
 const TAU = Math.PI * 2;
 const {
-  S, Z, fromFn, glideExp, sweep, sine, nz, lp, hp, bp, edge, addTo, mulA, scaleA, env, perc, thump, modal, poisson, wide,
-  put, verb, fin, dense, hzNearPc, chordAt, sum, tame, bellStrike, PCS, panSweep, widthEnv,
+  S, Z, fromFn, glideExp, sweep, sine, nz, lp, hp, bp, edge, addTo, mulA, scaleA, env, perc, poisson, wide,
+  put, verb, fin, hzNearPc, chordAt, sum, PCS, panSweep, widthEnv,
 } = kit;
+/** raised-cosine fade over the last `ms` ms of a mono array (in place): a source that is cut short never leaves a step */
+const tailFade = (x, ms = 3) => {
+  const m = Math.min(x.length, Math.round((ms * SR) / 1000));
+  for (let i = 0; i < m; i++) x[x.length - 1 - i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / m);
+  return x;
+};
+const thump = (...a) => tailFade(kit.thump(...a));
+const modal = (...a) => tailFade(kit.modal(...a));
+const bellStrike = (...a) => tailFade(kit.bellStrike(...a));
 
 // ---------------------------------------------------------------------------------------------------------------
 // helpers
@@ -61,8 +70,6 @@ const burst = (seed, len, f, q, tau, a = 0.0004, kind = 'hp') => {
 };
 /** stereo field from a mono: pan sweep + decorrelation helper (L/R arrays) */
 const lr = (L, R) => Buf.from(L, R);
-/** 1-pole smoothing of a control array (seconds) */
-const smooth = (x, tauS) => dsp.slew(x, tauS, tauS);
 /** keep everything below `hz` identical in L and R (sub / bass stays mono-safe; the dispatcher's pan acts on a centred low end) */
 const bassMono = (buf, hz = 140) => dsp.widen(buf, 1, { bassMonoHz: hz });
 /** gentle sine-fold-free saturation for mono arrays */
@@ -96,15 +103,16 @@ function typewriter_key(ev, c) {
   const n = S(0.5), m = Z(n), t0 = 0.007;
   addTo(m, mulA(bp(nz(S(0.03), c.seed('lev'), 0.8), 2600, 1.2), perc(S(0.03), 0.0025, 0.0003)), 0, 0.3);
   addTo(m, burst(c.seed('cl'), 0.02, 2200, 1, 0.0011, 0.0001), t0, 0.9);
-  addTo(m, burst(c.seed('sl'), 0.05, 1500 * pm, 1.1, 0.007, 0.0004, 'bp'), t0, 0.6);
-  addTo(m, modal(S(0.15), [[205 * pm, 0.8, 0.022], [415 * pm, 0.45, 0.014], [830 * pm, 0.28, 0.009], [1710 * pm, 0.15, 0.006]]), t0, 0.7);
-  addTo(m, modal(S(0.1), [[2650 * pm, 0.35, 0.01], [3980 * pm, 0.2, 0.006], [5700 * pm, 0.1, 0.004]]), t0, 0.35);
-  addTo(m, thump(S(0.1), 130 * pm, 85 * pm, 0.012, 0.03), t0, 0.35);
+  addTo(m, burst(c.seed('sl'), 0.05, 1500 * pm, 1.1, 0.007, 0.0004, 'bp'), t0, 0.95);
+  addTo(m, modal(S(0.15), [[205 * pm, 0.8, 0.022], [415 * pm, 0.55, 0.014], [830 * pm, 0.4, 0.009], [1710 * pm, 0.25, 0.006]]), t0, 0.45);
+  addTo(m, modal(S(0.1), [[2650 * pm, 0.35, 0.01], [3980 * pm, 0.25, 0.006], [5700 * pm, 0.12, 0.004]]), t0, 0.5);
+  addTo(m, thump(S(0.1), 130 * pm, 85 * pm, 0.012, 0.03), t0, 0.1);
   addTo(m, burst(c.seed('es'), 0.03, 3000, 1, 0.0014, 0.0001), t0 + 0.028, 0.26); // type bar rebounds / escapement
   addTo(m, modal(S(0.06), [[880 * pm, 0.3, 0.008]]), t0 + 0.03, 0.2);
   // the letter glows where it is typed: C-major pentatonic ladder E5 G5 A5 C6 D6 E6 G6 A6, quiet glass pip
-  const pent = ladderPcs([0, 2, 4, 7, 9], 76, 8);
+  const pent = ladderPcs([0, 2, 4, 7, 9].map((x) => (rootPc(ev.t) + x) % 12), 76, 8); // pentatonic of the bar root (bar of C: E5 G5 A5 C6 D6 E6 G6 A6)
   addTo(m, edge(bellStrike(S(0.45), pent[i % 8], { tau: 0.2, kind: 'glass', amp: 1 }), 0.0004, 0.05), t0 + 0.002, 0.13);
+  m.set(hp(m, 110));
   const out = verb(Buf.fromMono(m, (r() - 0.5) * 0.4), 'room', 0.13, 0.1);
   fin(out, { peak: -11, fadeOut: 0.12 }).scale(vel);
   return { buf: out, send: -24 };
@@ -163,7 +171,7 @@ function page_snap(ev, c) {
 function panel_snap(ev, c) {
   const { i } = runInfo(c, 0.2);
   const r = c.rng('pn');
-  const f = ladderPcs([7, 11, 2], 67, 6)[Math.min(i, 5)]; // G4 B4 D5 G5 B5 D6
+  const f = chordLadder(ev.t, 67, 6)[Math.min(i, 5)]; // chord tones of the bar (bar of G: G4 B4 D5 G5 B5 D6)
   const vel = 0.8 + 0.2 * (Math.min(i, 5) / 5);
   const n = S(0.4), m = Z(n);
   addTo(m, burst(c.seed('c'), 0.02, 3000, 1, 0.0007, 0.00008), 0, 0.6);
@@ -187,9 +195,9 @@ function panel_pop_3d(ev, c) {
   add2(rise, 0, 0.5);
   add2(hp(rise, 2500), 0, 0.25, 0.3);
   const N = S(dur - pre);
-  add2(thump(N, 190, 55, 0.03, 0.14), pre, 0.9);
+  add2(thump(N, 190, 70, 0.03, 0.12), pre, 0.55);
   add2(thump(N, 880, 300, 0.02, 0.05), pre, 0.45);
-  add2(thump(N, 49, 49, 1, 0.3, { a: 0.012 }), pre, 0.45); // G1 sub (bar of G)
+  add2(thump(N, 98, 98, 1, 0.25, { a: 0.012 }), pre, 0.3); // G2 body (bar of G)
   add2(burst(c.seed('ck'), 0.02, 2000, 1, 0.002, 0.0002), pre, 0.5);
   add2(modal(S(0.4), [[392, 0.5, 0.12], [588, 0.3, 0.09], [784, 0.25, 0.07]]), pre, 0.22);
   for (let k = 0; k < 6; k++) { // six extruding panels
@@ -304,7 +312,7 @@ function brush_light(ev, c) {
     addTo(glow, mulA(x, mulA(glowEnv, dsp.lfo('sine', 5 + k, n, { min: 0.6, max: 1, phase: r() }))), 0, 0.5 / Math.pow(1 + k, 0.4));
   });
   const m = mixTo(n, [[sw, 0.55], [bristle, 0.14], [glow, 0.22]]);
-  const ladder = ladderPcs([5, 9, 0], 84, 7);
+  const ladder = chordLadder(ev.t, 84, 7); // bar of F: F6 A6 C7 ...
   ladder.forEach((f, k) => addTo(m, edge(bellStrike(S(0.5), f, { tau: 0.18, kind: 'celesta', amp: 1 }), 0.0004, 0.05), dur * 0.35 + k * 0.07 + r() * 0.01, 0.06 + 0.01 * k));
   const pan = fromFn(n, (t) => -0.7 + 1.4 * ss(0, dur, t));
   const b = panSweep(m, pan);
@@ -316,9 +324,9 @@ function brush_light(ev, c) {
  * key = heaviest and lowest (F), fill = softer (A), rim = bright and crisp (C): together the three ring out an F major triad.
  */
 const LIGHTS = {
-  key: { peak: -6, thump: [62, 46, 0.05, 0.16], thumpG: 1.0, body: [[150, 0.7, 0.07], [330, 0.5, 0.05], [780, 0.35, 0.03], [1650, 0.25, 0.015]], steel: 1.0, ring: 349.23, ringTau: 1.4, buzz: 87.31, buzzTau: 0.5, buzzG: 0.12, foomLp: 500, chatter: 3, gap: 0.03 },
-  fill: { peak: -8, thump: [95, 72, 0.04, 0.1], thumpG: 0.8, body: [[240, 0.6, 0.05], [560, 0.5, 0.035], [1250, 0.35, 0.02], [2600, 0.2, 0.01]], steel: 0.85, ring: 440, ringTau: 1.2, buzz: 110, buzzTau: 0.42, buzzG: 0.1, foomLp: 700, chatter: 2, gap: 0.024 },
-  rim: { peak: -8.5, thump: [140, 105, 0.03, 0.07], thumpG: 0.55, body: [[420, 0.6, 0.04], [980, 0.5, 0.03], [2100, 0.4, 0.016], [4300, 0.25, 0.008]], steel: 0.75, ring: 1046.5, ringTau: 1.0, buzz: 130.81, buzzTau: 0.34, buzzG: 0.09, foomLp: 1100, chatter: 2, gap: 0.018, zing: true },
+  key: { peak: -6, thump: [70, 52, 0.05, 0.14], thumpG: 0.75, body: [[150, 0.7, 0.07], [330, 0.5, 0.05], [780, 0.35, 0.03], [1650, 0.25, 0.015]], steel: 1.0, ring: 349.23, ringTau: 1.4, buzz: 87.31, buzzTau: 0.5, buzzG: 0.12, foomLp: 500, chatter: 3, gap: 0.03 },
+  fill: { peak: -8, thump: [100, 78, 0.04, 0.09], thumpG: 0.6, body: [[240, 0.6, 0.05], [560, 0.5, 0.035], [1250, 0.35, 0.02], [2600, 0.2, 0.01]], steel: 0.85, ring: 440, ringTau: 1.2, buzz: 110, buzzTau: 0.42, buzzG: 0.1, foomLp: 700, chatter: 2, gap: 0.024 },
+  rim: { peak: -8.5, thump: [150, 115, 0.03, 0.06], thumpG: 0.4, body: [[420, 0.6, 0.04], [980, 0.5, 0.03], [2100, 0.4, 0.016], [4300, 0.25, 0.008]], steel: 0.75, ring: 1046.5, ringTau: 1.0, buzz: 130.81, buzzTau: 0.34, buzzG: 0.09, foomLp: 1100, chatter: 2, gap: 0.018, zing: true },
 };
 function light_clunk(ev, c) {
   const P = LIGHTS[ev.id2] || LIGHTS.key, id = LIGHTS[ev.id2] ? ev.id2 : 'key';
@@ -355,7 +363,8 @@ function foot_tap(ev, c) {
   const VEL = [1.0, 0.72, 0.86, 0.94, 0.78][K];
   const f = ladderPcs([0, 4, 7, 9], 60, 5)[K]; // C4 E4 G4 A4 C5 (bar of C)
   const n = S(0.55), m = Z(n);
-  addTo(m, thump(S(0.2), F0 * 1.45, F0, 0.012, 0.035), 0, 0.6);
+  addTo(m, thump(S(0.2), F0 * 1.45, F0, 0.012, 0.035), 0, 0.4);
+  addTo(m, modal(S(0.1), [[F0 * 6.2, 0.6, 0.009], [F0 * 11.5, 0.35, 0.006]]), 0.0, 0.5); // hard sole / stage tick
   addTo(m, burst(c.seed('pat'), 0.05, 1700, 0.9, 0.007, 0.0005, 'bp'), 0, 0.8);
   addTo(m, modal(S(0.25), [[F0 * 2.05, 0.6, 0.03], [F0 * 3.4, 0.45, 0.02], [F0 * 5.6, 0.25, 0.012], [F0 * 9.1, 0.12, 0.008]]), 0, 0.7);
   addTo(m, modal(S(0.45), [[f, 1, 0.1], [f * 3.95, 0.12, 0.03]]), 0.002, 0.24);
@@ -401,12 +410,12 @@ function orch_tune(ev, c) {
   const rel = fromFn(n, (t) => (t < relT ? 1 : Math.max(0, 0.5 + 0.5 * Math.cos(Math.PI * clamp((t - relT) / 0.035, 0, 1)))));
   const L = Z(n), R = Z(n), B = { L, R, length: n };
   const voice = (kind, hz, ent, { g = 1, pan = 0, cents = 0, vib = 5.5, vd = 8, att = 0.07, brightRange = null } = {}) => {
-    const flat = (8 + 20 * r()) * (r() < 0.75 ? -1 : 1); // players tune in from slightly off pitch
+    const flat = (4 + 16 * r()) * (1 - 0.65 * (ent / dur)) * (r() < 0.6 ? -1 : 1); // players tune in from slightly off pitch (later entrants listen and arrive nearer)
     const vph = r() * TAU, vr = vib * (0.92 + 0.16 * r());
     const fc = fromFn(n, (t) => {
       const d = Math.max(0, t - ent);
       const v = vd * Math.min(1, d / 0.3) * Math.sin(TAU * vr * t + vph);
-      return hz * Math.pow(2, (cents + flat * Math.exp(-d / 0.2) + v) / 1200);
+      return hz * Math.pow(2, (cents + flat * Math.exp(-d / 0.11) + v) / 1200);
     });
     let x;
     if (kind === 'oboe') x = dsp.additive(fc, n, [[1, 0.45], [2, 1], [3, 0.8], [4, 0.5], [5, 0.5], [6, 0.3], [7, 0.2], [8, 0.12]]);
@@ -428,11 +437,11 @@ function orch_tune(ev, c) {
   voice('flute', 880, 0.22, { g: 0.55, pan: 0.28, vd: 6, vib: 5.8 });
   voice('flute', 880, 0.26, { g: 0.45, pan: -0.1, vd: 6, vib: 5.4, cents: 6 });
   // violins I (4) and II (3), violas, cellos, basses
-  [[-12, 0.05, -0.8], [-4, 0.12, -0.62], [5, 0.2, -0.48], [9, 0.3, -0.35]].forEach(([ct, e, p], k) => voice('str', 440, e, { g: 0.55, pan: p, cents: ct, vib: 5.3 + 0.35 * k, vd: 9 }));
-  [[-8, 0.18, -0.25], [4, 0.28, -0.12]].forEach(([ct, e, p], k) => voice('str', 440, e, { g: 0.5, pan: p, cents: ct, vib: 5.6 + 0.4 * k, vd: 9 }));
+  [[-6, 0.05, -0.8], [-2, 0.12, -0.62], [3, 0.2, -0.48], [5, 0.3, -0.35]].forEach(([ct, e, p], k) => voice('str', 440, e, { g: 0.55, pan: p, cents: ct, vib: 5.3 + 0.35 * k, vd: 9 }));
+  [[-4, 0.18, -0.25], [3, 0.28, -0.12]].forEach(([ct, e, p], k) => voice('str', 440, e, { g: 0.5, pan: p, cents: ct, vib: 5.6 + 0.4 * k, vd: 9 }));
   voice('str', 880, 0.34, { g: 0.32, pan: -0.55, cents: 3, vd: 10, brightRange: 1 });
-  [[-6, 0.3, 0.08], [7, 0.4, 0.2]].forEach(([ct, e, p], k) => voice('str', 220, e, { g: 0.6, pan: p, cents: ct, vib: 5 + 0.3 * k, vd: 7 }));
-  [[-5, 0.35, 0.42], [6, 0.48, 0.55]].forEach(([ct, e, p], k) => voice('low', 110, e, { g: 0.75, pan: p, cents: ct, vib: 4.8 + 0.3 * k, vd: 6, brightRange: 1000 }));
+  [[-4, 0.3, 0.08], [4, 0.4, 0.2]].forEach(([ct, e, p], k) => voice('str', 220, e, { g: 0.6, pan: p, cents: ct, vib: 5 + 0.3 * k, vd: 7 }));
+  [[-3, 0.35, 0.42], [4, 0.48, 0.55]].forEach(([ct, e, p], k) => voice('low', 110, e, { g: 0.75, pan: p, cents: ct, vib: 4.8 + 0.3 * k, vd: 6, brightRange: 1000 }));
   voice('low', 220, 0.4, { g: 0.5, pan: 0.35, cents: 2, vd: 6, brightRange: 1200 });
   voice('low', 55, 0.5, { g: 0.75, pan: 0.72, vd: 4, brightRange: 420 });
   voice('low', 110, 0.52, { g: 0.55, pan: 0.65, cents: -4, vd: 4, brightRange: 500 });
@@ -440,7 +449,7 @@ function orch_tune(ev, c) {
   voice('horn', 220, 0.55, { g: 0.7, pan: 0.45, vd: 4, att: 0.1 });
   voice('horn', 220, 0.58, { g: 0.6, pan: 0.55, cents: 5, vd: 4, att: 0.1 });
   voice('tpt', 440, 0.66, { g: 0.45, pan: 0.6, vd: 3, att: 0.08 });
-  voice('tpt', 440, 0.7, { g: 0.4, pan: 0.7, cents: -5, vd: 3, att: 0.08 });
+  voice('tpt', 440, 0.7, { g: 0.4, pan: 0.7, cents: 3, vd: 3, att: 0.08 });
   voice('tuba', 110, 0.62, { g: 0.55, pan: 0.78, vd: 3, att: 0.12 });
   // bow-hair / reed texture only where the players speak (tiny)
   const bn = mulA(bp(nz(n, c.seed('bow'), 0.9), 3000, 1.0), mulA(cres, rel));
@@ -455,17 +464,17 @@ function orch_tune(ev, c) {
  * 37.0 (baton down, orchestra hit) is the big one with a low thwap; the 44.0-45.5 events (neural ribbons) climb in pitch.
  */
 function baton_whoosh(ev, c) {
-  const main = ev.t < 40, { i } = main ? { i: 0 } : runInfo(c, 0.7);
+  const main = c.cues.HITS.some((h) => h.s === 'L' && Math.abs(h.t - ev.t) < 0.02), { i } = main ? { i: 0 } : runInfo(c, 0.7); // the baton-down on the L hit (37.0) vs the ribbon ictus events
   const pre = main ? 0.16 : 0.1, dur = pre + (main ? 1.3 : 1.0), r = c.rng('bw');
   const B = new Buf(dur);
   const ns = S(0.1), pw = pre - 0.1;
   const sc = 1 + 0.07 * i;
-  const stroke = mulA(bp(nz(ns, c.seed('sw'), 0.9), sweep(ns, 8200 * sc, 2800 * sc, 1.1), 1.5), env(ns, [[0, 0], [0.09, 1], [0.098, 0.2], [0.1, 0]], 'smooth'));
-  put(B, scaleA(stroke, 1), Math.max(0, pw), 0.9, -0.3);
-  put(B, hp(mulA(nz(ns, c.seed('sz'), 0.9), fromFn(ns, (t) => Math.pow(t / 0.1, 3))), 6000), Math.max(0, pw), 0.35, 0.3);
+  const stroke = mulA(bp(nz(ns, c.seed('sw'), 0.9), sweep(ns, 8200 * sc, 2800 * sc, 1.1), 1.5), env(ns, [[0, 0], [0.088, 1], [0.097, 0.2], [0.1, 0]], 'smooth'));
+  put(B, scaleA(stroke, 1), Math.max(0, pw), 0.6, -0.3);
+  put(B, hp(mulA(nz(ns, c.seed('sz'), 0.9), fromFn(ns, (t) => Math.pow(t / 0.1, 3))), 6000), Math.max(0, pw), 0.25, 0.3);
   put(B, mulA(hp(nz(S(pre), c.seed('up'), 0.8), 3000), fromFn(S(pre), (t) => (main ? 0.08 : 0.04) * Math.pow(t / pre, 2))), 0, 1, 0); // arm raising
   const tick = sum([modal(S(0.1), [[1900, 1, 0.008], [3400, 0.4, 0.004], [880, 0.5, 0.012]]), burst(c.seed('tk'), 0.02, 3000, 1, 0.0012, 0.0001)]);
-  put(B, tick, pre, 0.55, 0);
+  put(B, tick, pre, 1.1, 0);
   put(B, thump(S(0.3), 140, 80, 0.02, main ? 0.07 : 0.03), pre, main ? 0.5 : 0.2, 0);
   const ribbons = chordLadder(ev.t, main ? 79 : 79 + 2 * i, 6).reverse();
   ribbons.forEach((f, k) => {
@@ -479,10 +488,10 @@ function baton_whoosh(ev, c) {
 function timeline_slide(ev, c) {
   const dur = ev.dur ?? 0.25, n = S(dur + 0.4), m = Z(n);
   const sn = S(dur);
-  addTo(m, mulA(bp(nz(sn, c.seed('s'), 0.9), sweep(sn, 2600, 900, 1), 0.9), env(sn, [[0, 0], [0.04, 1], [dur * 0.7, 0.6], [dur, 0]], 'smooth')), 0, 0.55);
+  addTo(m, mulA(bp(nz(sn, c.seed('s'), 0.9), sweep(sn, 2600, 900, 1), 0.9), env(sn, [[0, 0], [0.04, 1], [dur * 0.7, 0.6], [dur, 0]], 'smooth')), 0, 0.95);
   addTo(m, mulA(sum([sine(sweep(sn, 440, 880, 1), sn), scaleA(sine(sweep(sn, 880, 1760, 1), sn), 0.2)]), env(sn, [[0, 0], [0.05, 1], [dur * 0.8, 0.5], [dur, 0]], 'smooth')), 0, 0.1);
   const t1 = dur - 0.012;
-  addTo(m, sum([thump(S(0.25), 150, 105, 0.02, 0.04), modal(S(0.2), [[310, 0.5, 0.03], [700, 0.3, 0.02], [1480, 0.2, 0.01]]), burst(c.seed('t'), 0.02, 3000, 1, 0.0012, 0.0002)]), t1, 0.75);
+  addTo(m, sum([thump(S(0.25), 150, 105, 0.02, 0.04), modal(S(0.2), [[310, 0.5, 0.03], [700, 0.4, 0.02], [1480, 0.3, 0.01]]), burst(c.seed('t'), 0.02, 3000, 1, 0.0012, 0.0002)]), t1, 0.5);
   for (let k = 0; k < 2; k++) addTo(m, burst(c.seed('rt' + k), 0.01, 3600, 1, 0.0008, 0.0001), t1 + 0.02 + 0.016 * k, 0.15);
   m.set(hp(m, 90));
   const out = verb(wide(m, 0.5, c.seed('w')), 'room', 0.2, 0.25);
@@ -537,7 +546,7 @@ function grade_wipe(ev, c) {
   const dur = ev.dur ?? 1.0, tail = 0.9, n = S(dur + tail), r = c.rng('gw');
   const at = (arr, t) => arr[Math.min(n - 1, Math.round(t * SR))];
   const x = fromFn(n, (t) => ss(0.04, dur * 0.97, t));
-  const lad = ladderPcs(CHORD_PCS.F, 53, 16); // F3 A3 C4 F4 A4 C5 F5 A5 C6 F6 A6 C7 F7 ...
+  const lad = chordLadder(ev.t, 53, 16); // bar of F: F3 A3 C4 F4 A4 C5 F5 A5 C6 F6 A6 C7 F7 ...
   const L = Z(n), R = Z(n);
   const gA = fromFn(n, (t) => (t < dur * 0.18 ? ss(0, dur * 0.18, t) * 0.5 : t < dur ? 0.5 + 0.5 * ss(dur * 0.18, dur * 0.85, t) : Math.exp(-(t - dur) / 0.4)));
   for (let k = 0; k < 13; k++) {
@@ -572,11 +581,11 @@ function grade_wipe(ev, c) {
 function grade_set(ev, c) {
   const pre = 0.07, dur = pre + 2.2, B = new Buf(dur), r = c.rng('gs');
   put(B, mulA(hp(nz(S(pre), c.seed('ai'), 0.8), 3500), fromFn(S(pre), (t) => 0.4 * Math.pow(t / pre, 2.4))), 0, 1, 0);
-  put(B, sum([scaleA(burst(c.seed('fl'), 0.15, 4000, 1, 0.045, 0.002), 0.7), burst(c.seed('pp'), 0.03, 1200, 1, 0.004, 0.0003)]), pre, 0.6, 0);
-  put(B, sum([thump(S(0.6), 87, 52, 0.05, 0.16), thump(S(0.2), 190, 100, 0.02, 0.05)]), pre, 0.7, 0);
+  put(B, sum([scaleA(burst(c.seed('fl'), 0.15, 4000, 1, 0.045, 0.002), 0.8), burst(c.seed('pp'), 0.03, 1200, 1, 0.004, 0.0003)]), pre, 0.95, 0);
+  put(B, sum([thump(S(0.6), 87, 52, 0.05, 0.16), thump(S(0.2), 190, 100, 0.02, 0.05)]), pre, 0.9, 0);
   [698.46, 880, 1046.5, 1396.9, 1760, 2093, 3135.96].forEach((f, k) => {
     const x = sum([bellStrike(S(2.0), f, { tau: 0.95 - 0.07 * k, kind: 'bell', amp: 0.9 }), scaleA(bellStrike(S(1.2), f * 2, { tau: 0.35, kind: 'glass', amp: 0.35 }), 0.3)]);
-    put(B, edge(x, 0.0004, 0.2), pre + 0.01 * k + r() * 0.002, 0.34 - 0.025 * k, -0.45 + 0.15 * k);
+    put(B, edge(x, 0.0004, 0.2), pre + 0.01 * k + r() * 0.002, 0.24 - 0.018 * k, -0.45 + 0.15 * k);
   });
   const nn = S(1.6);
   [174.61, 220, 261.63, 349.23].forEach((f, k) => put(B, mulA(sum([sine(f * 0.9993, nn), sine(f * 1.0007, nn), scaleA(sine(f * 2, nn), 0.15)]), env(nn, [[0, 0], [0.04, 1], [0.4, 0.5], [1.6, 0]], 'smooth')), pre, 0.08, (k % 2 ? 1 : -1) * 0.3));
@@ -593,7 +602,7 @@ function grade_set(ev, c) {
  * chatter), a sub boom on the bar's root, then a forward zoom-out whoosh. 2050 is crisp/techy, 2100 lighter and glassy, 2150 the biggest (deeper sub, shimmer).
  */
 function year_jump(ev, c) {
-  const k = ev.t < 43 ? 0 : ev.t < 45 ? 1 : 2, r = c.rng('yj');
+  const k = Math.max(0, c.cues.FUTURES.findIndex((fu) => Math.abs(fu.t0 - ev.t) < 0.01)), r = c.rng('yj'); // 0 = 2050, 1 = 2100, 2 = 2150
   const pre = 0.3, dur = pre + 1.7, B = new Buf(dur);
   const G = [1.0, 0.7, 1.15][k]; // intensity
   // 1. reverse whoosh into the jump
@@ -682,7 +691,7 @@ function neural_swell(ev, c) {
   const B = new Buf(dur + tail);
   const crest = dur - 0.06;
   const amp = fromFn(n, (t) => (t < crest ? Math.pow(t / crest, 1.8) : Math.exp(-(t - crest) / 0.12)));
-  const lad = ladderPcs(CHORD_PCS.G, 79, 12);
+  const lad = chordLadder(ev.t, 79, 12); // bar of G
   let t = 0.02, k = 0;
   while (t < crest) {
     const u = t / crest, rate = 4 + 56 * Math.pow(u, 1.7);
@@ -712,14 +721,14 @@ function dream_shimmer(ev, c) {
     hzList.forEach((f, q) => {
       addTo(src, mulA(sum([sine(f * 0.9993, ns, r()), sine(f * 1.0007, ns, r()), scaleA(sine(f * 2.0, ns, r()), 0.25), scaleA(sine(f * 3.0, ns, r()), 0.1)]), env(ns, [[0, 0], [0.4, 1], [2.6, 1], [3.0, 0]], 'smooth')), 0, 0.5 / (1 + 0.25 * q));
     });
-    const dens = Float32Array.from({ length: 64 }, (_, i) => dens0 + (dens1 - dens0) * Math.pow(i / 63, 1.4));
+    const dens = Float32Array.from({ length: 64 }, (_, i) => dens0 + (dens1 - dens0) * Math.pow(i / 63, 1.2));
     return dsp.granularCloud(src, seconds, {
       grainMs: 150, density: dens, spread: 0.95, seed: c.seed(seedLabel), posJitter: 0.25, pos: [0.15, 0.7], reverse: 0.25,
       pitch: (rng) => [0, 12, 12, 24, 24, 36][Math.floor(rng() * 6)], gainDb: 0,
     });
   };
-  const A = cloudFor([220, 261.63, 329.63, 440], 2.4, 'cA', 12, 40); // Am: 46.0-48.0 (+ overlap)
-  const F = cloudFor([174.61, 220, 261.63, 349.23], T - 1.9, 'cF', 40, 90); // F: 47.9 -> end
+  const A = cloudFor(chordLadder(ev.t, 57, 4), 2.4, 'cA', 26, 55); // the first bar's chord (Am): 46.0-48.0 (+ overlap)
+  const F = cloudFor(chordLadder(ev.t + cues.BAR, 53, 4), T - 1.9, 'cF', 40, 90); // the next bar's chord (F): 47.9 -> end
   const B = new Buf(T);
   const envA = fromFn(A.length, (t) => ss(0, 0.5, t) * (1 - ss(1.9, 2.4, t)));
   const envF = fromFn(F.length, (t) => ss(0, 0.45, t) * (1 - ss(T - 1.9 - 1.2, T - 1.9, t)));
@@ -734,7 +743,7 @@ function dream_shimmer(ev, c) {
     put(B, edge(bellStrike(S(1.0), f, { tau: 0.3, kind: 'celesta', amp: 1 }), 0.0004, 0.12), t, 0.05 + 0.08 * u, (r() * 2 - 1) * 0.9);
     t += (0.35 - 0.26 * u) * (0.5 + r());
   }
-  const swell = fromFn(B.length, (tt) => 0.35 + 0.65 * ss(0, dur - 0.5, tt) * (1 - ss(dur, T, tt) * 0.9));
+  const swell = fromFn(B.length, (tt) => 0.55 + 0.45 * ss(0, dur - 0.5, tt) * (1 - ss(dur, T, tt) * 0.9));
   for (let i = 0; i < B.length; i++) { B.L[i] *= swell[i]; B.R[i] *= swell[i]; }
   return { buf: fin(verb(B, 'hall', 0.3, 0.0), { peak: -12, fadeIn: 0.05, fadeOut: 0.8 }), send: -22 };
 }
@@ -966,36 +975,40 @@ function cta_tick(ev, c) {
  * speakers, a low knock + crack for definition, a dark rumble and a cathedral tail that is low-passed so it never muddies the orchestra, fading to digital silence at 60.0.
  */
 function impact_big(ev, c) {
-  const pre = 0.12, dur = 2.0, n = S(pre + dur), r = c.rng('ib');
-  const m = Z(n), N = S(dur);
+  const pre = 0.12, dur = 2.0, n = S(pre + dur), N = S(dur);
+  const low = Z(n), up = Z(n); // low = sub boom (stays dry: the FDN would build up modes at 30-60 Hz), up = knock / crack / whomp / rumble (gets the tail)
   const inh = S(pre);
-  addTo(m, mulA(lp(nz(inh, c.seed('in'), 0.9), 500), fromFn(inh, (t) => 0.4 * Math.pow(t / pre, 2.5))), 0, 1);
-  addTo(m, mulA(sine(sweep(inh, 40, 70, 1), inh), fromFn(inh, (t) => 0.3 * Math.pow(t / pre, 2))), 0, 1);
+  addTo(up, mulA(lp(nz(inh, c.seed('in'), 0.9), 500), fromFn(inh, (t) => 0.4 * Math.pow(t / pre, 2.5))), 0, 1);
+  addTo(low, mulA(sine(sweep(inh, 40, 70, 1), inh), fromFn(inh, (t) => 0.3 * Math.pow(t / pre, 2))), 0, 1);
   const sub = sum([thump(N, 82, 32.7, 0.12, 0.9, { a: 0.003 }), scaleA(thump(N, 125, 49, 0.1, 0.8, { a: 0.003 }), 0.55), scaleA(thump(N, 160, 65.41, 0.09, 0.6, { a: 0.003 }), 0.4)]);
-  addTo(m, sub, pre, 1.0);
-  addTo(m, sat(sub, 2.8, 1), pre, 0.18); // overtones (98 / 130 / 163 Hz ...) so it reads on laptops and phones
-  addTo(m, thump(S(0.5), 135, 70, 0.025, 0.07), pre, 0.55);
-  addTo(m, burst(c.seed('cr'), 0.05, 2500, 1, 0.006, 0.0002), pre, 0.5);
-  addTo(m, mulA(lp(nz(S(0.6), c.seed('wm'), 0.9), 450), env(S(0.6), [[0, 0], [0.004, 1], [0.12, 0.45], [0.6, 0]], 'smooth')), pre, 0.5);
-  addTo(m, mulA(lp(nz(N, c.seed('rm'), 0.9, 'brown'), 180), env(N, [[0, 0], [0.02, 1], [0.5, 0.55], [1.9, 0]], 'smooth')), pre, 0.4);
-  addTo(m, mulA(hp(nz(S(1.2), c.seed('sz'), 0.9), 7500), env(S(1.2), [[0, 0], [0.01, 1], [0.4, 0.3], [1.2, 0]], 'smooth')), pre, 0.06);
-  m.set(dsp.biquad(dsp.biquad(m, 'hp', 24, 0.7), 'hp', 24, 0.7)); // nothing below the sub fundamental
-  const dry = wide(m, 0.2, c.seed('w'));
-  const wet = dsp.applyReverb(dry, 'cathedral', { wetOnly: true, wet: 0.5, highCut: 900, lowCut: 35, tail: 0 });
-  for (let i = 0; i < dry.length; i++) { dry.L[i] += wet.L[i]; dry.R[i] += wet.R[i]; }
-  return { buf: fin(bassMono(dry, 160), { peak: -3, fadeIn: 0.01, fadeOut: 0.7 }), offsetSec: pre, send: -40 };
+  addTo(low, sub, pre, 1.0);
+  addTo(low, sat(sub, 2.8, 1), pre, 0.18); // overtones (98 / 130 / 163 Hz ...) so it reads on laptops and phones
+  addTo(up, thump(S(0.5), 135, 70, 0.025, 0.07), pre, 0.55);
+  addTo(up, burst(c.seed('cr'), 0.05, 2500, 1, 0.006, 0.0002), pre, 0.5);
+  addTo(up, mulA(lp(nz(S(0.6), c.seed('wm'), 0.9), 450), env(S(0.6), [[0, 0], [0.004, 1], [0.12, 0.45], [0.6, 0]], 'smooth')), pre, 0.5);
+  addTo(up, mulA(lp(nz(N, c.seed('rm'), 0.9, 'brown'), 180), env(N, [[0, 0], [0.02, 1], [0.5, 0.55], [1.9, 0]], 'smooth')), pre, 0.4);
+  addTo(up, mulA(hp(nz(S(1.2), c.seed('sz'), 0.9), 7500), env(S(1.2), [[0, 0], [0.01, 1], [0.4, 0.3], [1.2, 0]], 'smooth')), pre, 0.06);
+  const upW = wide(hp(up, 70), 0.3, c.seed('w'));
+  const wet = dsp.applyReverb(upW, 'cathedral', { wetOnly: true, wet: 0.45, highCut: 900, lowCut: 80, tail: 0 });
+  const out = new Buf(pre + dur);
+  for (let i = 0; i < n; i++) {
+    out.L[i] = low[i] + upW.L[i] + wet.L[i];
+    out.R[i] = low[i] + upW.R[i] + wet.R[i];
+  }
+  for (const ch of [out.L, out.R]) ch.set(dsp.biquad(dsp.biquad(ch, 'hp', 24, 0.7), 'hp', 24, 0.7)); // nothing below the sub fundamental
+  return { buf: fin(bassMono(out, 160), { peak: -3, fadeIn: 0.01, fadeOut: 0.7 }), offsetSec: pre, send: -40 };
 }
 
 /** projector click-off (59.5): the lamp-house switch clunk, arc-lamp fizzle and a falling hum, then the gate / claw spinning down (ticks at 24 /s slowing), motor whine dying; quiet, dry and real */
 function projector_clickoff(ev, c) {
   const dur = 0.5, n = S(dur), m = Z(n), r = c.rng('pc');
-  addTo(m, sum([thump(S(0.2), 92, 58, 0.03, 0.05), modal(S(0.2), [[210, 0.6, 0.04], [470, 0.5, 0.03], [1100, 0.35, 0.015], [2400, 0.2, 0.008]]), burst(c.seed('lt'), 0.03, 2000, 1, 0.003, 0.0002)]), 0, 0.9);
+  addTo(m, sum([thump(S(0.2), 92, 58, 0.03, 0.04), modal(S(0.2), [[210, 0.6, 0.04], [470, 0.5, 0.03], [1100, 0.35, 0.015], [2400, 0.2, 0.008]]), burst(c.seed('lt'), 0.03, 2000, 1, 0.003, 0.0002)]), 0, 0.9);
   addTo(m, sum([thump(S(0.1), 150, 100, 0.012, 0.03), burst(c.seed('l2'), 0.02, 3000, 1, 0.0015, 0.0001)]), 0.034, 0.4);
   const fz = mulA(bp(poisson(n, fromFn(n, (t) => 900 * Math.exp(-t / 0.1)), r, { tail: 2.2 }), 4200, 0.7), env(n, [[0.01, 0], [0.03, 1], [0.3, 0]], 'smooth'));
-  addTo(m, fz, 0, 0.5);
+  addTo(m, fz, 0, 0.9);
   const fb = fromFn(n, (t) => 110 * Math.pow(40 / 110, Math.min(1, t / 0.3)));
   const fl = fromFn(n, (t) => 1 - 0.5 * Math.max(0, Math.sin(TAU * 31 * t)));
-  addTo(m, mulA(mulA(lp(dsp.osc('saw', fb, n), 900), fl), env(n, [[0, 0], [0.02, 1], [0.3, 0.2], [0.34, 0]], 'smooth')), 0, 0.22);
+  addTo(m, mulA(mulA(lp(dsp.osc('saw', fb, n), 900), fl), env(n, [[0, 0], [0.02, 1], [0.3, 0.2], [0.34, 0]], 'smooth')), 0, 0.13);
   addTo(m, modal(S(0.2), [[2420, 0.4, 0.05], [3640, 0.2, 0.03]]), 0.27, 0.025);
   let t = 0.03, dt = 1 / 24, k = 0;
   while (t < dur - 0.02) {
@@ -1011,9 +1024,72 @@ function projector_clickoff(ev, c) {
   return { buf: fin(out, { peak: -11, fadeIn: 0.0005, fadeOut: 0.03 }), send: -40 };
 }
 
-// @@MORE@@
 
-export const META = {};
+// =============================================================================================================
+// SAFETY NET for a t < 26 id that recipes_a.mjs did not define when this file was written (cues_extra/coldopen.js adds it).
+// The dispatcher prefers recipes_a for t < 26, so this is only used while recipes_a has no 'pencil_scratch'.
+// =============================================================================================================
+/** pencil_scratch (2.0, dur 1.0, g -7): close-miked graphite strokes on paper: a long compass swing, six quick blade strokes, three triangle strokes; stick-slip grain, tip taps, drifting L to R */
+function pencil_scratch(ev, c) {
+  const dur = ev.dur ?? 1.0, n = S(dur + 0.15), r = c.rng('pe'), B = new Buf(dur + 0.15);
+  const strokes = [[0.0, 0.26, 0.8, 2900]];
+  for (let k = 0; k < 6; k++) strokes.push([0.27 + 0.085 * k, 0.062, 0.7 + 0.08 * (k % 3), 3500 + 300 * (k % 2)]);
+  [0.74, 0.84, 0.935].forEach((t, k) => strokes.push([t, 0.072, 0.75, 3100 + 250 * k]));
+  strokes.forEach(([t0, len, a, fc], k) => {
+    const nn = S(len), seed = c.seed('st' + k);
+    const base = hp(bp(nz(nn, seed, 0.9), fc * (0.9 + 0.2 * r()), 0.7), 1300);
+    const grain = lp(nz(nn, seed + 1, 0.9), 350); // stick-slip: slow-ish random amplitude modulation of the paper fibres
+    const gm = fromFn(nn, (t) => 0.55 + 0.45 * Math.tanh(3 * grain[Math.min(nn - 1, Math.round(t * SR))] + 0.3));
+    const vel = env(nn, [[0, 0], [len * 0.25, 1], [len * 0.7, 0.8], [len, 0]], 'smooth');
+    const x = mulA(mulA(base, gm), vel);
+    put(B, x, t0, a * 0.8, -0.35 + 0.7 * (t0 / dur) + (r() - 0.5) * 0.1);
+    put(B, mulA(lp(nz(nn, seed + 2, 0.9), 450), vel), t0, a * 0.18, -0.3 + 0.6 * (t0 / dur)); // hand / paper body
+    put(B, burst(seed + 3, 0.012, 1800, 0.9, 0.003, 0.0004, 'bp'), t0, 0.28 * a, -0.3 + 0.6 * (t0 / dur)); // pencil tip lands
+    put(B, burst(seed + 4, 0.008, 2500, 1, 0.002, 0.0004, 'bp'), t0 + len - 0.004, 0.08 * a, -0.3 + 0.6 * ((t0 + len) / dur)); // lift-off
+  });
+  void n;
+  return { buf: fin(B, { peak: -12, fadeIn: 0.002, fadeOut: 0.1 }), send: -32 };
+}
+
+
+export const META = {
+  label_tick: '26 / 28 / ... / 40 (every job downbeat, x8). Tiny glossy glass tick tuned to the bar root (C G A F C G A F, ~A5-G6), warm wooden tock body, 7 kHz air; each tick a touch louder than the last (the energy builds job by job).',
+  typewriter_key: '26.0 + 0.125 k (x8). A real typewriter key per word: key lever, type-bar slap on the platen, frame body, metal ping, escapement tick; every key has its own pitch (0.78x-1.2x), velocity and micro-pan, plus a very quiet glass "glow" pip climbing the C-major pentatonic E5 G5 A5 C6 D6 E6 G6 A6 (the letter lights up in the air).',
+  typewriter_bell: '27.0. Carriage-return bell: hammer click + small steel cup bell on C7 (two clappers 1.7 Hz apart, inharmonic upper partials 2.76x / 5.4x / 8.9x), cup body, faint carriage ratchet; 0.5 s decay + room.',
+  page_fold: '27.25. Paper folding: air-displacing slide (1.4-4.2 kHz sweep), three crease crackles (Poisson fibres), final soft press. Paper band only (>140 Hz).',
+  page_snap: '27.5. The bound script snaps shut: stiff card slap, cavity body, spine rattle, tiny upward "locked" glint; low end rolled off so it stays a paper object.',
+  panel_snap: '28.25 + 0.125 k (x6). Storyboard panel dealt into the grid: card click, latch tick, wooden knock tuned to a rising G-major ladder G4 B4 D5 G5 B5 D6 (the six panels read as a small ascending run), glass pip an octave up; velocity grows with k.',
+  panel_pop_3d: '29.5 (220 ms pre-roll). Panels extrude into 3D: rising air into the pop, 190->55 Hz thump + pneumatic bloop + G1 sub, six staggered extrusion "tuks" fanning L to R, widening depth whoosh, plate.',
+  crane_servo: '30.0 (dur 1.0). Crane arm moving: a clear servo whine gliding A4 -> E5 -> A4 with the arm speed (stepper AM), A2 motor hum, gear whirr, hydraulic hiss, unlock click and brake clunk; the image travels L to R.',
+  drone_buzz: '30.25 (dur 1.0). Quadcopter fly-by: two rotor pairs near A3 / E4 with beating, blade flutter, Doppler fall, 2.4 kHz electric whine, wind; pans L to R and settles to a hover.',
+  viewfinder_on: '31.0. EVF powers on: relay tick, four corner brackets ticking in (L R L R, rising 2.2-4 kHz), power-up chirp, rec-dot blip A6, faint 7.8 kHz whine.',
+  focus_beep: '31.5. Autofocus lock: lens-motor zip then a two-note confirm E6 -> A6 (chord tones of Am) with a glass ring.',
+  brush_light: '32.0 (dur 0.5). Painting with light: bristle-swish noise arcing across the frame (L to R), glowing F-major shimmer partials, trailing celesta sparkles F-A-C.',
+  light_clunk: '32.5 key (g 0, pan -0.4) / 33.0 fill (pan +0.4) / 33.5 rim (g +1, pan 0). Heavy stage-light switch: contactor thump + steel body, second throw + relay chatter, filament "foom", arc buzz, glass-tube ring-out. key = heaviest (62 Hz thump, buzz F2, ring F4), fill = lighter (A2 / A4), rim = crisp and bright with an arc zing (C3 / C6): the three rings stack into an F major triad.',
+  foot_tap: '34.25 + 0.25 k (x5). Five icon characters step on their marks: rubber pat + hollow stage knock (112 / 190 / 146 / 128 / 172 Hz by character size), wooden-floor resonances, a quiet marimba "mark" tone C4 E4 G4 A4 C5 and a cartoon blip.',
+  cast_ready: '35.5 (160 ms pre-roll). Cast ready: reversed glass glint into a quick harp-like strum of a C major bell chord (C5 E5 G5 C6 E6 G6), warm locked-in pad (C3 G3 C4 E4), glitter, hall bloom.',
+  orch_tune: '36.0 (dur 1.0). Orchestra tuning swell on A440: oboe, 2 clarinets, 2 flutes, 7 violins, 2 violas, cellos, basses, 2 horns, 2 trumpets, tuba entering one after another, tuning in from a few cents off (ensemble mean measured 440.9 Hz late), vibrato, crescendo with opening brass; released 35 ms before the baton falls on 37.0, hall tail. Tonal only, no noise bed.',
+  baton_whoosh: '37.0 (160 ms pre-roll, big) and 44.0 / 44.5 / 45.0 / 45.5 (ribbon bursts, climbing pitch). Down-stroke swish (8 -> 3 kHz) ending on a dry wood tick exactly at the cue (loudest sample), low thwap, then a descending cascade of glass ribbons on the chord (G B D).',
+  timeline_slide: '38.0 (dur 0.25). Timeline panel slides in: friction swish, soft A4 -> A5 digital glide, seating "tok" + rail ticks at +0.24 s.',
+  timeline_click: '38.25 + 0.25 k (x6) and 43.5. Shot snaps onto the timeline (30 ms pre-roll zip): crisp click + woody knock on an Am ladder A4 C5 E5 A5 C6 E6 (the 43.5 event uses a C-chord tone), glass pip, velocity growing with k.',
+  playhead_zip: '39.75 (lands on 40.0). Playhead zips across: accelerating zipper-tooth ticks, rising swish + glide, L to R, landing "tok" on the downbeat.',
+  grade_wipe: '40.0 (dur 1.0). Shimmer sweep: 13 glass voices each climbing an octave chord-tone to chord-tone (F major, Shepard window), tremolo + pan travelling with the wipe L to R, rising band-noise sweep, accelerating glitter; resolves into grade_set.',
+  grade_set: '41.0 (70 ms pre-roll). Grade locked / flash: camera-flash pop + F2 sub thump, F-major-add9 glass-bell bloom, warm pad, hall.',
+  year_jump: '42.0 / 44.0 / 46.0 (300 ms pre-roll; peaks -5 / -7.5 / -4.5). Reverse whoosh into the cut, bit-crushed digit-roll glitch of chord-tone blips + sample-hold chatter, ratcheting year digits that lock on a tuned pip, sub boom on the bar root (C2 / G1 / A1), forward zoom-out whoosh; 2150 adds a celesta shimmer bloom and a bigger hall. Bass kept mono.',
+  holo_hum: '42.0 (dur 2.0). Hologram projector: C-major drone (C3 G3 C4 E4 G4 C5) of beating sines with fast hologram tremolo, a twinkling glassy halo C6 E6 G6 C7, thin 5.2 kHz turbine whine with flicker, data crackle, slow autopan.',
+  neural_swell: '44.5 (dur 1.5, crests at 45.94). Synaptic FM-bell pings in G major firing faster and faster (4 -> 60 per s), rising ethereal G pad, upward thought-glide, electric crackle; hands over to the 2150 jump.',
+  dream_shimmer: '46.0 (dur 4.0). Granular octave-shimmer clouds of the Am chord (46-48) then F (48-50), grains +0/+12/+24/+36 semitones with 25 % reversed breath grains, density rising, sparse celesta sparkles, slow swell, wide; tail fades into the recap.',
+  swell_climax: '48.0 (dur 2.0). Gong / cymbal wash on the cheer, F-major supersaw + choir (ooh -> aah) swell opening from dark to bright, rising glass glide, F1 sub and air; crests at 50.0 and rings out under the riser. Bass kept mono.',
+  rewind_texture: '50.0 (dur 4.0). Tape rewind of "the film itself": synthesised programme (formant babble of syllables + the E G A C motif plucks + A drone) played BACKWARDS with an accelerating varispeed (up to 4.4x, pitch sweeping up), reel-motor whine, tape-head chirps, hiss with drop-outs, button clunk at the start, tape-stop that is silent by 53.98 so the logo is clean.',
+  riser: '50.0 (dur 4.0). Tonal + noise riser: detuned saw stack gliding A3 -> C6 (arrives on a tone of the coming C major) through an opening lowpass, accelerating 4 -> 28 Hz pulse, band-noise rise, sub swell; released into a plate tail that carries over the logo.',
+  push_whoosh: '53.0 (dur 1.0). Push through the screen: air rush rising to the pass-through, F-chord tonal glide F3 -> F5, low swell, soft membrane "pwoomp" at 53.93, air closing behind.',
+  logo_resolve: '54.0. Iris blades snap shut (swish + six blade ticks), open in a soft whoosh into a glass-bell C major shimmer (C6 E6 G6 C7 E7) over a warm C3 root, glitter, long hall tail.',
+  tagline_tick: '56.0. Letterpress stamp: soft stamp + fine tick + glass ring C6 over A5 (F chord).',
+  cta_tick: '57.0. CTA chip: bubble click, two-note pip D6 -> G6 (G chord), short glass ring.',
+  impact_big: '58.0 (120 ms pre-roll; peak -3). Final impact designed to sit UNDER the orchestral hit: suck-in, C-rooted sub boom (C1 + G1 + C2 falling from above, overtones for small speakers), knock + crack, dark rumble and a low-passed cathedral tail on everything above 80 Hz; sub dry, bass mono (S/M -17 dB); gone by 60.0.',
+  projector_clickoff: '59.5 (0.5 s). Lamp-house switch clunk + relay, arc-lamp fizzle and falling hum, gate / claw spinning down (ticks at 24 /s slowing), 408 Hz motor whine dying; dry, quiet, ends before 60.0.',
+  pencil_scratch: '2.0 (t < 26: safety net only, used while recipes_a has no recipe). Close-miked graphite strokes: long compass swing, six quick blade strokes, three triangle strokes, stick-slip grain, tip taps, drifting L to R.',
+};
 
 export const recipes = {
   label_tick, typewriter_key, typewriter_bell, page_fold, page_snap, panel_snap, panel_pop_3d, crane_servo, drone_buzz,
@@ -1021,4 +1097,5 @@ export const recipes = {
   foot_tap, cast_ready, orch_tune, baton_whoosh, timeline_slide, timeline_click, playhead_zip, grade_wipe, grade_set,
   year_jump, holo_hum, neural_swell, dream_shimmer, swell_climax,
   rewind_texture, riser, push_whoosh, logo_resolve, tagline_tick, cta_tick, impact_big, projector_clickoff,
+  pencil_scratch,
 };

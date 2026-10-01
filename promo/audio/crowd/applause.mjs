@@ -22,7 +22,7 @@ export function applauseLevel(ev, t) {
     const u = (t - t0) / Math.max(1e-6, peak - t0);
     return base + (peakLevel - base) * Math.pow(u, 1.4);
   }
-  const hold = Math.min(1.2, 0.3 * (t1 - peak));
+  const hold = Math.min(2.2, 0.55 * (t1 - peak));
   if (t <= peak + hold) return peakLevel;
   const v = (t - peak - hold) / Math.max(1e-6, t1 - peak - hold);
   return peakLevel * (0.5 + 0.5 * Math.cos(Math.PI * clamp(v, 0, 1)));
@@ -32,7 +32,7 @@ export function applauseLevel(ev, t) {
 export function syncStrength(ev, t) {
   const D = ev.t1 - ev.t;
   const b = (c, w, a) => a * Math.exp(-(((t - (ev.t + c * D)) / (w * D)) ** 2));
-  return clamp(b(0.3, 0.1, 1.0) + b(0.74, 0.07, 0.55), 0, 1);
+  return clamp(b(0.3, 0.1, 1.0) + b(0.74, 0.07, 0.8), 0, 1);
 }
 
 export function planApplause(ev, rng, lib, evi, opts = {}) {
@@ -40,7 +40,7 @@ export function planApplause(ev, rng, lib, evi, opts = {}) {
   const dt = 0.002;
   const t0 = ev.t;
   const t1 = ev.t1;
-  const KMAX = opts.kmax ?? 16; // rad/s coupling at full sync
+  const KMAX = opts.kmax ?? 8.5; // rad/s coupling at full sync
   // --- people -----------------------------------------------------------------------------------------------------
   const hands = [...new Set(lib.claps.map((c) => c.hand))];
   const handOrder = hands.map((h) => [rng(), h]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
@@ -54,17 +54,17 @@ export function planApplause(ev, rng, lib, evi, opts = {}) {
   for (let i = 0; i < n; i++) P.push(null);
   rank.forEach((person, k) => {
     const r = rng();
-    const near = r < 0.07;
+    const near = r < 0.11;
     P[person] = {
       id: person,
       rank: k,
-      omega: clamp(3.3 + 0.55 * rng.gauss(), 2.0, 5.2),
+      omega: clamp(4.6 + 0.6 * rng.gauss(), 2.8, 6.2),
       theta: rng(),
       cur: 1,
       active: false,
       pan: clamp((rng() * 2 - 1) * 0.95, -0.97, 0.97),
-      dist: near ? rng.range(0.03, 0.16) : 0.14 + 0.86 * Math.sqrt(rng()),
-      gainDb: clamp(2.4 * rng.gauss(), -6, 5) + (near ? -2.5 : 0),
+      dist: near ? rng.range(0.03, 0.16) : 0.14 + 0.86 * Math.pow(rng(), 0.7),
+      gainDb: clamp(3.0 * rng.gauss(), -8, 6) + (near ? 1.5 : 0),
       hand: handOrder[k % handOrder.length],
     };
     P[person].cur = Math.exp(0.09 * rng.gauss());
@@ -78,8 +78,8 @@ export function planApplause(ev, rng, lib, evi, opts = {}) {
   for (let s = 0; s <= steps; s++) {
     const t = t0 + s * dt;
     const L = applauseLevel(ev, t);
-    const ramp = Math.pow(smooth((t - t0) / 1.1), 1.5);
-    const frac = Math.pow(L / (ev.peakLevel || 1), 0.8) * ramp;
+    const ramp = Math.pow(smooth((t - t0) / 1.5), 1.5);
+    const frac = Math.pow(L / (ev.peakLevel || 1), 1.0) * ramp;
     const nActive = Math.floor(frac * n + (t >= t0 ? 1 : 0)) ; // person rank 0 always claps from t0
     // sync
     const sy = syncStrength(ev, t);
@@ -134,7 +134,7 @@ export function planApplause(ev, rng, lib, evi, opts = {}) {
     if (c.t >= t1) continue;
     const p = c.p;
     const Lnorm = c.L / (ev.peakLevel || 1);
-    const gainDb = p.gainDb + 20 * Math.log10(0.35 + 0.65 * Lnorm) + 1.8 * rng.gauss();
+    const gainDb = p.gainDb + 20 * Math.log10(0.35 + 0.65 * Lnorm) + 3.0 * rng.gauss();
     placements.push({
       k: 'c', ev: evi, t: c.t, ci: p.variants[Math.floor(rng() * p.variants.length)], speed: Math.floor(rng() * 3),
       gainDb, pan: clamp(p.pan + 0.03 * rng.gauss(), -1, 1), dist: p.dist, person: 'hands' + p.id, hand: p.hand,

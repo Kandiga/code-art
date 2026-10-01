@@ -9,26 +9,27 @@ const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 
 const W = (group, tag, w, filter) => ({ group, tag, w, filter });
 const asrHas = (s) => (c) => c.asr && c.asr.toLowerCase().replace(/[^a-z ]/g, '').includes(s);
+const asrAny = (...ss) => (c) => !!c.asr && ss.some((s) => c.asr.toLowerCase().replace(/[^a-z ]/g, '').includes(s));
 const asrConf = (min) => (c) => (c.asrConf ?? 1) >= min;
 const and = (...f) => (c) => f.every((g) => g(c));
 
 // gain: dB on top of library level (every clip is -24 dB active RMS).  lead: pool for the first reactor
 export const KINDS = {
-  gasp: { pools: [W('synth', 'gasp', 1)], gain: 5, spread: 0.35 },
-  laugh: { pools: [W('synth', 'laugh', 0.82), W('words', 'haha', 0.18, asrHas('ha'))], gain: 3.5, spread: 0.35 },
-  oh: { pools: [W('words', 'oh', 0.55), W('words', 'ooh', 0.15), W('words', 'ah', 0.15), W('synth', 'aww', 0.15)], gain: 3, spread: 0.3 },
-  whoa: { pools: [W('words', 'whoa', 0.72), W('words', 'wow', 0.18), W('words', 'ooh', 0.1)], lead: [W('words', 'whoa', 1, asrHas('wh'))], gain: 4, spread: 0.35 },
-  no_way: { pools: [W('words', 'no_way', 1, and(asrHas('no way'), asrConf(0.55)))], gain: 5, spread: 0.3 },
-  cheer: { pools: [W('synth', 'whoop', 0.46), W('words', 'woo', 0.12), W('words', 'yeah', 0.14), W('words', 'wow', 0.08), W('whistles', 'whistle', 0.1), W('words', 'whoa', 0.1)], lead: [W('synth', 'whoop', 1)], gain: 5.5, spread: 0.35 },
-  cheer1: { pools: [W('synth', 'whoop', 0.6), W('words', 'woo', 0.2), W('words', 'yeah', 0.2)], gain: -1, spread: 0 },
-  whistle: { pools: [W('whistles', 'whistle', 1)], gain: 0, spread: 0.3 },
-  aww: { pools: [W('synth', 'aww', 0.5), W('words', 'aww', 0.5)], gain: 2, spread: 0.3 },
-  wow: { pools: [W('words', 'wow', 1)], gain: 4, spread: 0.3 },
-  yeah: { pools: [W('words', 'yeah', 1)], gain: 4, spread: 0.3 },
-  woo: { pools: [W('words', 'woo', 0.5), W('synth', 'whoop', 0.5)], gain: 5, spread: 0.3 },
-  ah: { pools: [W('words', 'ah', 1)], gain: 3, spread: 0.3 },
-  ooh: { pools: [W('words', 'ooh', 1)], gain: 3, spread: 0.3 },
-  mm: { pools: [W('words', 'mm', 1)], gain: 1, spread: 0.3 },
+  gasp: { pools: [W('synth', 'gasp', 1)], gain: -4, spread: 0.35 },
+  laugh: { pools: [W('synth', 'laugh', 0.82), W('words', 'haha', 0.18, asrHas('ha'))], gain: -5.5, spread: 0.35 },
+  oh: { pools: [W('words', 'oh', 0.55, asrHas('oh')), W('words', 'ooh', 0.15), W('words', 'ah', 0.15), W('synth', 'aww', 0.15)], gain: -5.4, spread: 0.3 },
+  whoa: { pools: [W('words', 'whoa', 0.72, asrAny('whoa', 'woah', 'whoo')), W('words', 'wow', 0.18, asrHas('wow')), W('words', 'ooh', 0.1)], lead: [W('words', 'whoa', 1, asrAny('whoa', 'woah'))], gain: -5, spread: 0.35 },
+  no_way: { pools: [W('words', 'no_way', 1, and(asrHas('no way'), asrConf(0.55)))], gain: 1.3, spread: 0.3 },
+  cheer: { pools: [W('synth', 'whoop', 0.46), W('words', 'woo', 0.12), W('words', 'yeah', 0.14), W('words', 'wow', 0.08), W('whistles', 'whistle', 0.1), W('words', 'whoa', 0.1, asrAny('whoa', 'woah'))], lead: [W('synth', 'whoop', 1)], gain: -7.5, spread: 0.35 },
+  cheer1: { pools: [W('synth', 'whoop', 0.6), W('words', 'woo', 0.2), W('words', 'yeah', 0.2)], gain: -9, spread: 0 },
+  whistle: { pools: [W('whistles', 'whistle', 1)], gain: -8, spread: 0.3 },
+  aww: { pools: [W('synth', 'aww', 0.5), W('words', 'aww', 0.5)], gain: -6, spread: 0.3 },
+  wow: { pools: [W('words', 'wow', 1)], gain: -5, spread: 0.3 },
+  yeah: { pools: [W('words', 'yeah', 1)], gain: -5, spread: 0.3 },
+  woo: { pools: [W('words', 'woo', 0.5), W('synth', 'whoop', 0.5)], gain: -5, spread: 0.3 },
+  ah: { pools: [W('words', 'ah', 1)], gain: -6, spread: 0.3 },
+  ooh: { pools: [W('words', 'ooh', 1)], gain: -6, spread: 0.3 },
+  mm: { pools: [W('words', 'mm', 1)], gain: -8, spread: 0.3 },
 };
 
 function seat(rng, k) {
@@ -53,15 +54,30 @@ export function planVoices(ev, evi, lib, rng, extra = {}) {
   const out = [];
   const avoid = new Set();
   for (let k = 0; k < n; k++) {
-    const meta = lib.pick(k === 0 && spec.lead ? spec.lead : spec.pools, rng, avoid);
+    const pools = k === 0 && spec.lead ? spec.lead : spec.pools;
+    let meta;
+    if (k === 0) {
+      // the event onset is defined by the lead reactor: choose someone with a SHARP attack (<= 12 ms between -45 and -32 dB)
+      try {
+        meta = lib.pick(pools.map((s) => ({ ...s, filter: and(s.filter || (() => true), (c) => (c.lead || 0) <= 0.012) })), rng, avoid);
+      } catch (e) {
+        meta = lib.pick(pools, rng, avoid);
+      }
+    } else meta = lib.pick(pools, rng, avoid);
     avoid.add(meta.person);
     const s = seat(rng, k);
     out.push({
-      k: 'v', ev: evi, id: meta.id, person: meta.person, tag: meta.tag, t: ev.t + (extra.dt || 0) + off[k],
+      k: 'v', ev: evi, id: meta.id, person: meta.person, tag: meta.tag,
+      // soft lead-ins (aspiration, 'w') must not start before the cue: t_k - lead_k >= t - 10 ms
+      t: Math.max(ev.t + (extra.dt || 0) + off[k], k === 0 ? 0 : ev.t + (extra.dt || 0) - 0.01 + (meta.lead || 0)),
       gainDb: (extra.gain ?? spec.gain) + 2.2 * rng.gauss() * 0.8 + (meta.gainHintDb || 0) * 0.5 + (k === 0 ? 1 : 0),
       pan: s.pan, dist: s.dist, semis: rng.range(-0.6, 0.6),
     });
   }
+  // the lead reactor defines the event onset: make sure it is not buried (within 1.5 dB of the loudest voice of the cluster)
+  const eff = (p) => p.gainDb - 20 * Math.log10(1 + 1.4 * p.dist) + (lib.byId.get(p.id).peakDb || 0);
+  const mx = Math.max(...out.map(eff));
+  if (out.length > 1 && eff(out[0]) < mx - 1.5) out[0].gainDb += mx - 1.5 - eff(out[0]);
   return out;
 }
 
@@ -72,7 +88,7 @@ export function planMurmur(ev, evi, lib, rng) {
   const out = [];
   const avoid = new Set();
   for (let k = 0; k < n; k++) {
-    const meta = lib.pick([W('walla', 'walla', 1)], rng, avoid);
+    const meta = lib.pick([W('walla', 'walla', 1, k === 0 ? (c) => (c.lead || 0) <= 0.012 : null)], rng, avoid);
     avoid.add(meta.person);
     const L = Math.min(meta.dur - 0.05, rng.range(0.55, 1.15));
     const maxStart = Math.max(0, meta.dur - L);
@@ -82,7 +98,7 @@ export function planMurmur(ev, evi, lib, rng) {
     const dist = rng.range(0.45, 1.0);
     out.push({
       k: 'w', ev: evi, id: meta.id, person: meta.person, tag: 'walla', t, srcStart, len: L,
-      gainDb: -1 + 2 * rng.gauss() * 0.6, pan: clamp(rng.range(-1, 1) * 0.9, -0.95, 0.95), dist, semis: rng.range(-1.2, 1.2), send: 1.5,
+      gainDb: -9.4 + 2 * rng.gauss() * 0.6, pan: clamp(rng.range(-1, 1) * 0.9, -0.95, 0.95), dist, semis: rng.range(-1.2, 1.2), send: 1.5,
     });
   }
   return out;
@@ -99,7 +115,7 @@ export function planClaps(ev, evi, lib, rng) {
     const s = seat(rng, k);
     out.push({
       k: 'c', ev: evi, t: ev.t + (k === 0 ? 0 : 0.35 * Math.pow(rng(), 1.3)), ci: vs[Math.floor(rng() * vs.length)][1], speed: Math.floor(rng() * 3),
-      gainDb: 2 + 2 * rng.gauss() * 0.6, pan: s.pan, dist: s.dist, person: 'hands' + h,
+      gainDb: -12 + 2 * rng.gauss() * 0.6, pan: s.pan, dist: s.dist, person: 'hands' + h,
     });
   }
   return out.sort((a, b) => a.t - b.t);

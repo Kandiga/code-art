@@ -261,7 +261,7 @@ function coneMaterial(THREE, uT) {
         float fall = pow(1.0 - hgt, 1.15);
         float rev = smoothstep(uReveal, uReveal - 0.12, hgt);
         float lead = exp(-pow((hgt - uReveal) / 0.035, 2.0)) * step(0.001, uReveal) * step(hgt, 0.999);
-        float base = (0.16 + 0.6 * fr) * (0.5 + 0.3 * stream + 0.2 * stream2) * (0.3 + 0.7 * fall) + rise * (0.1 + 0.35 * fr) + lead * 0.9 + 0.35 * fall * fall * fall;
+        float base = (0.16 + 0.6 * fr) * (0.5 + 0.3 * stream + 0.2 * stream2) * (0.3 + 0.7 * fall) + rise * (0.1 + 0.35 * fr) + lead * 0.9 + 0.22 * fall * fall * fall;
         vec3 col = mix(uCol, uCol2, clamp(fall * 0.55 + rise * 0.5 + lead, 0.0, 1.0)) * base * uInt * rev * uFlick;
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -441,7 +441,7 @@ function buildTrainGeometry(THREE) {
   const I = [], rotZ = (g) => g.rotateX(Math.PI / 2); // axis y -> z (top -> +z = front)
   const CylZ = (rt, rb, h, seg = 22) => rotZ(new THREE.CylinderGeometry(rt, rb, h, seg));
   const col = { chassis: '#0f3a46', boiler: '#2cc4bb', dark: '#0a2a33', amber: '#ffb62e', cab: '#dff8f2', roof: '#124a58', wheel: '#c98a22', verm: '#f2542d', car: '#1f9aa0' };
-  const lamp = [2.4, 2.1, 1.6], win = [2.4, 1.5, 0.55];
+  const lamp = [1.9, 1.7, 1.3], win = [2.4, 1.5, 0.55];
   I.push(item(THREE, BOX(THREE, 0.66, 0.12, 1.6), { p: [0, 0.2, 0.05], c: col.chassis }));
   I.push(item(THREE, CylZ(0.3, 0.3, 1.0), { p: [0, 0.55, 0.12], c: col.boiler }));
   I.push(item(THREE, CylZ(0.315, 0.315, 0.16), { p: [0, 0.55, 0.68], c: col.dark }));
@@ -517,6 +517,7 @@ function buildHolo(THREE, st) {
     fragmentShader: 'precision highp float; varying vec2 vUv; uniform float uT, uI; void main(){ float d = vUv.x * 0.8 + vUv.y * 0.55 - fract(uT * 0.17) * 2.4 + 0.5; float band = exp(-d * d * 60.0) * 0.5 + exp(-(d - 0.22) * (d - 0.22) * 400.0) * 0.35; float vg = smoothstep(0.0, 0.5, vUv.x) * smoothstep(1.0, 0.5, vUv.x) * 0.6 + 0.4; gl_FragColor = vec4(vec3(0.3, 1.0, 0.95) * band * 0.12 * uI * vg + vec3(0.1, 0.6, 0.6) * 0.012 * uI, 1.0); }',
   })), pane); st.sheen.position.z = hd + 0.004; st.sheen.renderOrder = 26;
   { const gr = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), (st.glassRingMat = ringMaterial(THREE, uT, 'ring'))); gr.position.set(0.23, -0.2, hd + 0.01); gr.renderOrder = 27; gr.frustumCulled = false; pane.add(gr); st.glassRing = gr; }
+  { const gr2 = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), (st.glassRing2Mat = ringMaterial(THREE, uT, 'ring'))); gr2.position.set((MOON.u - 0.5) * PANE.w, (0.5 - MOON.v) * PANE.h, hd + 0.012); gr2.renderOrder = 27; gr2.frustumCulled = false; pane.add(gr2); st.glassRing2 = gr2; }
   // moon halo (pulses at the 'oh')
   st.moonGlow = glowSprite(THREE, { color: '#9ffcf0', size: 0.5, intensity: 0.0, depthTest: false }); st.moonGlow.position.set((MOON.u - 0.5) * PANE.w, (0.5 - MOON.v) * PANE.h, -0.19); st.moonGlow.renderOrder = 18; pane.add(st.moonGlow);
 
@@ -584,12 +585,10 @@ function buildCast(THREE, st, renderer) {
   fam.group.position.set(...SOFA); fam.group.scale.setScalar(0.92); fam.setLightColor('#52f0ff', 0.6); scene.add(fam.group);
   // lights: tungsten lamp, hologram key (teal), table fill, cool city, hemisphere
   st.lamp = new THREE.PointLight('#ffa65c', 16, 0, 2); st.lamp.position.set(LAMP[0] - 0.1, 1.45, LAMP[2] + 0.12); scene.add(st.lamp);
-  st.holoL = new THREE.PointLight('#2fe6d4', 7, 0, 2); st.holoL.position.set(0.2, 1.3, 1.5); scene.add(st.holoL);
-  st.tableL = new THREE.PointLight('#38f0e0', 2.6, 0, 2); st.tableL.position.set(0.2, 0.72, 1.3); scene.add(st.tableL);
+  st.holoL = new THREE.PointLight('#2fe6d4', 8, 0, 2); st.holoL.position.set(0.2, 1.1, 1.5); scene.add(st.holoL);
   st.cityL = new THREE.PointLight('#8aa8ff', 5, 0, 2); st.cityL.position.set(WIN.x, WIN.y + 0.2, BACK + 0.9); scene.add(st.cityL);
   st.hemi = new THREE.HemisphereLight('#3a4668', '#4a3424', 0.5);
   st.warmL = new THREE.PointLight('#ffb272', 24, 0, 2); st.warmL.position.set(1.9, 2.6, 5.6); scene.add(st.warmL); scene.add(st.hemi);
-  st.shelfL = new THREE.PointLight('#ffb878', 2.2, 0, 2); st.shelfL.position.set(SHELF.x + 0.4, 2.0, BACK + 1.2); scene.add(st.shelfL);
 }
 
 // =============================================================================================================================================
@@ -601,10 +600,10 @@ function choreo(i, lt, c) {
   c.lean = LEAN_A[i] * awe - LEAN_F[i] * flinch + LEAN_O[i] * oh;
   const lg = Math.max(0, lt - EV.laugh), pp = Math.max(0, lt - EV.pop);
   c.bob = 0; c.roll = 0;
-  if (i === 3) { c.bob = 0.045 * env(lt, EV.laugh, 0.45) * Math.abs(Math.sin(TAU * 5.5 * lg)) * (lt > EV.laugh ? 1 : 0); c.roll = 0.045 * env(lt, EV.laugh, 0.5) * Math.sin(TAU * 3.5 * lg); }
-  if (i === 0) { const l2 = Math.max(0, lt - EV.laugh - 0.08); c.bob = 0.028 * env(lt, EV.laugh + 0.08, 0.45) * Math.abs(Math.sin(TAU * 5 * l2)) * (lt > EV.laugh + 0.08 ? 1 : 0); c.roll = -0.03 * env(lt, EV.laugh + 0.08, 0.5) * Math.sin(TAU * 3.2 * l2); }
+  if (i === 3) { c.bob = 0.065 * env(lt, EV.laugh, 0.45) * Math.abs(Math.sin(TAU * 5.5 * lg)) * (lt > EV.laugh ? 1 : 0); c.roll = 0.045 * env(lt, EV.laugh, 0.5) * Math.sin(TAU * 3.5 * lg); }
+  if (i === 0) { const l2 = Math.max(0, lt - EV.laugh - 0.08); c.bob = 0.045 * env(lt, EV.laugh + 0.08, 0.45) * Math.abs(Math.sin(TAU * 5 * l2)) * (lt > EV.laugh + 0.08 ? 1 : 0); c.roll = -0.03 * env(lt, EV.laugh + 0.08, 0.5) * Math.sin(TAU * 3.2 * l2); }
   if (i === 1) { c.bob = 0.07 * env(lt, EV.pop, 0.35) * Math.abs(Math.sin(TAU * 4 * pp)) * (lt > EV.pop ? 1 : 0); c.roll = -0.06 * sm(0.45, 0.7, lt) * (1 - sm(1.0, 1.3, lt)); }
-  if (i === 2) { c.bob = 0.05 * env(lt, EV.laugh, 0.4) * Math.abs(Math.sin(TAU * 6 * lg)) * (lt > EV.laugh ? 1 : 0); c.roll = 0.05 * sm(0.45, 0.7, lt) * (1 - sm(1.0, 1.3, lt)); }
+  if (i === 2) { c.bob = 0.06 * env(lt, EV.laugh, 0.4) * Math.abs(Math.sin(TAU * 6 * lg)) * (lt > EV.laugh ? 1 : 0); c.roll = 0.05 * sm(0.45, 0.7, lt) * (1 - sm(1.0, 1.3, lt)); }
   const kid = i === 1 || i === 2 ? 1 : 0.6, follow = sm(0.85, 1.1, lt) * (1 - sm(1.5, 1.8, lt));
   c.hp = (0.2 + 0.1 * kid) * follow + (0.1 + 0.06 * kid) * oh; c.hy = -(0.1 + 0.12 * kid) * follow * (i < 2 ? 1 : 0.7); c.hr = 0.12 * oh * (i % 2 ? 1 : -1) + 0.1 * env(lt, EV.laugh, 0.5) * Math.sin(TAU * 3 * lg) * (i === 3 ? 1 : 0);
   // arms: phi = raise forward/up (0 hang, pi/2 forward, pi up), theta = outward splay; point = blend toward the pointing target
@@ -636,6 +635,7 @@ function applyFamily(st, lt) {
       K.dir.set(cp * Math.sin(al), -cp * Math.cos(al), -Math.sin(ang[0])).applyQuaternion(K.qB).normalize();
       if (i === 2 && s === 1 && c.point > 0.001) { K.tgt.copy(st.locoWorld).sub(fam.group.position).divideScalar(0.92).sub(K.sh).normalize(); K.dir.lerp(K.tgt, c.point).normalize(); }
       K.q2.setFromUnitVectors(K.down, K.dir);
+      const ext = 1 + 0.3 * clamp(ang[0] / 2.4) + (i === 2 && s === 1 ? 0.9 * c.point : 0); K.s.y *= ext;
       K.m2.compose(K.v1.copy(K.sh).addScaledVector(K.dir, K.s.y), K.q2, K.s); M.arms.setMatrixAt(idx, K.m2);
     }
   }
@@ -690,7 +690,7 @@ export default {
     const trVis = lt > 0.3 && lt < 1.64;
     tr.visible = trVis; st.trainMat.uniforms.uDissolve.value = Math.max(1 - seg(lt, 0.3, 0.5), seg(lt, 1.46, 1.62)); st.trainMat.uniforms.uFlick.value = pw * (lt < 0.4 ? 0 : 1) + (lt >= 0.4 ? 0 : 0);
     st.trainMat.uniforms.uFlick.value = micro;
-    st.headGlow.scale.setScalar(lerp(0.2, 0.34, clamp(tp.k / 0.5)) / tp.k); st.headGlow.userData.set({ intensity: (0.4 + 0.25 * popK + 0.2 * env(lt, EV.laugh, 0.2)) * (trVis ? 1 : 0) });
+    st.headGlow.scale.setScalar(lerp(0.2, 0.26, clamp(tp.k / 0.5)) / tp.k); st.headGlow.userData.set({ intensity: (0.3 + 0.2 * popK + 0.15 * env(lt, EV.laugh, 0.2)) * (trVis ? 1 : 0) });
     st.lampBeamMat.uniforms.uInt.value = (0.05 + 0.1 * popK) * (trVis ? 1 : 0) * micro;
     tr.updateMatrixWorld(true); st.locoWorld.copy(st.lampLocal); tr.localToWorld(st.locoWorld);
     // lens flare at the headlamp (only while it faces the camera)
@@ -710,26 +710,26 @@ export default {
     const fsh = lt < 0.9 ? seg(lt, 0.0, 0.75) : seg(lt, EV.pop, EV.pop + 0.7);
     st.floorMat.uniforms.uR.value = 0.03 + 0.97 * fsh; st.floorMat.uniforms.uW.value = 0.035; st.floorMat.uniforms.uInt.value = 0.8 * (1 - fsh) * (lt < 0.8 || (lt > EV.pop && lt < EV.pop + 0.75) ? 1 : 0);
     st.floorGlowMat.uniforms.uInt.value = (0.2 + 0.45 * hitK + 0.15 * popK + 0.25 * surge) * flick * sm(0, 0.15, lt);
-    st.emitGlow.userData.set({ intensity: (0.45 + 1.6 * hitK + 0.4 * popK) * flick * sm(0, 0.05, lt), size: 1.0 + 0.8 * hitK });
+    st.emitGlow.userData.set({ intensity: (0.3 + 1.4 * hitK + 0.25 * popK) * flick * sm(0, 0.05, lt), size: 0.9 + 0.8 * hitK });
     st.beam.set({ intensity: (0.5 + 0.9 * hitK + 0.3 * surge) * flick * coneR }); st.beam.update(t);
     st.haze.update(t);
     // lights
     const holo = sm(0.0, 0.2, lt) * flick;
-    st.holoL.intensity = 7 * (0.12 + 0.88 * holo) * (1 + 1.0 * hitK + 0.35 * popK + 0.3 * snapK + 0.8 * surge);
-    st.tableL.intensity = 2.6 * holo * (1 + hitK);
+    st.holoL.intensity = 8 * (0.12 + 0.88 * holo) * (1 + 1.0 * hitK + 0.35 * popK + 0.3 * snapK + 0.8 * surge);
     st.lamp.intensity = 16 * (1 + 0.012 * Math.sin(t * 7.3)); st.lampGlow.userData.set({ intensity: 0.85 });
     st.cityL.intensity = 5; fam.setLightColor('#52f0ff', 0.62 * (0.35 + 0.65 * holo) * (1 + 0.5 * hitK + 0.4 * surge));
 
     // ---- pane: unfold, parallax spread, scan-in, pulses -----------------------------------------------------------------------------------
     const unf = outBack(seg(lt, 0.14, 0.5), 1.15), sY = Math.max(0.02, unf);
-    pane.scale.set(1, sY, 1); pane.position.set(PANE.x, PANE.y - (1 - sY) * PANE.h / 2, PANE.z);
-    const spread = outBack(seg(lt, 0.26, 0.78), 1.3);
+    pane.scale.set(1 + 0.025 * ohK, sY * (1 + 0.025 * ohK), 1); pane.position.set(PANE.x, PANE.y - (1 - sY) * PANE.h / 2, PANE.z);
+    const spread = outBack(seg(lt, 0.26, 0.78), 1.3) * (1 + 0.45 * ohK);
     const pulseP = 0.7 * popK + 0.35 * snapK + 0.5 * ohK;
     st.layers.forEach((L, k) => { L.m.position.z = L.z * spread; const U = L.mat.uniforms; U.uReveal.value = seg(lt, 0.2 + 0.05 * k, 0.6 + 0.05 * k) * 1.08; U.uGlitch.value = glitch; U.uFlick.value = pw; U.uPulse.value = pulseP * (k === 0 ? 0.4 : 1); });
     { const U = st.ground.mat.uniforms; st.ground.m.scale.z = spread; U.uReveal.value = seg(lt, 0.4, 0.8) * 1.08; U.uGlitch.value = glitch; U.uFlick.value = pw; U.uPulse.value = pulseP; }
     { const L = st.wings, U = L.mat.uniforms; L.m.position.z = L.z * spread; U.uReveal.value = seg(lt, 0.46, 0.86) * 1.08; U.uGlitch.value = glitch; U.uFlick.value = pw; }
     st.frame.material.opacity = clamp(0.25 + 0.75 * sm(0.05, 0.3, lt), 0, 1) * (0.55 + 0.45 * pw) * (1 + 0.0); st.sheen.material.uniforms.uI.value = (0.7 + 1.5 * pulseP) * sm(0.3, 0.7, lt);
     { const gk = seg(lt, EV.pop, EV.pop + 0.55); st.glassRingMat.uniforms.uR.value = 0.03 + 0.97 * gk; st.glassRingMat.uniforms.uW.value = 0.04; st.glassRingMat.uniforms.uInt.value = 1.5 * (1 - gk) * (lt > EV.pop && lt < EV.pop + 0.55 ? 1 : 0); }
+    { const gk = seg(lt, EV.oh, EV.oh + 0.25); st.glassRing2Mat.uniforms.uR.value = 0.05 + 0.95 * gk; st.glassRing2Mat.uniforms.uW.value = 0.05; st.glassRing2Mat.uniforms.uInt.value = 1.2 * (1 - gk) * (lt > EV.oh ? 1 : 0); }
     st.moonGlow.userData.set({ intensity: (0.1 + 0.4 * ohK + 0.2 * env(lt, EV.laugh, 0.3)) * sm(0.5, 0.9, lt), size: 0.45 + 0.2 * ohK });
     st.paneProxy.visible = lt > 0.3;
 
@@ -760,11 +760,11 @@ export default {
       const f = Math.pow(1 - age, 1.4) * sm(0, 0.08, age) * 0.5, sz = (0.04 + 0.2 * age) * Math.pow(q.k / 0.15, 0.6);
       PF.set(i, cxp + 0.03 * age, cyp + 0.11 * age + 0.02 * Math.sin(age * 5 + i), czp + 0.04 * age, 0.55 * f, 1.0 * f, 1.0 * f, sz);
     }
-    for (let i = 0; i < 6; i++) { // the big TOOT puffs at the laugh
-      const age = lt - EV.laugh - i * 0.05, idx = 28 + i; if (age < 0 || age > 1.0) { PF.hide(idx); continue; }
+    for (let i = 0; i < 6; i++) { // the big TOOT puffs at the laugh (a few round steam clouds that drift up and fade)
+      const age = lt - EV.laugh - i * 0.04, idx = 28 + i; if (age < 0 || age > 0.85) { PF.hide(idx); continue; }
       const q = trainPose(st, EV.laugh, st.tpose2); K.v1.set(q.t[0], q.t[1], q.t[2]).normalize(); K.lm.lookAt(K.v1, K.zero, K.up); K.tq.setFromRotationMatrix(K.lm);
-      K.v2.set(0, 1.2, 0.5).multiplyScalar(q.k).applyQuaternion(K.tq); const f = Math.pow(1 - age, 1.3) * sm(0, 0.05, age) * 0.7;
-      PF.set(idx, q.p[0] + K.v2.x + (H(i, 3, 5) - 0.5) * 0.12 * age, q.p[1] + K.v2.y + 0.25 * age, q.p[2] + K.v2.z + 0.2 * age + (H(i, 4, 5) - 0.5) * 0.1, 0.8 * f, 1.15 * f, 1.15 * f, 0.1 + 0.55 * age + 0.03 * i);
+      K.v2.set(0, 1.2, 0.5).multiplyScalar(q.k).applyQuaternion(K.tq); const f = Math.pow(1 - age / 0.85, 1.5) * sm(0, 0.05, age) * 0.32;
+      PF.set(idx, q.p[0] + K.v2.x + (H(i, 3, 5) - 0.5) * 0.3 * (0.4 + age), q.p[1] + K.v2.y + 0.22 * age + (H(i, 6, 5) - 0.5) * 0.12, q.p[2] + K.v2.z + 0.15 * age + (H(i, 4, 5) - 0.5) * 0.25, 0.5 * f, 0.95 * f, 1.0 * f, 0.07 + 0.3 * age + 0.015 * i);
     }
     for (let i = 34; i < PF.N; i++) PF.hide(i); PF.commit();
     const MO = st.motes, mvis = sm(0.4, 0.9, lt) * pw;
