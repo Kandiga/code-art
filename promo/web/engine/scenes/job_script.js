@@ -222,6 +222,37 @@ export function makeStylus(THREE) {
   return { group: g, inner, tip, tipM, tipPos: new THREE.Vector3(0, 0.345, 0) };
 }
 
+// ---- a cheap, baked backdrop (unlit): replaces the full-screen PBR cyclorama (saves ~30 % of frame time in software GL).
+// Maps x in [-30,30] m, y in [0,22] m on the wall at z = -9.2. glows: [{x, y, rx, ry, color:'r,g,b', a}] soft elliptical pools of light on the wall.
+export function makeBackdrop(THREE, S, glows, { base = ['#05060a', '#0a0c14'] } = {}) {
+  const w = 1024, h = 512, c = S.mk(w, h), g = c.getContext('2d'); const X = (x) => ((x + 30) / 60) * w, Y = (y) => (1 - y / 22) * h;
+  const gr = g.createLinearGradient(0, h, 0, 0); gr.addColorStop(0, base[0]); gr.addColorStop(0.35, base[1]); gr.addColorStop(1, base[0]); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'lighter';
+  for (const o of glows) {
+    g.save(); g.translate(X(o.x), Y(o.y)); g.scale(1, (o.ry * (h / 22)) / (o.rx * (w / 60))); const R = o.rx * (w / 60);
+    const rg = g.createRadialGradient(0, 0, 0, 0, 0, R); rg.addColorStop(0, `rgba(${o.color},${o.a})`); rg.addColorStop(0.5, `rgba(${o.color},${o.a * 0.35})`); rg.addColorStop(1, `rgba(${o.color},0)`);
+    g.fillStyle = rg; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.fill(); g.restore();
+  }
+  const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(60, 22), new THREE.MeshBasicMaterial({ map: tx, fog: false })); m.position.set(0, 11, -9.2); m.name = 'backdrop'; return m;
+}
+
+// ---- stage factory: the shared soundstage (stage3d.js). If the library is unavailable/mid-upgrade, fall back to a minimal local set
+// with the same fields (floor, cyc, chair, lights{key,fill,rim,amb}) so the shot still renders.
+export function buildStage(THREE, env, opts = {}) {
+  try { if ((globalThis.__dbg || {}).fallbackStage) throw new Error('forced'); return createStage(THREE, env, opts); } catch (e) { (env.S && env.S.warn) && env.S.warn('stage3d fallback: ' + e.message); }
+  const group = new THREE.Group(), size = 40;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshStandardMaterial({ color: '#15141a', roughness: 0.3, metalness: 0.3 })); floor.rotation.x = -Math.PI / 2; group.add(floor);
+  const cyc = new THREE.Mesh(new THREE.PlaneGeometry(size, 12), new THREE.MeshStandardMaterial({ color: '#1c1b24', roughness: 0.95 })); cyc.position.set(0, 6, -9); group.add(cyc);
+  const chair = new THREE.Group(), wood = new THREE.MeshStandardMaterial({ color: '#2b2118', roughness: 0.6 });
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.04, 0.5), new THREE.MeshStandardMaterial({ color: '#d8c9a8', roughness: 0.9 })); seat.position.y = 0.62; chair.add(seat);
+  for (const x of [-0.28, 0.28]) for (const z of [-0.24, 0.24]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.62, 0.05), wood); l.position.set(x, 0.31, z); chair.add(l); }
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.3, 0.03), seat.material); back.position.set(0, 1.0, -0.26); chair.add(back); group.add(chair);
+  const lights = { key: new THREE.SpotLight('#ffe2b0', 220, 40, 0.5, 0.6, 2), fill: new THREE.PointLight('#7aa8ff', 25, 30, 2), rim: new THREE.SpotLight('#9fd4ff', 180, 40, 0.6, 0.7, 2), amb: new THREE.AmbientLight('#2a2f4a', 0.5) };
+  Object.values(lights).forEach((l) => { group.add(l); if (l.target) group.add(l.target); });
+  return { group, floor, cyc, chair, lights, floorMat: floor.material, cycMat: cyc.material };
+}
+
 // ============================ SCRIPT SCENE ===================================
 const T0 = 26;                       // scene start (global s)
 const WORDS = ['THE', 'LAST', 'NIGHT', 'TRAIN', 'LEAVES', 'FOR', 'THE', 'MOON'];
@@ -230,9 +261,9 @@ const WHOT = [0.55, 1.0, 1.0, 1.0, 0.85, 0.55, 0.55, 1.25];
 const LINES = [[0, 1, 2, 3], [4, 5, 6, 7]];
 const KEYS = Array.from({ length: 8 }, (_, k) => 0.125 * k);   // lt of each typewriter_key (cues.SFX: 26.0 + 0.125k)
 const BELL = 1.0, FOLD0 = 1.25, SNAP = 1.5;                    // lt of bell (27.0), page_fold (27.25 +), page_snap (27.5)
-const AM = [1.75, 0.95, 0];                                    // Amrita's centre
+const AM = [1.85, 0.95, 0];                                    // Amrita's centre
 const EM = 0.235;                                               // em size of the typed words (m)
-const ASM = [-0.55, 1.45, 0.8];                               // assembly point of the pages
+const ASM = [-0.1, 1.5, 0.8];                               // assembly point of the pages
 const REST = [0.45, 1.25, 0.45];                               // booklet resting place, beside her
 
 // ---- paper textures ----------------------------------------------------------------------------
@@ -308,12 +339,18 @@ export default {
   id: 'job_script', kind: '3d', ratio: 2.39,
   setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#040306'); scene.fog = new THREE.FogExp2('#0b0a12', 0.024);
-    const stage = createStage(THREE, { THREE, S, renderer }); scene.add(stage.group);
+    const stage = buildStage(THREE, { THREE, S, renderer }); scene.add(stage.group);
     scene.environment = makeEnv(THREE, renderer, [
       { w: 7, h: 3.5, pos: [-5, 4, 5], color: '#ffd9a0', i: 5 }, { w: 2.2, h: 8, pos: [6, 3, -4], color: '#9fd4ff', i: 3.5 },
       { w: 10, h: 2, pos: [0, 8, 1], color: '#ffffff', i: 1.2 }, { w: 5, h: 2, pos: [3, 0.5, 6], color: '#ffb870', i: 1.0 },
     ]);
     scene.environmentIntensity = 0.5;
+    // perf: unlit baked backdrop instead of the PBR cyc; no shadow maps (blob decal below); drop the weak stage fill light
+    stage.cyc.visible = false; stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
+    scene.add(makeBackdrop(THREE, S, [
+      { x: -3.0, y: 3.4, rx: 7, ry: 3.4, color: '255,160,64', a: 0.2 }, { x: -6.5, y: 5.0, rx: 4, ry: 3, color: '255,190,110', a: 0.1 },
+      { x: 5.5, y: 2.6, rx: 5, ry: 3.2, color: '80,120,200', a: 0.2 }, { x: 0.5, y: 0.4, rx: 12, ry: 0.9, color: '110,100,140', a: 0.1 },
+    ]));
     const camera = new THREE.PerspectiveCamera(lensFov(45), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
     A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
@@ -358,7 +395,7 @@ export default {
     const dustB = makeDust(THREE, { count: 120, center: [0, 2.0, 0], size: [10, 5, 8], color: '#bcd8ff', psize: 0.016, intensity: 0.5, seed: 4 }); scene.add(dustB);
 
     // ---- the eight words
-    const R_ARC = 5.0, CX = [-0.3, -0.2], LY = [1.72, 1.38], Z0 = 0.1;
+    const R_ARC = 5.0, CX = [-0.3, -0.42], LY = [1.72, 1.38], Z0 = 0.1;
     const words = [];
     LINES.forEach((line, li) => {
       const ws = line.map((k) => wordGeometry(THREE, WORDS[k], { size: EM * WSCALE[k], depth: 0.045 * WSCALE[k], bevel: 0.005 }));
@@ -371,10 +408,10 @@ export default {
         const mesh = new THREE.Mesh(w.geo, [faceMat, sideMat]); mesh.visible = false; scene.add(mesh);
         const base = new THREE.Vector3(CX[li] + R_ARC * Math.sin(th), LY[li] + 0.02 * Math.cos(th * 5 + li), Z0 + R_ARC * (1 - Math.cos(th)));
         const halo = sprite([1.0, 0.6, 0.2], w.width * 1.9, w.height * 3.4, 0); halo.position.copy(base); scene.add(halo);
-        const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 1).translate(0, 0.5, 0), new THREE.ShaderMaterial({
+        const bar = new THREE.Mesh(new THREE.PlaneGeometry(0.036, 1).translate(0, 0.5, 0), new THREE.ShaderMaterial({
           uniforms: { uO: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
           vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-          fragmentShader: 'varying vec2 vUv; uniform float uO; void main(){ float x = abs(vUv.x*2.0-1.0); float a = pow(vUv.y,2.2)*(1.0-x*x)*uO; gl_FragColor = vec4(vec3(1.0,0.78,0.42)*a*3.0, a); }' }));
+          fragmentShader: 'varying vec2 vUv; uniform float uO; void main(){ float x = abs(vUv.x*2.0-1.0); float a = pow(vUv.y,2.2)*(1.0-x*x)*uO; gl_FragColor = vec4(vec3(1.0,0.7,0.32)*a*3.2, a); }' }));
         bar.visible = false; bar.renderOrder = 8; bar.frustumCulled = false; scene.add(bar);
         words[k] = { mesh, faceMat, sideMat, halo, bar, base, yaw: -th, width: w.width, height: w.height, th };
       });
@@ -406,6 +443,8 @@ export default {
   update(st, T, S) {
     const { THREE, camera, A, words, book, tmp, stage } = st;
     const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
+    st.scene.visible = !D.empty;
+    st.poolWords.visible = st.poolAm.visible = st.poolBook.visible = st.blob.visible = !D.noPools; st.ghostHalo.visible = !D.noPools; st.stylus.group.visible = !D.noProps; A.root.visible = !D.noAmrita; book.root.visible = !D.noBook;
     st.beamKey.visible = st.beamRim.visible = !D.noBeams; st.dustA.visible = st.dustB.visible = !D.noDust; st.bulbs.visible = !D.noBulbs; st.sparks.visible = !D.noSparks;
     const snapP = lt >= SNAP ? Math.exp(-(lt - SNAP) / 0.09) : 0;
     const kIdx = Math.min(7, Math.floor(lt / 0.125)), kAge = Math.max(0, lt - 0.125 * kIdx);
@@ -438,7 +477,8 @@ export default {
     A.setProp('slate', { t, glow: 0.45 + 0.55 * (lt < BELL ? Math.exp(-kAge / 0.07) : 0.5 + snapP) });
 
     // stylus taps with each key (tip flash), then idles; tracks to the pages
-    { const tapAge = lt < 1.0 ? kAge : 9, tap = Math.exp(-tapAge / 0.045), idle = Math.sin(t * 2.6) * 0.02;
+    { const away = smooth(seg(lt, 1.52, 1.72)); st.stylus.group.visible = away < 0.99; st.stylus.group.scale.setScalar(Math.max(0.01, 1 - away));
+      const tapAge = lt < 1.0 ? kAge : 9, tap = Math.exp(-tapAge / 0.045), idle = Math.sin(t * 2.6) * 0.02;
       st.stylus.group.position.set(-0.7, -0.45 + idle - 0.07 * tap, 0.6); st.stylus.group.rotation.z = 0.6 - 0.1 * tap + 0.25 * smooth(seg(lt, 1.0, 1.3)) * (1 - smooth(seg(lt, 1.5, 1.8)));
       st.stylus.tipM.color.setRGB(3.2 + 8 * tap, 2.3 + 5 * tap, 1.2 + 2 * tap); st.tipHalo.material.opacity = 0.35 + 0.65 * tap; st.tipHalo.scale.setScalar(0.4 + 0.5 * tap); }
 

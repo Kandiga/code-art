@@ -30,7 +30,7 @@ const FLINCH_T = 5.0;                                     // the "audience flinc
 const LENS_T = 5.4;                                       // loco arrives, lamp == portal from here on
 
 // ----------------------------------------------------------------- loco growth
-const S0 = 0.075;
+const S0 = 0.1;
 function locoScale(t) {
   const u = clamp((t - 4.0) / (LENS_T - 4.0));
   if (u >= 1) return 1;
@@ -89,7 +89,7 @@ function walls(g) {
   // LEFT building facade: wall plane X=-6.5, runs back to the vanishing point
   const wl = (Y, c) => WP(-6.5, Y, c), cL = 154;
   const wallL = [VP, wl(5.4, cL), wl(0, cL)];
-  shp(g, wallL, { seed: 140, fill: V.l1, hatch: V.m1, ha: 0.3, gap: 8, ang: 0.02, w: 2.2, ia: 0.7, amp: 0.9 });
+  shp(g, wallL, { seed: 140, fill: V.l1, hatch: V.m1, ha: 0.28, gap: 10, ang: 0.02, w: 2.2, ia: 0.7, amp: 0.9 });
   // arched windows in perspective (Z = 600 / c)
   for (let k = 1; k < 8; k++) {
     const Z0 = 5.2 + k * 3.4, c0 = 600 / Z0, c1 = 600 / (Z0 + 1.7);
@@ -122,11 +122,11 @@ function canopy(g) {
   const roofY = (X) => 5.4 - ((X + 6.5) * 1.2) / (GX + 6.5);
   const rf = (X, c) => WP(X, roofY(X), c);
   // purlins fan out from the vanishing point (kept light: the HUD caption sits over this corner)
-  for (const X of [-6.5, -3.8, GX]) ln(g, [VP, rf(X, 210)], { c: INKL, w: X === GX ? 2.6 : 1.5, a: X === GX ? 0.7 : 0.4, seed: 220 + Math.round(-X * 10) });
+  for (const X of [-6.5, -3.8, GX]) ln(g, [VP, rf(X, 210)], { c: INKL, w: X === GX ? 2.4 : 1.4, a: X === GX ? 0.55 : 0.3, seed: 220 + Math.round(-X * 10) });
   // rafters (trusses), getting smaller toward the vanishing point
   for (let k = 0; k < 11; k++) {
     const Z = 4.6 + k * 2.4, c = 600 / Z, a = rf(-6.5, c), b = rf(GX, c);
-    ln(g, [a, b], { c: INKL, w: Math.max(1.3, 2.6 * Math.pow(c / 130, 0.5)), a: 0.55, seed: 240 + k, amp: 0.8 });
+    ln(g, [a, b], { c: INKL, w: Math.max(1.2, 2.3 * Math.pow(c / 130, 0.5)), a: 0.42, seed: 240 + k, amp: 0.8 });
     if (k < 3) { const m = rf(-3.8, c), d = WP(-3.8, roofY(-3.8) - 0.8, c); ln(g, [rf(-6.5, c), d, rf(GX, c)], { c: INKL, w: 1.3, a: 0.4, seed: 260 + k, amp: 0.7 }); ln(g, [m, d], { c: INKL, w: 1.2, a: 0.35, seed: 270 + k }); }
   }
   // glass: very light diagonal hatch in a few bays
@@ -141,7 +141,7 @@ function platformAndTrack(g) {
   const { ctx } = g, XE = -0.49;
   // LEFT platform floor with flagstones
   const floor = [VP, WP(XE, 0, 370), [0, 1080], [0, WP(-6.5, 0, 154)[1]]];
-  shp(g, floor, { seed: 300, fill: V.l2, hatch: V.m1, ha: 0.2, gap: 12, ang: -0.5, w: 2, ia: 0.6, amp: 1.2, off: [0, 0] });
+  shp(g, floor, { seed: 300, fill: V.l1, hatch: V.m1, ha: 0.16, gap: 14, ang: -0.5, w: 2, ia: 0.6, amp: 1.2, off: [0, 0] });
   for (const X of [-1.2, -2.2, -3.3, -4.5, -5.7]) ln(g, [VP, WP(X, 0, 400)], { c: INKL, w: 1.4, a: 0.38, seed: 310 + Math.round(-X * 10) });
   for (let j = 0; j < 22; j++) { const Z = 1.55 + j * 0.95 * (1 + j * 0.06), c = 600 / Z, a = WP(XE, 0, c), b = WP(-6.5, 0, c); if (a[1] > 1090) continue; ln(g, [a, b], { c: INKL, w: 1.3, a: 0.34, seed: 330 + j, amp: 0.8 }); }
   // the platform edge: coping stone line + the dark wall face dropping to the track bed
@@ -150,7 +150,7 @@ function platformAndTrack(g) {
   ln(g, [VP, WP(XE + 0.18, 0, 370)], { c: V.m1, w: 2, a: 0.7, seed: 362 });
   // TRACK BED (0.9 m below the platform): gravel
   const bed = [VP, WP(XE, -0.9, 242), [1920, 1080], [1920, WP(3.6, -0.9, 255.6)[1]]];
-  shp(g, bed, { seed: 370, fill: V.m1, hatch: V.d1, ha: 0.35, gap: 8, ang: -0.04, w: 0.01, ia: 0, amp: 0.5, off: [0, 0], seg: 18, ink: false });
+  shp(g, bed, { seed: 370, fill: V.m1, hatch: V.d1, ha: 0.33, gap: 10, ang: -0.04, w: 0.01, ia: 0, amp: 0.5, off: [0, 0], seg: 18, ink: false });
   // sleepers
   for (let j = 0; j < 34; j++) {
     const Z = 2.0 + j * 0.62 * (1 + j * 0.035), c0 = 600 / Z, c1 = 600 / (Z + 0.3 + j * 0.01);
@@ -202,7 +202,6 @@ function columnsAndFurniture(g, t) {
   const board = P.rectPts(sx0, sy0, sx1 - sx0, sy1 - sy0, 10);
   shp(g, board, { seed: 543, fill: V.d3, hatch: '#000', ha: 0.35, gap: 6, ang: 0.0, w: 3.2, amp: 1.0, off: [4, 3] });
   shp(g, P.rectPts(sx0 + 9, sy0 + 9, sx1 - sx0 - 18, sy1 - sy0 - 18, 6), { seed: 544, ic: '#F2EBDC', w: 1.8, ia: 0.9, amp: 0.9, fill: false });
-  ctx.save(); ctx.font = '700 66px Caveat, cursive'; ctx.textAlign = 'center'; ctx.restore();
   P.text(ctx, 'ORRINGDALE', (sx0 + sx1) / 2, sy0 + 58, { font: '700 64px Caveat, cursive', color: '#F6EFE0', align: 'center', boil: g.boil, seed: 545, amp: 1.0, doubled: true });
   ctx.restore();
   // ---- pocket-watch clock hung from the beam end (the minute hand clicks round to 12 on the whistle)
@@ -227,6 +226,21 @@ function drawClock(g, cx, cy, r, t) {
   const hand = (a, len, w, id) => ln(g, [[cx, cy], [cx + Math.cos(a - Math.PI / 2) * len, cy + Math.sin(a - Math.PI / 2) * len]], { c: INK, w, a: 0.95, seed: 580 + id, passes: 2, amp: 0.5 });
   hand(hour * TAU, r * 0.46, 4.2, 1); hand(minute * TAU, r * 0.7, 2.8, 2);
   shp(g, circ(cx, cy, 4.5, 10), { seed: 590, fill: INK, w: 1, amp: 0.3, off: [0, 0], ic: INK });
+}
+
+
+// a semaphore signal beside the track: the arm drops to "clear" just before the train arrives (picture rhyme with the era)
+function signalPost(g, t) {
+  const { ctx } = g, c = 100, X = 5.0, x = 1000 + X * c, yb = 450 + (EYE + 0.9) * c, yt = 450 - 3.3 * c, w = 0.17 * c;
+  shp(g, [[x - w * 0.55, yb], [x - w * 0.3, yt], [x + w * 0.3, yt], [x + w * 0.55, yb]], { seed: 1900, fill: V.d2, hatch: V.d3, ha: 0.35, gap: 5, ang: 1.4, w: 2.2, amp: 0.7, off: [1.5, 1] });
+  for (let i = 1; i < 9; i++) { const y = lerp(yb, yt, i / 9); ln(g, [[x - w * 0.42, y], [x + w * 0.42, y]], { c: V.l1, w: 1.3, a: 0.6, seed: 1910 + i, passes: 1 }); }
+  const drop = smooth((t - 4.4) / 0.25), ang = lerp(0, 0.78, drop), py = yt + 26, L = 1.15 * c;
+  ctx.save(); ctx.translate(x - w * 0.2, py); ctx.rotate(ang);
+  shp(g, P.rectPts(-L, -9, L, 20, 2), { seed: 1930, fill: V.l1, hatch: V.d2, ha: 0.55, gap: 7, ang: 0.8, w: 2.2, amp: 0.7, off: [1, 1] });
+  shp(g, P.rectPts(-L, -9, L * 0.2, 20, 0), { seed: 1931, fill: V.d3, w: 1.4, amp: 0.4, off: [0, 0], ia: 0.5 });
+  ctx.restore();
+  shp(g, circ(x - w * 0.2, py, 9, 12), { seed: 1932, fill: '#c9a24a', w: 2, amp: 0.4, off: [1, 1] });
+  shp(g, P.rectPts(x - w * 0.8, yt - 10, w * 1.6, 12, 2), { seed: 1933, fill: V.d3, w: 1.6, amp: 0.4, off: [1, 1] });
 }
 
 // ===================================================================== LOCOMOTIVE
@@ -303,6 +317,17 @@ function drawLoco(g, s) {
   P.ink(ctx, circ(lp[0], lp[1], lr * 1.1, 40, 0.2), { color: INK, width: lw(5), amp: am(1.2), boil: g.boil, seed: 883, alpha: 0.95, passes: 2 });
   lensRings(g, lp[0], lp[1], lr, s);
   P.ink(ctx, circ(lp[0], lp[1], lr, 48, 0.5), { color: INK, width: lw(5.5), amp: am(0.9), boil: g.boil, seed: 884, alpha: 1, passes: 2 });
+  // headlamp glare: a ring of hand-drawn white ticks beyond the housing (long/short alternating; never inside the portal circle)
+  const gk = smooth((s - 0.45) / 0.4);
+  if (gk > 0.02) {
+    ctx.save(); ctx.lineCap = 'round';
+    for (let i = 0; i < 26; i++) {
+      const a = (i / 26) * TAU + (hash(i, 5) - 0.5) * 0.05 + noise1(i * 0.7 + g.boil * 0.3, 3) * 0.012, r0 = lr * (1.46 + 0.04 * hash(i, 6)), len = lr * (i % 2 ? 0.2 : 0.42 + 0.08 * hash(i, 7)) * gk;
+      ctx.strokeStyle = `rgba(255,252,240,${(0.85 * gk).toFixed(3)})`; ctx.lineWidth = Math.max(1.4, 3.6 * Math.pow(s, 0.6));
+      ctx.beginPath(); ctx.moveTo(lp[0] + Math.cos(a) * r0, lp[1] + Math.sin(a) * r0); ctx.lineTo(lp[0] + Math.cos(a) * (r0 + len), lp[1] + Math.sin(a) * (r0 + len)); ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 // ================================================================== STEAM
@@ -382,9 +407,9 @@ function speedLines(g, t, s) {
 
 // ================================================================== FRAME (iris + rounded corners)
 function drawIris(g, T) {
-  const { ctx } = g, lt = T.t - 4.0, F = T.frame; if (lt >= 0.55) return;
+  const { ctx } = g, lt = T.t - 4.0, F = T.frame; if (lt >= 0.5) return;
   const cx = F.x + F.w / 2, cy = F.y + F.h / 2, u = clamp(lt / 0.45);
-  const e = 1 - Math.pow(1 - u, 1.75), r = 14 + (1240 - 14) * e;
+  const e = 0.6 * u + 0.4 * smooth(u), r = 14 + (1250 - 14) * e;
   // black everywhere outside a hand-drawn, wobbly circle
   const edge = P.wobble(circ(cx, cy, r, 72), { boil: T.boil, amp: Math.min(7, 2 + r * 0.02), seed: 4, scale: 0.35, closed: true });
   ctx.save(); ctx.fillStyle = BAR; ctx.beginPath(); ctx.rect(-20, -20, 1960, 1120); edge.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill('evenodd'); ctx.restore();
@@ -500,9 +525,9 @@ function drawFigures(g, t) {
   // the porter with his trolley hurries away from the edge as the train arrives
   list.push({ c: 84, draw: () => { const [x, y] = px(-1.15, 84), run = clamp((t - 4.55) / 0.9), tx = x - 70 * smooth(run) - 8 * Math.sin(t * 9) * run; figure(g, 'porter', tx, y + Math.abs(Math.sin(t * 9)) * -2 * run, 1.68 * 84, { flip: 1, seed: 1400, lean: -0.1 * smooth((t - 4.5) / 0.4) }); } });
   // gentleman, lady, child (mid-ground group)
-  list.push({ c: 122, draw: () => { const [x, y] = px(-1.55, 122); figure(g, 'gent', x, y, 1.72 * 122, { seed: 1500, lean: L(0.1, 4.4, 0.16), arm, hatT: t >= FLINCH_T + 0.06 ? t - FLINCH_T - 0.06 : -1 }); } });
-  list.push({ c: 122, draw: () => { const [x, y] = px(-2.6, 122); figure(g, 'lady', x, y, 1.62 * 122, { seed: 1600, lean: L(0.08, 4.5, 0.2), arm }); } });
-  list.push({ c: 118, draw: () => { const [x, y] = px(-2.05, 118); figure(g, 'kid', x, y, 0.95 * 118, { seed: 1700, lean: L(0.06, 4.55, 0.22), arm }); } });
+  list.push({ c: 122, draw: () => { const [x, y] = px(-1.55, 122); figure(g, 'gent', x, y, 1.72 * 122, { seed: 1500, lean: L(0.09, 4.4, 0.11), arm, hatT: t >= FLINCH_T + 0.06 ? t - FLINCH_T - 0.06 : -1 }); } });
+  list.push({ c: 122, draw: () => { const [x, y] = px(-2.6, 122); figure(g, 'lady', x, y, 1.62 * 122, { seed: 1600, lean: L(0.07, 4.5, 0.12), arm }); } });
+  list.push({ c: 118, draw: () => { const [x, y] = px(-2.05, 118); figure(g, 'kid', x, y, 0.95 * 118, { seed: 1700, lean: L(0.06, 4.55, 0.13), arm }); } });
   list.sort((a, b) => a.c - b.c).forEach((f) => f.draw());
 }
 
@@ -514,19 +539,18 @@ function crankAngle(t) {
 function drawAmritaScene(g, T, S) {
   const { ctx } = g, t = T.t, A = S.amrita2d;
   const R = 128, bx = 412, by = 752;
-  const tl = T.lt;
   // reaction curve: curious (4.0-4.9) -> wide-eyed flinch at 5.0 -> still cranking
   const wide = smooth((t - 4.93) / 0.07);
   const interest = smooth((t - 4.2) / 0.7);
   const lk = A.lookToward(bx, by, VP[0] + 200, VP[1] + 80, 380);
-  const bl = (() => { const x = (t - 4.52) / 0.15; return x < 0 || x > 1 ? 0 : Math.sin(x * Math.PI); })();
-  const eye = { open: 1, surprised: lerp(0.0, 0.28, interest) * (1 - wide) + 1.0 * wide, squint: 0.0, lookX: lk.lookX, lookY: lk.lookY - 0.1 * wide, determined: 0 };
+  const bl = (() => { const x = (t - 4.52) / 0.1; return x < 0 || x > 1 ? 0 : Math.sin(x * Math.PI); })();
+  const eye = { open: 1, surprised: lerp(0.3, 0.55, interest) * (1 - wide) + 1.0 * wide, squint: 0.0, lookX: lk.lookX, lookY: lk.lookY - 0.1 * wide, determined: 0 };
   const fl = Math.max(0, t - FLINCH_T), jolt = Math.exp(-fl * 6) * Math.cos(fl * 20), settle = spring(fl, 3.1, 0.42) * (t >= FLINCH_T ? 1 : 0);
   const hb = A.hoverBob(T, { size: R, amp: 0.035, freq: 0.7, phase: 0.8 });
   const o = {
-    x: bx + hb.dx - 24 * settle + 6 * Math.sin(t * 40) * (t > FLINCH_T && t < FLINCH_T + 0.25 ? 1 : 0), y: by + hb.dy - 16 * Math.max(0, jolt) * (t >= FLINCH_T ? 1 : 0),
-    size: R, yaw: 0.5 - 0.08 * settle, roll: -0.05 + hb.roll - 0.2 * settle, squash: 0.02 + hb.squash + (t >= FLINCH_T ? 0.2 * jolt : 0) - 0.04 * interest * (1 - wide),
-    eye, blink: bl, prop: 'crank', propSide: 1, propAnim: { t, crank: crankAngle(t) }, style: o_style(), palette: { blade: '#A8240F', bladeAlt: '#FFD470' }, seed: 21,
+    x: bx + hb.dx - 24 * settle + 6 * Math.sin(t * 40) * (t > FLINCH_T && t < FLINCH_T + 0.25 ? 1 : 0), y: by + hb.dy - 24 * Math.max(0, jolt) * (t >= FLINCH_T ? 1 : 0),
+    size: R * (1 + 0.1 * Math.exp(-fl * 7) * (t >= FLINCH_T ? 1 : 0)), yaw: 0.5 - 0.08 * settle, roll: -0.05 + hb.roll - 0.2 * settle, squash: 0.02 + hb.squash + (t >= FLINCH_T ? 0.2 * jolt : 0) - 0.04 * interest * (1 - wide),
+    eye, blink: bl, prop: 'crank', propSide: 1, propAnim: { t, crank: crankAngle(t) }, style: o_style(), palette: { blade: '#BF361A', bladeAlt: '#FFDC86' }, seed: 21,
   };
   o.propScale = 1.1;
   A.drawAmrita(ctx, T, S, o);
@@ -546,28 +570,37 @@ function shockMarks(g, x, y, R, fl) {
   ctx.restore();
 }
 
+// the static world (paper, sky, walls, canopy, platform, track) only changes with the 12 fps boil -> cache it per boil step
+const bgCache = new Map();
+function background(g, S, boil) {
+  const key = boil + '|' + S.scale;
+  let c = bgCache.get(key);
+  if (!c) {
+    c = S.mk(Math.round(1920 * S.scale), Math.round(1080 * S.scale));
+    const cc = c.getContext('2d'); cc.setTransform(S.scale, 0, 0, S.scale, 0, 0);
+    const gg = { ...g, ctx: cc };
+    P.paper(cc, S, { seed: 9 }); skyAndSkyline(gg); walls(gg); canopy(gg); platformAndTrack(gg);
+    bgCache.set(key, c); if (bgCache.size > 3) bgCache.delete(bgCache.keys().next().value);
+  }
+  g.ctx.drawImage(c, 0, 0, 1920, 1080);
+}
+
 // ================================================================= SCENE
 export default {
   id: 'e1895', kind: '2d',
   draw(ctx, T, S) {
     const t = T.t, s = locoScale(t), g = { ctx, T, S, boil: T.boil, t };
-    const prof = globalThis.__PROF ? [] : null; let t0 = prof ? performance.now() : 0;
-    const lap = (n) => { if (prof) { const t1 = performance.now(); prof.push(n + ':' + Math.round(t1 - t0)); t0 = t1; } };
-    P.paper(ctx, S, { seed: 9 }); lap('paper');
-    skyAndSkyline(g); lap('sky');
-    walls(g); lap('walls');
-    canopy(g); lap('canopy');
-    platformAndTrack(g); lap('track');
-    columnsAndFurniture(g, t); lap('cols');
-    drawFigures(g, t); lap('people');
+    background(g, S, T.boil);
+    columnsAndFurniture(g, t);
+    signalPost(g, t);
+    drawFigures(g, t);
     speedLines(g, t, s);
-    drawPuffs(g, t); lap('puffs');
-    drawLoco(g, s); lap('loco');
+    drawPuffs(g, t);
+    drawLoco(g, s);
     drawWhistle(g, t, s);
-    cylinderSteam(g, t); lap('steam');
-    drawAmritaScene(g, T, S); lap('amrita');
+    cylinderSteam(g, t);
+    drawAmritaScene(g, T, S);
     drawFrameCorners(g, T);
-    drawIris(g, T); lap('iris');
-    if (prof) S.warn('PROF ' + prof.join(' '));
+    drawIris(g, T);
   },
 };

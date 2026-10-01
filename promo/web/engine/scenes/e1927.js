@@ -15,8 +15,8 @@ import { path, cached, blit, hatchBox, bbox, solid, drape, INK, GOLD, GOLD_D, VE
 
 const TAU = Math.PI * 2;
 const SCR = { cx: 960, cy: 520, hw: 230 }; SCR.hh = (SCR.hw * 9) / 16; SCR.x0 = SCR.cx - SCR.hw; SCR.y0 = SCR.cy - SCR.hh; SCR.w = SCR.hw * 2; SCR.h = SCR.hh * 2; SCR.rad = SCR.hw * 0.08;
-const AW = { x: 500, y: 790 }, RW = 126; // Amrita in the wide shot (world units)
-const MIC = { x: 696, baseY: 918, headY: 776 };
+const AW = { x: 530, y: 780 }, RW = 126; // Amrita in the wide shot (world units)
+const MIC = { x: 716, baseY: 912, headY: 770 };
 const CU = { k: [738, 594], s1: 1.73, s0: 3.3 }; // close-up camera: Amrita screen position, foreground scale, hall scale
 const FLOOR = { yb: 700, yf: 932 };
 const PB0 = 9.12, PB1 = 9.42; // pull-back window (portal must be exact from 9.4)
@@ -157,6 +157,8 @@ function drawHall(g, S, B, c, culled) {
   const P = S.pencil;
   g.fillStyle = '#0f0d13'; g.fillRect(-1500, -1500, 5000, 4200);
   hatchBox(g, { x: 220, y: 0, w: 1480, h: 760 }, { color: '#e8e0cf', gap: 14, width: 1, alpha: 0.05, angle: -0.4, seed: 701, boil: B, comp: 'source-over', dash: 160, keep: 0.7 });
+  // ceiling lamp glow in the upper corners (also keeps the HUD caption legible)
+  [[300, 30], [1620, 30]].forEach(([gx0, gy0]) => { const cg = g.createRadialGradient(gx0, gy0, 10, gx0, gy0, 430); cg.addColorStop(0, 'rgba(255,246,222,0.62)'); cg.addColorStop(0.5, 'rgba(255,240,210,0.26)'); cg.addColorStop(1, 'rgba(255,240,210,0)'); g.fillStyle = cg; g.fillRect(gx0 - 430, gy0 - 60, 860, 520); });
   // deco sunburst fanning from the top of the screen
   for (let i = -9; i <= 9; i++) {
     const a0 = -Math.PI / 2 + (i - 0.5) * 0.17, a1 = a0 + 0.17, Rr = 1100;
@@ -250,21 +252,21 @@ function drawBeam(ctx, T, bright) {
 
 function drawFloor(g, S, B, bright) {
   const P = S.pencil, yb = FLOOR.yb, yf = FLOOR.yf;
-  const poly = [[300, yb], [1620, yb], [1900, yf + 40], [20, yf + 40]];
+  const poly = [[-500, yb], [2420, yb], [2900, yf + 40], [-980, yf + 40]];
   g.save(); path(g, poly); g.clip();
-  g.fillStyle = '#6a5d4e'; g.fillRect(0, yb, 1920, 400);
+  g.fillStyle = '#6a5d4e'; g.fillRect(-1000, yb, 4000, 400);
   const fg = g.createLinearGradient(0, yb, 0, yf); fg.addColorStop(0, 'rgba(10,8,6,0.5)'); fg.addColorStop(0.35, 'rgba(10,8,6,0.0)'); fg.addColorStop(1, 'rgba(10,8,6,0.22)');
-  g.fillStyle = fg; g.fillRect(0, yb, 1920, 400);
+  g.fillStyle = fg; g.fillRect(-1000, yb, 4000, 400);
   // light pool of the beam on the boards
   const pool = g.createRadialGradient(960, 800, 20, 960, 800, 300); pool.addColorStop(0, `rgba(255,248,226,${0.36 * bright + 0.1})`); pool.addColorStop(1, 'rgba(255,248,226,0)');
   g.fillStyle = pool; g.beginPath(); g.ellipse(960, 800, 330, 120, 0, 0, TAU); g.fill();
-  hatchBox(g, { x: 0, y: yb, w: 1920, h: 260 }, { color: '#1a130c', gap: 8, width: 1.3, alpha: 0.45, angle: 0.02, seed: 900, boil: B, comp: 'multiply', dash: 170, keep: 0.8 });
-  for (let i = -12; i <= 12; i++) P.ink(g, [[960 + i * 52, yb], [960 + i * 150, yf + 44]], { closed: false, color: '#150f08', width: 2.2, boil: B, seed: 910 + i + 12, amp: 1.0, alpha: 0.65, passes: 1 });
+  hatchBox(g, { x: -400, y: yb, w: 2720, h: 260 }, { color: '#1a130c', gap: 8, width: 1.3, alpha: 0.45, angle: 0.02, seed: 900, boil: B, comp: 'multiply', dash: 170, keep: 0.8 });
+  for (let i = -22; i <= 22; i++) P.ink(g, [[960 + i * 52, yb], [960 + i * 150, yf + 44]], { closed: false, color: '#150f08', width: 2.2, boil: B, seed: 910 + i + 22, amp: 1.0, alpha: 0.65, passes: 1 });
   g.restore();
-  P.ink(g, [[300, yb], [1620, yb]], { closed: false, color: INK, width: 3.4, boil: B, seed: 905, amp: 1.2 });
+  P.ink(g, [[-400, yb], [2320, yb]], { closed: false, color: INK, width: 3.4, boil: B, seed: 905, amp: 1.2 });
   // apron lip
-  g.fillStyle = '#17120e'; g.fillRect(0, yf + 2, 1920, 80);
-  P.ink(g, [[0, yf + 2], [1920, yf + 2]], { closed: false, color: '#c9ab5c', width: 5, boil: B, seed: 906, amp: 0.8, passes: 1 });
+  g.fillStyle = '#17120e'; g.fillRect(-600, yf + 2, 3200, 120);
+  P.ink(g, [[-600, yf + 2], [2600, yf + 2]], { closed: false, color: '#c9ab5c', width: 5, boil: B, seed: 906, amp: 0.8, passes: 1 });
 }
 function drawMic(g, S, B, shake, pulse) {
   const P = S.pencil, x = MIC.x + shake, hy = MIC.headY, by = MIC.baseY;
@@ -304,7 +306,7 @@ function drawArcLamp(g, S, B) {
 function drawAudience(ctx, S, B, c) {
   const P = S.pencil, y0 = 1000;
   const grad = ctx.createLinearGradient(0, 880, 0, 972); grad.addColorStop(0, 'rgba(6,5,8,0)'); grad.addColorStop(1, 'rgba(6,5,8,0.7)'); ctx.fillStyle = grad; ctx.fillRect(0, 870, 1920, 110);
-  [[944, 25, 66, 0], [912, 19, 56, 1]].forEach(([yy, r, step, row]) => {
+  [[970, 25, 66, 0], [946, 19, 56, 1]].forEach(([yy, r, step, row]) => {
     for (let x = 250 + (row ? 34 : 0); x < 1700; x += step) {
       const i = Math.round(x / step), jx = (hash(i, row, 5) - 0.5) * 18, jr = r * (0.9 + 0.2 * hash(i, row, 6)), cx = x + jx, cy = yy + (hash(i, row, 7) - 0.5) * 8, kind = Math.floor(hash(i, row, 8) * 4);
       const fillc = row ? '#0a090d' : '#050407';
@@ -313,7 +315,7 @@ function drawAudience(ctx, S, B, c) {
       if (kind === 1) solid(ctx, P, [[cx - jr * 1.5, cy - jr * 0.3], [cx + jr * 1.5, cy - jr * 0.3], [cx + jr * 0.8, cy - jr * 0.55], [cx + jr * 0.7, cy - jr * 1.5], [cx - jr * 0.7, cy - jr * 1.5], [cx - jr * 0.8, cy - jr * 0.55]], { fill: fillc, w: 2.2, boil: B, seed: 970 + i + row * 40, off: [0, 0], ink: '#1d1a22' });
       else if (kind === 2) solid(ctx, P, ell(cx + jr * 0.2, cy - jr * 1.0, jr * 0.6, jr * 0.55, 0, TAU, 10), { fill: fillc, w: 2, boil: B, seed: 980 + i + row * 40, off: [0, 0], ink: '#1d1a22' });
       // beam rim light on the screen side of each head
-      ctx.save(); ctx.globalAlpha = 0.5 * (1 - c.p * 0); P.ink(ctx, ell(cx, cy, jr, jr * 1.12, Math.PI * 1.15, Math.PI * 1.85, 8), { closed: false, color: '#E9E3D4', width: 2.2, boil: B, seed: 990 + i + row * 40, amp: 0.5, passes: 1 }); ctx.restore();
+      P.ink(ctx, ell(cx, cy, jr, jr * 1.12, Math.PI * 1.15, Math.PI * 1.85, 8), { closed: false, color: '#E9E3D4', width: 2.2, boil: B, seed: 990 + i + row * 40, amp: 0.5, passes: 1, alpha: 0.5 });
     }
   });
 }
@@ -381,7 +383,7 @@ function balloon(ctx, S, T, c, tipScr) {
   ctx.restore();
   // lettering (pops with the balloon, writes on in 0.12 s)
   ctx.save(); ctx.translate(tip[0], tip[1]); ctx.scale(sx, sy); ctx.translate(-tip[0], -tip[1]);
-  const fs = 74 * kb;
+  const fs = 86 * kb;
   P.text(ctx, 'Hello!', cx - 4 * kb / 2, cy + fs * 0.27, { font: `700 ${fs}px Caveat`, color: INK, align: 'center', boil: B, seed: 1110, reveal: clamp((d - 0.02) / 0.1), amp: 1.2 * kb / 2, rotate: -0.05, doubled: true });
   ctx.restore();
 }
@@ -391,7 +393,7 @@ function speechFx(ctx, S, T, c, tipScr, sMul) {
   for (let i = 0; i < 9; i++) {
     const a = -1.25 + (i / 8) * 1.55 + (hash(i, 2, 9) - 0.5) * 0.12, r0 = (30 + 20 * hash(i, 3, 9)) * sMul, r1 = r0 + (70 + 60 * hash(i, 4, 9)) * len * sMul;
     const p0 = [tipScr[0] + Math.cos(a) * r0, tipScr[1] + Math.sin(a) * r0], p1 = [tipScr[0] + Math.cos(a) * r1, tipScr[1] + Math.sin(a) * r1];
-    ctx.save(); ctx.globalAlpha = fade; P.ink(ctx, [p0, p1], { closed: false, color: '#050407', width: 11 * sMul / 1.95, boil: B, seed: 1200 + i, amp: 0.4, passes: 1, taper: true }); P.ink(ctx, [p0, p1], { closed: false, color: '#FFFFFF', width: 6 * sMul / 1.95, boil: B, seed: 1220 + i, amp: 0.4, passes: 1, taper: true }); ctx.restore();
+    P.ink(ctx, [p0, p1], { closed: false, color: '#050407', width: 11 * sMul / 1.73, boil: B, seed: 1200 + i, amp: 0.4, passes: 1, taper: true, alpha: fade }); P.ink(ctx, [p0, p1], { closed: false, color: '#FFFFFF', width: 6 * sMul / 1.73, boil: B, seed: 1220 + i, amp: 0.4, passes: 1, taper: true, alpha: fade });
   }
 }
 function nervousFx(ctx, S, T, c, A, R) {
@@ -401,17 +403,16 @@ function nervousFx(ctx, S, T, c, A, R) {
   const trem = t < 8.88 ? 1 : 0;
   if (trem) for (let side = -1; side <= 1; side += 2) for (let i = 0; i < 3; i++) {
     const x = A[0] + side * (R * 1.12 + i * R * 0.1 + hash(Math.floor(t * 12), i, 4) * 5), y0 = A[1] - R * 0.5 + i * R * 0.34;
-    P.ink(ctx, [[x, y0], [x + side * R * 0.07, y0 + R * 0.1], [x, y0 + R * 0.2]], { closed: false, color: '#FFFFFF', width: 5 * s / 1.95, boil: B, seed: 1300 + i + (side > 0 ? 5 : 0), amp: 0.5, passes: 1 });
+    P.ink(ctx, [[x, y0], [x + side * R * 0.07, y0 + R * 0.1], [x, y0 + R * 0.2]], { closed: false, color: '#FFFFFF', width: 5 * s / 1.73, boil: B, seed: 1300 + i + (side > 0 ? 5 : 0), amp: 0.5, passes: 1 });
   }
   // sweat drops flying off
   [[8.58, 1.0], [8.7, 0.7], [8.82, 1.25]].forEach(([t0, k], i) => {
     const u = (t - t0) / 0.34; if (u < 0 || u > 1) return;
     const sx = A[0] + R * 0.78 + u * R * 0.55 * k, sy = A[1] - R * 0.72 - R * 0.45 * Math.sin(u * 2.4) * k + u * u * R * 0.9, w = R * 0.13;
     const pts = [[sx, sy - w * 1.7], [sx + w * 0.9, sy - w * 0.1], [sx + w * 0.85, sy + w * 0.5], [sx, sy + w], [sx - w * 0.85, sy + w * 0.5], [sx - w * 0.9, sy - w * 0.1]];
-    ctx.save(); ctx.globalAlpha = 1 - smooth((u - 0.7) / 0.3);
-    P.fill(ctx, pts, { color: '#FFFFFF', comp: 'source-over', offset: [0, 0], boil: B, seed: 1320 + i, amp: 0.5 });
-    P.ink(ctx, pts, { color: INK, width: 3.2 * s / 1.95, boil: B, seed: 1330 + i, amp: 0.6, passes: 1 });
-    ctx.restore();
+    const fa = 1 - smooth((u - 0.7) / 0.3);
+    P.fill(ctx, pts, { color: '#FFFFFF', comp: 'source-over', offset: [0, 0], boil: B, seed: 1320 + i, amp: 0.5, alpha: fa });
+    P.ink(ctx, pts, { color: INK, width: 3.2 * s / 1.73, boil: B, seed: 1330 + i, amp: 0.6, passes: 1, alpha: fa });
   });
 }
 
@@ -442,8 +443,8 @@ function drawStage(ctx, T, S) {
   const st = amritaAt(t), A0 = L1(c)(AW.x + st.dx, AW.y + st.dy), RS = RW * st.mul * c.s1;
   const tipScr = [A0[0] + RS * 0.66 * Math.cos(st.yaw), A0[1] - RS * 0.04];
   // soft light pool behind her so the disc pops off the dark floor
-  ctx.save(); const hg = ctx.createRadialGradient(A0[0], A0[1], RS * 0.4, A0[0], A0[1], RS * 1.8); hg.addColorStop(0, `rgba(255,248,230,${0.2 + 0.2 * bright})`); hg.addColorStop(1, 'rgba(255,248,230,0)'); ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(A0[0], A0[1], RS * 1.8, 0, TAU); ctx.fill(); ctx.restore();
-  hero(ctx, T, S, { x: A0[0], y: A0[1], size: RS, yaw: st.yaw, roll: st.roll, squash: st.squash, eye: st.eye, prop: 'megaphone', propAnim: { t }, propSide: -1, propScale: 0.72, seed: 21, shadow: false }, 3.6 * CU.s1 * RW);
+  ctx.save(); const hg = ctx.createRadialGradient(A0[0], A0[1], RS * 0.5, A0[0], A0[1], RS * 1.8); hg.addColorStop(0, `rgba(255,248,230,${0.34 + 0.12 * bright})`); hg.addColorStop(1, 'rgba(255,248,230,0)'); ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(A0[0], A0[1], RS * 1.8, 0, TAU); ctx.fill(); ctx.restore();
+  hero(ctx, T, S, { x: A0[0], y: A0[1], size: RS, yaw: st.yaw, roll: st.roll, squash: st.squash, eye: st.eye, prop: 'megaphone', propAnim: { t }, propSide: -1, propScale: 0.72, seed: 21, shadow: false, palette: { blade: '#FF7C4E', bladeAlt: '#FFD870', face: '#FFF6DC' } }, 3.6 * CU.s1 * RW);
   nervousFx(ctx, S, T, c, A0, RS);
   // audience in the foreground (L2): rises into the bottom of frame during the pull-back
   layer(ctx, 2, c, () => { if (c.p > 0.001) drawAudience(ctx, S, B, c); });

@@ -15,11 +15,12 @@ lines = {l["id"]: l for l in cue_lines()["vo"]}
 filt = sys.argv[1:]
 voices = sorted(d for d in os.listdir(os.path.join(WORK, "cmp")) if not filt or any(f in d for f in filt))
 rows = []
+name_hyp = {}
 for v in voices:
     files = sorted(glob.glob(os.path.join(WORK, "cmp", v, "s*_vo*.wav")))
     if not files:
         continue
-    err = {"base.en+p": 0, "tiny.en+p": 0, "base.en": 0}
+    err = {"base.en": 0, "tiny.en": 0}
     nref = 0
     conf, f0, hnr, tilt, alpha, f0sd = [], [], [], [], [], []
     she = 0
@@ -31,24 +32,27 @@ for v in voices:
         ln = lines[lid]
         y, sr = read_wav_mono(fpath)
         k = f"{v}|{b}"
-        if k not in cache:
-            c = {}
-            for m in err:
-                nm, _, fl = m.partition("+")
-                c[m] = asr_wer(fpath, ln["text"], nm, prompt=VOCAB_PROMPT if fl else None)
-            c["metrics"] = voice_metrics(y.astype(np.float64), sr)
-            c["dur"] = len(y) / sr
+        c = cache.get(k, {})
+        dirty = k not in cache
+        for m in err:
+            if m not in c:
+                c[m] = asr_wer(fpath, ln["text"], m); dirty = True
+        if "metrics" not in c:
+            c["metrics"] = voice_metrics(y.astype(np.float64), sr); c["dur"] = len(y) / sr; dirty = True
+        if dirty:
             cache[k] = c
             json.dump(cache, open(cache_f, "w"))
-        c = cache[k]
-        for m in err:
-            err[m] += c[m]["errors"]
-        nref += c["base.en+p"]["nref"]
-        conf.append(c["base.en+p"]["conf"])
+        if lid in ("vo3b", "vo6a"):   # name lines: Whisper does not know 'Amrita' -> reported separately
+            name_hyp.setdefault(v, []).append(c["base.en"]["hyp"])
+        else:
+            for m in err:
+                err[m] += c[m]["errors"]
+            nref += c["base.en"]["nref"]
+        conf.append(c["base.en"]["conf"])
         mt = c["metrics"]
         f0.append(mt.get("f0_med", 0)); hnr.append(mt.get("hnr", 0)); tilt.append(mt.get("tilt_db_oct", 0)); alpha.append(mt.get("alpha_ratio_db", 0)); f0sd.append(mt.get("f0_sd_st", 0))
         if lid.startswith("vo4"):
-            she += c["base.en+p"]["errors"] + c["tiny.en+p"]["errors"]
+            she += c["base.en"]["errors"] + c["tiny.en"]["errors"]
         fit.setdefault(lid, []).append(c["dur"] / (ln["maxEnd"] - ln["t0"]))
     s1 = [f for f in files if os.path.basename(f).startswith("s1_")]
     ys = []
@@ -58,7 +62,7 @@ for v in voices:
     dk = f"dns|{v}"
     if dk not in cache:
         cache[dk] = dnsmos(np.concatenate(ys), sr); json.dump(cache, open(cache_f, "w"))
-    rows.append(dict(voice=v, n=len(files), wer_b=err["base.en+p"] / nref, wer_t=err["tiny.en+p"] / nref, wer_np=err["base.en"] / nref,
+    rows.append(dict(voice=v, n=len(files), wer_b=err["base.en"] / nref, wer_t=err["tiny.en"] / nref, wer_np=0.0, names=name_hyp.get(v, []),
                      she=she, conf=float(np.mean(conf)), f0=float(np.mean(f0)), f0sd=float(np.mean(f0sd)), hnr=float(np.mean(hnr)),
                      tilt=float(np.mean(tilt)), alpha=float(np.mean(alpha)), fit=max(float(np.mean(x)) for x in fit.values()),
                      fit_vo6a=float(np.mean(fit["vo6a"])), fit_vo3b=float(np.mean(fit["vo3b"])), sig=cache[dk]["sig"], ovrl=cache[dk]["ovrl"]))

@@ -19,7 +19,7 @@ for(let i=0;i<cfg.length;i++){
   const x=(i%cols)*W, y=Math.floor(i/cols)*(Hh+16);
   if(k.crop){const [a,b,cw,ch]=k.crop; g.drawImage(f.out,a*W,b*Hh,cw*W,ch*Hh,x,y,W,Hh);} else g.drawImage(f.out,x,y);
   g.fillStyle='#fff'; g.font='12px monospace'; g.fillText(`t=${k.t} ${k.label||''} hide=${(k.hide||[]).join(',')} ${Math.round(r.ms)}ms`,x+4,y+Hh+12);
-  if(r.warnings.length) console.log('WARN',r.warnings.join('|'));
+  console.log('MS',k.label||'',Math.round(ms)); if(r.warnings.length) console.log('WARN',r.warnings.join('|'));
 }
 window.__sheet=c.toDataURL('image/png'); window.__done=true;
 </script></body></html>

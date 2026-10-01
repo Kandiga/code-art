@@ -132,10 +132,23 @@ sheets.bench = () => {
   for (const l of Object.values(L)) l.visible = false;
   scene.add(new THREE.AmbientLight('#2a2540', 0.5));
   let cur = 'base';
-  const upd = (T) => { aud.group.visible = cur === 'aud' || cur === 'all'; orc.group.visible = cur === 'orch' || cur === 'all'; pa.group.visible = cur === 'part' || cur === 'all'; cast.forEach((c) => { c.root.visible = cur === 'cast' || cur === 'all'; });
+  const upd = (T) => { aud.group.visible = cur.startsWith('aud') || cur === 'all'; if (aud.meshes.seats) aud.meshes.seats.visible = !cur.includes('-seats'); if (aud.meshes.steps) aud.meshes.steps.visible = !cur.includes('-steps'); for (const k of ['body', 'head', 'arms', 'hair']) aud.meshes[k].visible = !cur.includes('-ppl'); orc.group.visible = cur === 'orch' || cur === 'all'; pa.group.visible = cur === 'part' || cur === 'all'; cast.forEach((c) => { c.root.visible = cur === 'cast' || cur === 'all'; });
     if (aud.group.visible) aud.update(T, { react: () => 0.6, standT: 44, cheerT: 46 }); if (orc.group.visible) { orc.assemble(T, 36, 37); orc.hit(T, 37); } if (pa.group.visible) pa.update(T, { litT: 40, standT: 44 }); if (cast.length) cast.forEach((c) => c.idle(T)); };
   const tiles = []; for (const pn of parts) for (let k = 0; k < 2; k++) tiles.push({ t: 45 + 0.01 * k, part: pn, cam: pn === 'cast' ? [[0, 1.6, 17], [0, 0.8, 12]] : pn === 'orch' || pn === 'part' ? [[0, 5, 30], [0, 1.5, 22]] : [[0, 7.5, 30], [0, 2.4, 0]], dof: { focus: 14, strength: 0.4, maxPx: 8 } });
   const sh = { scene, camera, upd, tiles }; sh.before = (tl) => { cur = tl.part; }; return sh;
+};
+
+sheets.misc = () => {   // API smoke test: createSeats, rim style facing the camera, couch(3,facing camera), particle layouts ring/scatter, orchestra count 40
+  const { scene, L } = labStage({ wall: false }); scene.background = new THREE.Color('#06050a'); const camera = cam(36);
+  for (const l of Object.values(L)) l.visible = false; scene.add(new THREE.AmbientLight('#3a3560', 0.7)); const pl = new THREE.PointLight('#ffd9a0', 80, 40, 2); pl.position.set(0, 4, 5); scene.add(pl);
+  const seats = C.createSeats(THREE, { rows: 5, cols: 9, spacing: 0.8, empty: 0.1, curve: 0.2 }); seats.group.position.set(-8, 0, -2); scene.add(seats.group); seats.setLightColor('#ffcf8a');
+  const aud = C.createAudience(THREE, { rows: 5, cols: 9, spacing: 0.8, style: 'rim', facing: 'camera', seed: 9 }); aud.group.position.set(2, 0, 3); scene.add(aud.group); aud.setLightColor('#ff9a5a');
+  const cs = C.createCouchGroup(THREE, { people: 3, facing: 'camera', style: 'icons', seed: 4 }); cs.group.position.set(-3, 0, 6); scene.add(cs.group);
+  const ring = C.createParticleAudience(THREE, { count: 40, seed: 2, layout: 'ring', bounds: { w: 12, d: 12, cx: -8, cz: -12 } }); scene.add(ring.group);
+  const sc = C.createParticleAudience(THREE, { count: 40, seed: 5, style: 'scatter', bounds: { w: 12, d: 8, cx: 8, cz: -12 }, focus: [0, 1, 0] }); scene.add(sc.group);
+  const orc = C.createOrchestraOfLight(THREE, { seed: 5, count: 40 }); orc.group.position.set(0, 0, -14); scene.add(orc.group);
+  const upd = (T) => { aud.update(T, { react: (t) => 0.5, cheerT: [44, 45] }); cs.update(T, { react: (t) => 0.3 }); ring.update(T, { litT: 40, standT: 44, hue: 0.1 }); sc.update(T, { litT: 40, hue: 0.9, assemble: [43, 44] }); orc.update(T, { assemble: [42, 43], hits: [44] }); };
+  return { scene, camera, upd, tiles: [[43.5, [0, 3.5, 14], [0, 1.2, 0]], [44.2, [0, 6, 16], [0, 1, -6]], [44.6, [-3, 1.8, 9.5], [-3, 1.0, 6]]].map(([t, p, l]) => ({ t, cam: [p, l], dof: { focus: 14, strength: 0.3, maxPx: 5 } })) };
 };
 const which = sheetName === 'all' ? Object.keys(sheets) : sheetName.split(',');
 

@@ -38,10 +38,10 @@ const vfovOf = (mm) => (2 * Math.atan(SENSOR_H / 2 / mm)) / DEG;
 // ------------------------------------------------------------------ camera path (stage metres)
 const CAM = [
   { t: 22.5, p: [0.0, 1.55, 8.4], g: [0.0, 1.05, 0.0], mm: 35 },
-  { t: 23.5, p: [0.1, 1.52, 8.12], g: [0.04, 1.05, 0.0], mm: 35 },
-  { t: 24.0, p: [0.42, 1.42, 7.45], g: [0.22, 0.95, 0.1], mm: 37 },
-  { t: 25.0, p: [0.85, 1.25, 6.3], g: [0.5, 0.9, 0.25], mm: 44 },
-  { t: 26.0, p: [1.0, 1.22, 5.6], g: [0.55, 0.84, 0.3], mm: 50 },
+  { t: 23.5, p: [0.08, 1.53, 8.26], g: [0.03, 1.05, 0.0], mm: 35 },
+  { t: 24.0, p: [0.38, 1.44, 7.9], g: [0.2, 0.97, 0.1], mm: 37 },
+  { t: 25.0, p: [0.85, 1.25, 6.5], g: [0.5, 0.88, 0.25], mm: 44 },
+  { t: 26.0, p: [1.0, 1.2, 5.9], g: [0.55, 0.78, 0.3], mm: 50 },
 ];
 function hermite(a, b, ma, mb, u, dt) { const u2 = u * u, u3 = u2 * u; return (2 * u3 - 3 * u2 + 1) * a + (u3 - 2 * u2 + u) * dt * ma + (-2 * u3 + 3 * u2) * b + (u3 - u2) * dt * mb; }
 function camAt(t, out) {
@@ -81,13 +81,14 @@ const PIECES = Array.from({ length: NC }, (_, k) => {
   return {
     k, kA: k, kB: kb, phi, d: [Math.cos(phi), Math.sin(phi)], l: [-Math.sin(phi), Math.cos(phi)],
     t0: TEAR + [0.0, 0.045, 0.02, 0.075, 0.035][k], // stagger of the peel start
-    dur: 1.25 + 0.35 * h(1), // time for the fold line to sweep the whole piece
+    dur: 0.95 + 0.3 * h(1), // time for the fold line to sweep the whole piece
     thMax: 2.72 + 0.3 * h(2), // final fold angle (rad), ~160-175 deg: cream back faces the lens
     rho0: 0.055 + 0.02 * h(3), rho1: 0.03 + 0.01 * h(4), // fold radius (m) start -> end
     twist: (h(5) < 0.5 ? -1 : 1) * (0.28 + 0.4 * h(6)), // roll of the flap about the peel axis
     fAmp: 0.18 + 0.16 * h(7), fW: 5.5 + 3 * h(8), fK: 7 + 5 * h(9), fPh: 6.28 * h(10), // flutter of the flap
-    relDelay: 0.62 + 0.3 * h(11), relDur: 1.0 + 0.3 * h(12), // rigid release / fly-away
-    psi: 1.25 + 0.5 * h(13), drift: 1.0 + 0.45 * h(14), side: (h(15) - 0.5) * 0.9, zTrav: DP + 0.9 + 0.5 * h(16), spin: (h(17) - 0.5) * 3.2,
+    relDelay: 0.78 + 0.3 * h(11), relDur: 0.85 + 0.25 * h(12), // rigid release / fly-away
+    psi: 1.25 + 0.5 * h(13), drift: 1.1 + 0.5 * h(14), side: (h(15) - 0.5) * 0.9, zTrav: DP + 0.9 + 0.5 * h(16), spin: (h(17) - 0.5) * 3.2,
+    scMax: 0.3 + 0.13 * hash(SEED, k, 18), // fold line parks here (m from the centre) while the petals hold + flutter
     S: 0.8, // longest extent along d (set from the mesh in setup)
   };
 });
@@ -99,7 +100,7 @@ function pieceState(pc, t, sc) {
   const ps = { on: x > 0, x };
   if (x <= 0) return ps;
   const p = (() => { const q = clamp(x / pc.dur, 0, 1); return 1 - Math.pow(1 - q, 1.9) * (1 - 0.0 * q); })();
-  const Sc = p * (pc.S + 0.05);
+  const Sc = Math.min(p * (pc.S + 0.05), pc.scMax);
   const th = pc.thMax * sstep(0, 0.5, x);
   const rho = mix(pc.rho0, pc.rho1, sstep(0, 1, p));
   const fenv = sstep(0.05, 0.4, x) * (1 - 0.45 * p);
@@ -188,7 +189,7 @@ uniform sampler2D tMap, tNoise, tAng;
 uniform vec2 uSize, uC; uniform float uRMax;
 uniform float uBaseA, uBaseB, uRowA, uRowB, uFrontA, uFrontB, uHairA, uHairB;
 uniform float uGap, uSeam, uHairI, uLit, uTrans;
-uniform vec3 uLightDir, uBackPos; uniform float uDL0;
+uniform vec3 uLightDir, uLight2, uBackPos; uniform float uDL0, uDL02;
 uniform mat3 uInvOut, uInvIn;
 varying vec2 vUv; varying vec3 vN; varying vec3 vWP;
 const float PI = 3.14159265;
@@ -217,7 +218,7 @@ void main(){
   vec3 tex = texture2D(tMap, vUv).rgb;
   vec3 albF = invACES(tex);
   float lum = dot(tex, vec3(0.3, 0.55, 0.15));
-  vec3 albB = invACES(vec3(0.90, 0.855, 0.745) * (0.93 + 0.12 * n2.g + 0.05 * (n1.r - 0.5))) * (1.0 - 0.2 * (1.0 - clamp(lum * 1.4, 0.0, 1.0)));
+  vec3 albB = invACES(vec3(0.74, 0.69, 0.575) * (0.93 + 0.12 * n2.g + 0.05 * (n1.r - 0.5))) * (1.0 - 0.2 * (1.0 - clamp(lum * 1.4, 0.0, 1.0)));
   vec3 albW = invACES(vec3(0.96, 0.94, 0.89) * (0.82 + 0.2 * n3.b));
   vec3 alb = fr ? albF : albB;
   alb *= 1.0 + uLit * 0.06 * (n1.a - 0.5);
@@ -227,18 +228,19 @@ void main(){
   vec3 N = normalize(vN); if (!fr) N = -N;
   vec3 V = normalize(cameraPosition - vWP), L = normalize(uLightDir);
   float dl = max(dot(N, L), 0.0);
-  float shade = (0.40 + 1.0 * dl) / (0.40 + 1.0 * uDL0);
+  vec3 L2 = normalize(vec3(0.6, -0.3, 0.5)); float dl2 = max(dot(N, uLight2), 0.0);
+  float shade = (0.16 + 1.25 * dl + 0.22 * dl2) / (0.16 + 1.25 * uDL0 + 0.22 * uDL02);
   shade = mix(1.0, shade, uLit);
   vec3 Lb = normalize(uBackPos - vWP); float dB2 = length(uBackPos - vWP);
   float rimB = pow(clamp(1.0 - abs(dot(N, V)), 0.0, 1.0), 3.0) * uTrans * 0.6;
   float tr = max(-dot(N, Lb), 0.0) * uTrans * (0.5 * exp(-max(dMin, 0.0) / 0.03) * torn + 0.04 * exp(-r / 0.25));
   vec3 H = normalize(L + V);
-  float spec = pow(max(dot(N, H), 0.0), fr ? 26.0 : 10.0) * (fr ? 0.16 : 0.07) * uLit;
+  float spec = pow(max(dot(N, H), 0.0), fr ? 26.0 : 8.0) * (fr ? 0.14 : 0.06) * uLit;
   vec3 col = alb * shade + vec3(1.0, 0.96, 0.88) * spec;
   col += mix(alb, albB, 0.7) * vec3(1.0, 0.8, 0.5) * (tr * 1.5 + rimB);
   // seam of light through the torn fibres
   vec3 hot = vec3(1.0, 0.86, 0.6);
-  col += hot * uSeam * torn * (exp(-max(dMin, 0.0) / 0.0035) + 0.05 * exp(-max(dMin, 0.0) / 0.04));
+  col += hot * uSeam * torn * (exp(-max(dMin, 0.0) / 0.0035) + 0.03 * exp(-max(dMin, 0.0) / 0.04));
   // hairline crack of light (before the tear, intact sheet)
   float hA = uHairA > 0.0 ? exp(-pow(sA / 0.0018, 2.0)) * (1.0 - smoothstep(uHairA - 0.03, uHairA, r)) : 0.0;
   float hB = uHairB > 0.0 ? exp(-pow(sB / 0.0018, 2.0)) * (1.0 - smoothstep(uHairB - 0.03, uHairB, r)) : 0.0;
@@ -253,7 +255,7 @@ void main(){
   float core = exp(-r * r * 5.0), halo = exp(-r * 1.5) * 0.35;
   float rays = pow(0.5 + 0.5 * sin(a * 13.0 + uSeed + 2.5 * sin(a * 4.0 + uTime * 0.4)), 4.0) * exp(-r * 1.1);
   float rays2 = pow(0.5 + 0.5 * sin(a * 27.0 - uSeed * 1.7 + uTime * 0.6), 6.0) * exp(-r * 1.8);
-  vec3 col = vec3(1.0, 0.86, 0.6) * (core * 1.6 + halo + rays * 0.8 + rays2 * 0.5) * uI;
+  vec3 col = vec3(1.0, 0.86, 0.6) * (core * 1.4 + halo + rays * 0.55 + rays2 * 0.3) * uI;
   gl_FragColor = vec4(col, 1.0);
 }`;
 const BEAM_VERT = /* glsl */`varying vec3 vWP; void main(){ vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`;
@@ -304,6 +306,11 @@ const POOL_FRAG = /* glsl */`precision highp float; varying vec2 vUv; uniform ve
 void main(){ vec2 p = (vUv - 0.5) * 2.0; float r = length(p); float a = smoothstep(1.0, 0.15, r); a = a * a; gl_FragColor = vec4(uCol * uI * a, 1.0); }`;
 const RING_FRAG = /* glsl */`precision highp float; varying vec2 vUv; uniform vec3 uCol; uniform float uI, uR, uW;
 void main(){ vec2 p = (vUv - 0.5) * 2.0 * 4.0; float r = length(p); float d = (r - uR) / uW; float a = exp(-d * d) * uI * (1.0 - smoothstep(2.0, 4.0, r)); gl_FragColor = vec4(uCol * a, 1.0); }`;
+const HAZE_VERT = /* glsl */`varying vec3 vWP; void main(){ vec4 wp = modelMatrix * vec4(position, 1.0); vWP = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`;
+const FLOORHAZE_FRAG = /* glsl */`precision highp float; varying vec3 vWP; uniform float uI; uniform vec3 uCol;
+void main(){ float d = vWP.z + 9.0; float a = exp(-d / 6.5) * (0.35 + 0.65 * smoothstep(14.0, 0.0, abs(vWP.x))); gl_FragColor = vec4(uCol * a * uI, 1.0); }`;
+const WALLHAZE_FRAG = /* glsl */`precision highp float; varying vec3 vWP; uniform float uI; uniform vec3 uCol;
+void main(){ float a = exp(-vWP.y / 2.2) * (0.3 + 0.7 * smoothstep(16.0, 0.0, abs(vWP.x))); gl_FragColor = vec4(uCol * a * uI, 1.0); }`;
 const DOT_VERT = /* glsl */`attribute float aSize; attribute vec3 aCol; uniform float uScale, uInt; varying vec3 vC;
 void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = clamp(aSize * uScale / max(-mv.z, 0.1), 1.0, 12.0); vC = aCol * uInt; }`;
 const DOT_FRAG = /* glsl */`precision highp float; varying vec3 vC; void main(){ vec2 c = gl_PointCoord - 0.5; float d = length(c) * 2.0; if (d > 1.0) discard; gl_FragColor = vec4(vC * (1.0 - 0.5 * d * d), 1.0); }`;
@@ -334,11 +341,15 @@ export default {
     const dotGeo = new THREE.BufferGeometry(); dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPos, 3)); dotGeo.setAttribute('aSize', new THREE.BufferAttribute(dotSize, 1)); dotGeo.setAttribute('aCol', new THREE.BufferAttribute(dotCol, 3));
     const dotMat = new THREE.ShaderMaterial({ vertexShader: DOT_VERT, fragmentShader: DOT_FRAG, uniforms: { uScale: { value: 1000 }, uInt: { value: 1 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false });
     const dots = new THREE.Points(dotGeo, dotMat); dots.frustumCulled = false; scene.add(dots);
-    const glowBack = new THREE.Mesh(new THREE.PlaneGeometry(46, 22), mkMat(`precision highp float; varying vec2 vUv; uniform float uI; void main(){ vec2 p=(vUv-vec2(0.5,0.42))*vec2(1.6,2.0); float r=length(p); float g=exp(-r*r*3.2); gl_FragColor=vec4(vec3(0.16,0.2,0.46)*g*uI+vec3(0.05,0.03,0.09)*uI*0.5,1.0);} `, { uI: { value: 0.3 } }));
+    const glowBack = new THREE.Mesh(new THREE.PlaneGeometry(46, 22), mkMat(`precision highp float; varying vec2 vUv; uniform float uI; void main(){ vec2 p=(vUv-vec2(0.5,0.42))*vec2(1.6,2.0); float r=length(p); float g=exp(-r*r*3.2); gl_FragColor=vec4(vec3(0.1,0.12,0.2)*g*uI+vec3(0.03,0.025,0.05)*uI*0.5,1.0);} `, { uI: { value: 0.3 } }));
     glowBack.position.set(0, 5, -8.7); scene.add(glowBack);
+    const hazeMat = (frag, col, I) => new THREE.ShaderMaterial({ vertexShader: HAZE_VERT, fragmentShader: frag, uniforms: { uCol: { value: new THREE.Color(...col) }, uI: { value: I } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false });
+    const floorHaze = new THREE.Mesh(new THREE.PlaneGeometry(40, 16), hazeMat(FLOORHAZE_FRAG, [0.09, 0.11, 0.17], 0.4)); floorHaze.rotation.x = -Math.PI / 2; floorHaze.position.set(0, 0.015, -1); floorHaze.renderOrder = 2; scene.add(floorHaze);
+    const wallHaze = new THREE.Mesh(new THREE.PlaneGeometry(44, 9), hazeMat(WALLHAZE_FRAG, [0.1, 0.12, 0.2], 0.45)); wallHaze.position.set(0, 4.5, -8.6); wallHaze.renderOrder = 2; scene.add(wallHaze);
 
     // ---- Amrita + chair
     const A = createAmrita(THREE); A.root.visible = false; scene.add(A.root);
+    const aMeshes = []; A.root.traverse((m) => { if (m.isMesh) aMeshes.push(m); });
     // ---- spotlight volume: analytic cone raymarch (one bounding cone mesh per beam)
     const apex = new THREE.Vector3(0.55, 7.0, 1.2), base = new THREE.Vector3(0.45, 0, 0.35), axis = base.clone().sub(apex).normalize();
     const BEAM_H = base.distanceTo(apex) * 1.04, BEAM_TAN = Math.tan(0.215), BEAM_ANG = Math.atan(BEAM_TAN);
@@ -377,11 +388,11 @@ export default {
     const noiseTex = makeNoiseTex(THREE), crackTex = makeCrackTex(THREE);
     const inM = new THREE.Matrix3().fromArray([0.59719, 0.076, 0.0284, 0.35458, 0.90834, 0.13383, 0.04823, 0.01566, 0.83777]);
     const outM = new THREE.Matrix3().fromArray([1.60475, -0.10208, -0.00327, -0.53108, 1.10813, -0.07276, -0.07367, -0.00605, 1.07602]);
-    const lightLocal = new THREE.Vector3(-0.45, 0.65, 0.62).normalize();
+    const lightLocal = new THREE.Vector3(-0.45, 0.65, 0.62).normalize(), light2Local = new THREE.Vector3(0.6, -0.3, 0.5).normalize();
     const shared = {
       tMap: { value: null }, tNoise: { value: noiseTex }, tAng: { value: crackTex }, uSize: { value: new THREE.Vector2(Wp, Hp) }, uC: { value: new THREE.Vector2(CRACK_C[0], CRACK_C[1]) }, uRMax: { value: RMAX },
       uGap: { value: 0 }, uSeam: { value: 0 }, uHairI: { value: 0 }, uLit: { value: 0 }, uTrans: { value: 0 },
-      uLightDir: { value: lightLocal.clone().applyQuaternion(sheet.quaternion) }, uBackPos: { value: new THREE.Vector3(0, 0.02, -0.45).applyMatrix4(sheet.matrixWorld) }, uDL0: { value: lightLocal.z },
+      uLightDir: { value: lightLocal.clone().applyQuaternion(sheet.quaternion) }, uLight2: { value: light2Local.clone().applyQuaternion(sheet.quaternion) }, uDL02: { value: light2Local.z }, uBackPos: { value: new THREE.Vector3(0, 0.02, -0.45).applyMatrix4(sheet.matrixWorld) }, uDL0: { value: lightLocal.z },
       uInvOut: { value: outM.clone().invert() }, uInvIn: { value: inM.clone().invert() },
     };
     // grid
@@ -413,8 +424,15 @@ export default {
     const glowU = { uI: { value: 0 }, uTime: { value: 0 }, uSeed: { value: 1.3 } };
     const glow = new THREE.Mesh(new THREE.PlaneGeometry(Wp * 2.8, Hp * 2.8), mkMat(GLOW_FRAG, glowU)); glow.position.set(CRACK_C[0], CRACK_C[1], -0.3); glow.renderOrder = 3; sheet.add(glow);
 
-    const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3();
-    return { THREE, scene, camera, stage, L, rim2, burst, A, beam, moteObj, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, dotMat, glowBack, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, nx, ny, Wp, Hp, tex: null, texCanvas: null };
+    // torn paper scraps thrown out by the tear (instanced, in sheet space)
+    const SN = 70, shardMat = new THREE.MeshStandardMaterial({ color: '#e8dcc2', roughness: 0.92, side: THREE.DoubleSide, emissive: '#5a5040', emissiveIntensity: 0.25 });
+    const shardGeo = new THREE.BufferGeometry(); // a ragged little triangle fan in the unit square
+    { const rr = (n) => hash(SEED, 900, n), pts = [[-0.5, -0.45], [0.1, -0.5], [0.5, -0.1], [0.35, 0.45], [-0.2, 0.5], [-0.5, 0.05]], pos = [], c = [0, 0]; for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; pos.push(0, 0, 0, a[0], a[1], 0, b[0], b[1], 0); } shardGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); shardGeo.computeVertexNormals(); }
+    const shards = new THREE.InstancedMesh(shardGeo, shardMat, SN); shards.frustumCulled = false; sheet.add(shards);
+    const shardP = Array.from({ length: SN }, (_, i) => { const k = Math.floor(hash(SEED, i, 61) * NC), r0 = 0.04 + Math.pow(hash(SEED, i, 62), 0.8) * 0.66, a = crackAngle(k, r0), rad = a + (hash(SEED, i, 63) - 0.5) * 0.9, sp = 0.5 + 1.7 * hash(SEED, i, 64);
+      return { x0: CRACK_C[0] + r0 * Math.cos(crackAngle(k, r0)), y0: CRACK_C[1] + r0 * Math.sin(crackAngle(k, r0)), t0: TEAR + r0 / 14 + 0.02 * hash(SEED, i, 65), vx: Math.cos(rad) * sp, vy: Math.sin(rad) * sp, vz: 0.15 + 1.1 * hash(SEED, i, 66), sz: 0.01 + 0.032 * Math.pow(hash(SEED, i, 67), 1.6), asp: 0.5 + hash(SEED, i, 68), ax: hash(SEED, i, 69) * 6.28, ay: hash(SEED, i, 70) * 6.28, wx: (hash(SEED, i, 71) - 0.5) * 16, wy: (hash(SEED, i, 72) - 0.5) * 16, wz: (hash(SEED, i, 73) - 0.5) * 12 }; });
+    const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), shardObj = new THREE.Object3D();
+    return { THREE, scene, camera, stage, L, rim2, aMeshes, shards, shardP, SN, shardObj, burst, A, beam, moteObj, floorHaze, wallHaze, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, dotMat, glowBack, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, nx, ny, Wp, Hp, tex: null, texCanvas: null };
   },
 
   async prepare(st, T, S) {
@@ -463,7 +481,7 @@ export default {
       shared.uGap.value = 0.0032 * sstep(0, 0.07, x);
       shared.uSeam.value = D.noSeam ? 0 : x < 0 ? 0 : 9 * Math.exp(-x / 0.4) * sstep(0, 0.02, x);
       shared.uHairI.value = 7 * hairK;
-      shared.uTrans.value = D.noTrans ? 0 : x < 0 ? 0 : 1.0 * Math.exp(-x / 0.9) * sstep(0, 0.05, x);
+      shared.uTrans.value = D.noTrans ? 0 : x < 0 ? 0 : 0.25 * Math.exp(-x / 0.45) * sstep(0, 0.05, x);
       const hairLen = 0.04 + 0.28 * sstep(22.4, 22.5, t);
       for (const P of pieces) {
         const pc = P.pc, u = P.u;
@@ -479,9 +497,19 @@ export default {
         for (let v = 0; v < P.nV; v++) { deform(pc, ps, P.scratch, P.flat[v * 2], P.flat[v * 2 + 1], o); P.pos[v * 3] = o[0]; P.pos[v * 3 + 1] = o[1]; P.pos[v * 3 + 2] = o[2]; }
         P.geo.attributes.position.needsUpdate = true; P.geo.computeVertexNormals();
       }
+      if (!isCentre) { // scraps
+        for (let i = 0; i < st.SN; i++) {
+          const q = st.shardP[i], tau = t - q.t0;
+          if (tau <= 0 || tau > 1.3) { st.shardObj.position.set(0, 0, -50); st.shardObj.scale.setScalar(1e-4); st.shardObj.updateMatrix(); st.shards.setMatrixAt(i, st.shardObj.matrix); continue; }
+          const d = 0.55 * (1 - Math.exp(-tau / 0.55)), k = 1 - sstep(0.9, 1.3, tau);
+          st.shardObj.position.set(q.x0 + q.vx * d * 1.6, q.y0 + q.vy * d * 1.6, 0.02 + q.vz * d * 1.1 + 0.2 * tau * tau);
+          st.shardObj.rotation.set(q.ax + q.wx * tau, q.ay + q.wy * tau, q.wz * tau); st.shardObj.scale.set(q.sz * q.asp * k, q.sz * k, q.sz * k); st.shardObj.updateMatrix(); st.shards.setMatrixAt(i, st.shardObj.matrix);
+        }
+        st.shards.instanceMatrix.needsUpdate = true;
+      }
       // burst light behind the paper
       const bi = x < 0 ? 0.0 : (1 - sstep(0, 0.03, 0.03 - x)) * (12 * Math.exp(-x / 0.45) + 0.8 * Math.exp(-x / 1.4));
-      st.glowU.uI.value = ((x < 0 ? 0.0 : 1.0) * (5 * Math.exp(-x / 0.3) * sstep(0, 0.03, x) + 0.6 * Math.exp(-x / 0.9)) + hairK * 1.4) * (1 - sstep(23.2, 23.9, t));
+      st.glowU.uI.value = ((x < 0 ? 0.0 : 1.0) * (3.4 * Math.exp(-x / 0.17) * sstep(0, 0.03, x) + 0.3 * Math.exp(-x / 0.7)) + hairK * 1.4) * (1 - sstep(23.0, 23.55, t));
       st.glowU.uTime.value = t;
       st.burst.intensity = x < 0 ? 0 : 520 * Math.exp(-x / 0.5) + 30 * Math.exp(-x / 1.6);
       st.burst.position.copy(new THREE.Vector3(0, 0.05, -1.4).applyMatrix4(st.sheet.matrixWorld));
@@ -491,17 +519,18 @@ export default {
     // ---------------- stage lights
     const spotK = t < SPOT ? 0 : (() => { const x = t - SPOT; return (1 + 0.9 * Math.exp(-x / 0.12) * Math.sin(2 * Math.PI * x * 11 + 1.2) + 1.6 * Math.exp(-x / 0.06)) * smooth(x / 0.012 + 0.02); })();
     const settled = sstep(SPOT, SPOT + 1.2, t);
+    const antic = sstep(24.3, 24.48, t) * (1 - sstep(24.5, 24.56, t));
     L.key.position.copy(st.apex); L.key.target.position.set(0.45, 0.2, 0.35); L.key.target.updateMatrixWorld();
-    L.key.angle = 0.215; L.key.penumbra = 0.55; L.key.color.set('#ffe0b0'); L.key.intensity = 340 * spotK; L.key.distance = 0; L.key.decay = 2;
+    L.key.angle = 0.215; L.key.penumbra = 0.55; L.key.color.set('#ffe0b0'); L.key.intensity = 200 * spotK * (1 + 0.14 * antic); L.key.distance = 0; L.key.decay = 2;
     const landX = 1.05, landZ = 0.5;
     // Amrita path
     const tl = t - LAND;
     st.rimK = t < LAND ? 0.0 : (1 + 1.6 * Math.exp(-tl / 0.18)) * 1.0;
-    L.rim.position.set(-2.4, 3.4, -3.6); L.rim.target.position.set(0.8, 0.85, 0.3); L.rim.target.updateMatrixWorld();
-    L.rim.color.set('#9fd4ff'); L.rim.intensity = 110 * st.rimK; L.rim.angle = 0.5;
-    st.rim2.position.set(3.2, 2.2, -3.2); st.rim2.intensity = 40 * st.rimK;
-    L.fill.intensity = 3 + 8 * smooth((t - SPOT) / 1.0); L.fill.color.set('#6f8cff');
-    L.amb.intensity = 0.22 + 0.1 * settled; L.amb.color.set('#2a2f55');
+    L.rim.position.set(-2.8, 5.6, -4.6); L.rim.target.position.set(0.8, 0.85, 0.3); L.rim.target.updateMatrixWorld();
+    L.rim.color.set('#9fd4ff'); L.rim.intensity = 170 * st.rimK; L.rim.angle = 0.5;
+    st.rim2.position.set(3.2, 5.0, -4.2); st.rim2.intensity = 45 * st.rimK;
+    L.fill.intensity = 2 + 6 * smooth((t - SPOT) / 1.0); L.fill.color.set('#8a97c8');
+    L.amb.intensity = 0.2 + 0.08 * settled; L.amb.color.set('#343848');
     st.dotMat.uniforms.uInt.value = 0.55 + 0.25 * settled; st.dotMat.uniforms.uScale.value = ptScale;
     st.glowBack.material.uniforms.uI.value = 0.3 + 0.2 * sstep(LAND - 0.05, LAND + 0.4, t);
 
@@ -511,18 +540,19 @@ export default {
 
     // ---------------- Amrita: wait high, drop (stretch), land (squash), hover
     let ay, sq = 0, vis = true;
-    if (t < 24.12) vis = false;
+    if (t < DROP - 0.05) vis = false;
     if (t < DROP - 0.1) ay = lerp(4.3, 2.95, outCubic(clamp((t - 24.12) / 0.4)));
     else if (t < DROP) { const u = (t - (DROP - 0.1)) / 0.1; ay = lerp(2.95, 3.35, smooth(u)); sq = -0.1 * smooth(u); }
     else if (t < LAND) { const u = (t - DROP) / 0.5; const e = Math.pow(u, 1.9); ay = lerp(3.35, 0.5, e); sq = 0.5 * Math.sin(Math.min(1, u * 1.15) * Math.PI * 0.5) * (u < 0.96 ? 1 : 1 - (u - 0.96) / 0.04 * 0.6); }
     else {
       const x = tl; // contact: squash on the floor, then spring up to the hover height
       const sqz = -0.42 * Math.exp(-x / 0.09) + 0.1 * Math.sin(x * 22) * Math.exp(-x / 0.25) * smooth(x / 0.1);
-      sq = sqz; const hover = 0.78 + 0.035 * Math.sin(t * 2.6) * smooth(x / 0.6);
+      sq = sqz; const hover = 0.9 + 0.035 * Math.sin(t * 2.6) * smooth(x / 0.6);
       const base = 0.5 * (1 + sqz) * 0.92;
       ay = lerp(base, hover, spring(Math.max(0, x - 0.05), 2.1, 0.3)) ; if (x < 0.05) ay = base;
     }
-    A.root.visible = vis && T.t >= 24.1;
+    A.root.visible = vis;
+    const wantShadow = ay < 1.9; if (st.shadowOn !== wantShadow) { st.shadowOn = wantShadow; for (const m of st.aMeshes) m.castShadow = wantShadow; }
     const yaw = -0.45 + 0.25 * Math.sin(t * 1.3) * smooth(tl / 0.8);
     A.root.position.set(landX, ay, landZ); A.root.rotation.set(0, 0, 0);
     A.pose({ squash: sq, yaw, roll: t >= LAND ? 0.05 * Math.sin(t * 2.0) : 0.0, bob: 0 });
@@ -530,11 +560,11 @@ export default {
     else if (t < LAND + 0.45) A.eyes({ open: sstep(LAND + 0.1, LAND + 0.2, t), determined: 1, happy: 0, lookX: 0.6, lookY: 0.1 });
     else A.eyes({ open: 1, determined: 0, happy: 1, lookX: 0.6, lookY: 0.1 });
     A.setProp('slate', { t, glow: 1 });
-    st.beamU.uSph0.value.set(landX, ay, landZ, 0.5); st.beamU.uSph1.value.set(0, 0.62, 0, 0.5);
+    st.beamU.uSph0.value.set(landX, ay, landZ, vis ? 0.5 : 0.0); st.beamU.uSph1.value.set(0, 0.62, 0, 0.0);
 
     // beam / motes / pool / ring / puff
     st.beam.visible = !D.noBeam; st.moteObj.visible = !D.noBeam;
-    st.beamU.uInt.value = 0.1 * spotK * (0.9 + 0.1 * settled); st.beamU.uTime.value = t;
+    st.beamU.uInt.value = 0.26 * spotK * (1 + 0.25 * antic) * (0.9 + 0.1 * settled); st.beamU.uTime.value = t;
     const apexV = st.apex, ax = st.axis, tanA = Math.tan(0.215);
     const shock = t >= LAND ? 1 - Math.exp(-tl / 0.3) : 0;
     for (let i = 0; i < st.MN; i++) {
@@ -550,7 +580,7 @@ export default {
     st.pool.material.uniforms.uI.value = 0.7 * spotK * (0.5 + 0.5 * settled);
     // shock ring + puff
     const rx = Math.max(0, tl);
-    st.ring.material.uniforms.uI.value = t < LAND ? 0 : 2.4 * Math.exp(-rx / 0.28); st.ring.material.uniforms.uR.value = 0.5 + 3.6 * (1 - Math.exp(-rx / 0.45)); st.ring.material.uniforms.uW.value = 0.1 + 0.25 * rx;
+    st.ring.material.uniforms.uI.value = t < LAND ? 0 : 0.9 * Math.exp(-rx / 0.22); st.ring.material.uniforms.uR.value = 0.5 + 3.2 * (1 - Math.exp(-rx / 0.4)); st.ring.material.uniforms.uW.value = 0.07 + 0.2 * rx;
     for (let i = 0; i < st.PN; i++) {
       const a = hash(SEED, i, 51) * 6.283, sp = 0.8 + 2.4 * hash(SEED, i, 52), up = 0.3 + 1.6 * hash(SEED, i, 53), x = Math.max(0, tl), drag = 1 - Math.exp(-x / 0.35);
       st.pPos[i * 3] = landX + Math.cos(a) * sp * drag * 0.6; st.pPos[i * 3 + 1] = 0.08 + up * x * Math.exp(-x * 1.4) * 0.9; st.pPos[i * 3 + 2] = landZ + Math.sin(a) * sp * drag * 0.6;
@@ -564,7 +594,8 @@ export default {
     focus = lerp(focus, lerp(chairZ, amriZ, sstep(24.3, 24.95, t)), sstep(24.3, 24.9, t));
     const dof = { focus, strength: lerp(0.5, 0.42, sstep(23.5, 24.5, t)), maxPx: 16, bokeh: 1.3 };
     const frozen = t < TEAR - 0.045;
-    const bloom = { strength: frozen || D.noBloom ? 0 : 0.34 + 0.2 * Math.min(1, imp), radius: 0.62, threshold: lerp(3.2, 0.85, sstep(23.0, 24.3, t)) };
+    const paperK = 1 - sstep(23.6, 24.5, t);
+    const bloom = { strength: frozen || D.noBloom ? 0 : lerp(0.3 + 0.2 * Math.min(1, imp), 0.2 + 0.08 * Math.min(1, imp), paperK), radius: lerp(0.55, 0.4, paperK), threshold: lerp(1.0, 4.6, paperK) };
     return { dof, bloom, exposure: 1, jitter: !frozen };
   },
 };

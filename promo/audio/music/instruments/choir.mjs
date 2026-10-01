@@ -59,6 +59,12 @@ function choirVoice(ev, ctx) {
   for (let i = 0; i < n; i++) bEnv[i] = 0.4 + 1.2 * Math.exp(-i / (0.25 * SR));
   for (let i = 0; i < n; i++) { srcL[i] += nzL[i] * breath * bEnv[i]; srcR[i] += nzR[i] * breath * bEnv[i]; }
   let L = bank(srcL, voice, vA, shift), R = bank(srcR, voice, vA, shift);
+  // chest resonance: a gently low-passed copy of the source keeps the fundamental present (bass 'ooh' formants sit far above f0)
+  {
+    const chest = o.chest != null ? o.chest : 0.4;
+    const cl = biquad(biquad(srcL, 'lp', f0 * 2.4, 0.6), 'lp', f0 * 2.4, 0.6), cr = biquad(biquad(srcR, 'lp', f0 * 2.4, 0.6), 'lp', f0 * 2.4, 0.6);
+    for (let i = 0; i < n; i++) { L[i] += cl[i] * chest; R[i] += cr[i] * chest; }
+  }
   if (morphTo) {
     const L2 = bank(srcL, voice, morphTo, shift), R2 = bank(srcR, voice, morphTo, shift);
     const m0 = (o.morphStart != null ? o.morphStart : 0.2) * (ev.dur + a), m1 = (o.morphEnd != null ? o.morphEnd : 0.75) * (ev.dur + a);
@@ -103,7 +109,7 @@ defineInstrument({
   options: {
     vowel: "'o' (ooh, default) | 'a' (aah) | 'u' | 'e' | 'i' | morph 'o>a' (ooh to aah across the note)", voice: "'bass'|'tenor'|'alto'|'soprano' (default by pitch)",
     singers: 'voices per part (default 4; 8 = big choir)', attack: 'swell time (s, default 0.5)', release: 'release (s, default 0.55)', breath: 'x breath noise',
-    ensemble: 'chorus amount', width: 'stereo width (default 1.25)', vibScale: 'x vibrato', morphStart: '0..1 where the vowel morph begins', morphEnd: '0..1 where it ends',
+    chest: 'x low-passed fundamental reinforcement (default 0.4)', ensemble: 'chorus amount', width: 'stereo width (default 1.25)', vibScale: 'x vibrato', morphStart: '0..1 where the vowel morph begins', morphEnd: '0..1 where it ends',
   },
   reverb: { preset: 'cathedral', wet: 0.3 },
   gainDb: 0, range: [38, 84], defaultMidi: 64, defaultDur: 2, test: { motifOct: 0, chordOct: 0 },

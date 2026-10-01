@@ -40,7 +40,7 @@
 //    Call order per frame:  idle(T) -> hop()/slide()/cheer() -> spot() -> popIn().  Each method SETS its own channels.
 //
 // 2) createAudience(THREE, { rows, cols, spacing, seed, style, seats, facing, curve, riser, rowSpacing, empty,
-//                            aisles, scale, faces, shadows, seatColor })
+//                            aisles, scale, faces, shadows, seatColor, quality:'auto'|'high'|'low' })
 //       style  'silhouette' (near-black beans, rim-lit by the screen) | 'rim' (dark tinted, stronger rim) |
 //              'icons' (bright toy-colour beans WITH faces)
 //       facing 'screen' (looks along group −Z; row 0 = front row at local z=0, rows go +Z and UP) |
@@ -53,7 +53,9 @@
 //          sitT    optional: time they sit back down.     cheerT: number | number[]  jump + arms-up bursts (decays ~1.5 s)
 //          applause number | (t)=>0..1 — arms held up clapping.   seed: extra variation (default 0)
 //       setLightColor(c): the colour of the screen light that rim-lights the backs (THREE.Color | hex | number).
-//       <= 8 draw calls (steps, seats, bodies, heads, arms, hair, eyes, glints), up to ~400 people.
+//       <= 8 draw calls (steps, seats, bodies, heads, arms, hair, eyes, glints), up to ~400 people. quality 'auto' lowers the
+//       geometry detail above 140 / 260 people (the riser/carpet is an unlit dark material on purpose: lit full-screen PBR is slow).
+//       PERF (software GL, 1920x804, 4 sub-frames): ~+0.3 s for 150 people, ~+0.8 s for 376 people on an idle machine; keep < 250 when you can.
 //    createSeats(THREE, {...same layout opts}) -> { group, setLightColor, count } : empty cinema seats only (1-2 draw calls)
 //    createCouchGroup(THREE, { people: 3..5, seed, style, facing, sofaColor }) -> { group, update(T,{react,awe,cheerT}), setLightColor }
 //       a sofa + a cozy family of abstract bean silhouettes seen from behind (parents, a kid leaning on a shoulder, ...).
@@ -61,7 +63,8 @@
 //
 // 3) createParticleAudience(THREE, { count, seed, bounds:{w,d,cx,cz,y}, layout:'rows'|'ring'|'scatter', pointsPerPerson,
 //                                    size, focus:[x,y,z], depthWrite })
-//       -> { group, points, update(T, {standT, litT, intensity, hue, cheerT, react, assemble:[t0,t1]}), count, positions }
+//       -> { group, points, aura, update(T, {standT, litT, intensity, hue, cheerT, react, assemble:[t0,t1]}), count, positions }
+//       style: alias of layout. aura: 0..1 strength of the soft per-person glow billboard (default 1). pointsPerPerson default 130.
 //       People made of LIGHT POINTS (capsule + sphere volumes, rising sparks, a floor ring). Everything twinkles; they
 //       "light up" at litT (staggered), "stand" at standT (arms up), cheer at cheerT. hue 0..1 (HSV) shifts the palette.
 //
@@ -117,18 +120,21 @@ const spring = (t, freq = 3, damp = 0.35) => { // 0 -> 1 with overshoot
 // ---------------------------------------------------------------------------------------------------------------
 // geometry helpers
 // ---------------------------------------------------------------------------------------------------------------
-// merge [{geo, m?:Matrix4}] into one non-indexed BufferGeometry (position + normal)
+// merge [{geo, m?:Matrix4}] into ONE indexed BufferGeometry (position + normal): shared vertices keep the vertex count low
 function mergeGeos(THREE, parts) {
-  const pos = [], nor = [];
+  const pos = [], nor = [], idx = []; let off = 0, total = 0;
   for (const { geo, m } of parts) {
-    const g = (geo.index ? geo.toNonIndexed() : geo.clone());
-    if (m) g.applyMatrix4(m);
-    pos.push(g.attributes.position.array); nor.push(g.attributes.normal.array);
+    const g = geo.clone(); if (m) g.applyMatrix4(m);
+    const p = g.attributes.position, n = g.attributes.normal;
+    pos.push(p.array); nor.push(n.array); total += p.count;
+    if (g.index) for (let i = 0; i < g.index.count; i++) idx.push(g.index.getX(i) + off); else for (let i = 0; i < p.count; i++) idx.push(i + off);
+    off += p.count;
   }
   const cat = (arrs) => { let n = 0; for (const a of arrs) n += a.length; const o = new Float32Array(n); let k = 0; for (const a of arrs) { o.set(a, k); k += a.length; } return o; };
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', new THREE.BufferAttribute(cat(pos), 3));
   out.setAttribute('normal', new THREE.BufferAttribute(cat(nor), 3));
+  out.setIndex(new THREE.BufferAttribute(total > 65535 ? new Uint32Array(idx) : new Uint16Array(idx), 1));
   return out;
 }
 // rounded box: a box whose edges/corners are pulled onto spheres of radius r (toy look)
@@ -166,8 +172,9 @@ function makeRimKit(THREE, { rimColor = '#9fd4ff', pow = 2.2, strength = 1.5, am
   const world = new THREE.Vector3(...dir), tmpQ = new THREE.Quaternion();
   const kit = {
     U, group: null,
-    mk(params, rimMul = 1) {
-      const m = new THREE.MeshStandardMaterial(params);
+    mk(params, rimMul = 1, cheap = false) {
+      let m;
+      if (cheap) { const { roughness, metalness, ...rest } = params; m = new THREE.MeshLambertMaterial(rest); } else m = new THREE.MeshStandardMaterial(params);
       m.onBeforeCompile = (sh) => {
         Object.assign(sh.uniforms, U); sh.uniforms.uRimMul = { value: rimMul };
         sh.fragmentShader = sh.fragmentShader
@@ -183,7 +190,7 @@ function makeRimKit(THREE, { rimColor = '#9fd4ff', pow = 2.2, strength = 1.5, am
     totalEmissiveRadiance += uRimMul * uRimColor * (lit + uAmb * (0.25 + 0.75 * fc)) * (0.4 + 0.6 * diffuseColor.rgb / max(mc, 0.02)) * mix(0.55, 1.0, clamp(mc * 5.0, 0.0, 1.0));
   }`);
       };
-      m.customProgramCacheKey = () => 'crowd3d-rim-v2';
+      m.customProgramCacheKey = () => (cheap ? 'crowd3d-rim-lambert-v2' : 'crowd3d-rim-v2');
       return m;
     },
     // call from onBeforeRender: orient the screen-direction uniform to the current camera
@@ -502,16 +509,15 @@ function personTraits(p, seed, style, i) {
 }
 
 function createCrowdCore(THREE, o) {
-  const { persons, style = 'silhouette', faces = false, seatGeo = null, stepsGeo = null, shadows = false, rim = {}, seatColor = '#3a1420', stepColor = '#1a1822', seed = 1, facing = 'screen', detail = 'high' } = o;
+  const { persons, style = 'silhouette', faces = false, seatGeo = null, stepsGeo = null, shadows = false, rim = {}, seatColor = '#3a1420', stepColor = '#14121a', seed = 1, facing = 'screen', detail = 'high' } = o;
   const N = persons.length;
   const group = new THREE.Group(); group.name = 'crowd';
-  const icons = style === 'icons';
+  const icons = style === 'icons', hi = detail === 'high';
   const kit = makeRimKit(THREE, { rimColor: '#9fd4ff', pow: icons ? 3 : 2.1, strength: icons ? 0.8 : style === 'rim' ? 3.0 : 2.3, amb: icons ? 0.0 : 0.04, ...rim });
   kit.group = group;
-  const mkMat = (extra = {}) => kit.mk({ color: '#ffffff', roughness: icons ? 0.45 : 0.85, metalness: 0, ...extra });
+  const mkMat = (extra = {}) => kit.mk({ color: '#ffffff', roughness: icons ? 0.45 : 0.85, metalness: 0, ...extra }, 1, !hi);
   const meshes = {};
   const sync = (mesh) => { mesh.onBeforeRender = (r, s, camera) => kit.sync(camera); mesh.frustumCulled = false; mesh.castShadow = shadows; mesh.receiveShadow = false; return mesh; };
-  const hi = detail === 'high';
   const geos = hi ? {
     body: new THREE.CapsuleGeometry(0.5, 0.5, 5, 14), head: new THREE.SphereGeometry(1, 16, 12), arm: new THREE.CapsuleGeometry(0.5, 1.0, 3, 8),
     hair: new THREE.SphereGeometry(1, 12, 9), eye: new THREE.SphereGeometry(1, 10, 8),
@@ -526,8 +532,10 @@ function createCrowdCore(THREE, o) {
     add('eyes', geos.eye, new THREE.MeshStandardMaterial({ color: PAL.ink, roughness: 0.15, metalness: 0 }), N * 2);
     add('glints', geos.eye, new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }), N * 2);
   }
-  if (seatGeo) { const sm = kit.mk({ color: seatColor, roughness: 0.75 }); const m = add('seats', seatGeo, sm, N); }
-  if (stepsGeo) { const m = sync(new THREE.Mesh(stepsGeo, kit.mk({ color: stepColor, roughness: 0.9 }, 0.18))); m.name = 'crowd_steps'; group.add(m); meshes.steps = m; }
+  if (seatGeo) { const sm = kit.mk({ color: seatColor, roughness: 0.75 }, 1, !hi); const m = add('seats', seatGeo, sm, N); }
+  // the riser/carpet is an UNLIT dark material (a lit full-screen PBR surface costs seconds per frame in software GL); setLightColor tints it
+  let stepsMat = null;
+  if (stepsGeo) { stepsMat = new THREE.MeshBasicMaterial({ color: stepColor, fog: true }); const m = new THREE.Mesh(stepsGeo, stepsMat); m.frustumCulled = false; m.name = 'crowd_steps'; group.add(m); meshes.steps = m; }
   // ---- static per-instance data
   const c = new THREE.Color(), dark = DARKS.map((x) => new THREE.Color(x)), tint = TINTS.map((x) => new THREE.Color(x)), bright = BRIGHTS.map((x) => new THREE.Color(x));
   const hairCols = icons ? bright : dark;
@@ -554,7 +562,7 @@ function createCrowdCore(THREE, o) {
   const sh = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
   const out = {
     group, kit, meshes, count: N, people: persons.filter((p) => !p.empty).length, drawCalls: Object.keys(meshes).length,
-    setLightColor(col, strength) { kit.setColor(col, strength); return out; },
+    setLightColor(col, strength) { kit.setColor(col, strength); if (stepsMat) { stepsMat.color.set(stepColor).add(kit.U.uRimColor.value.clone().multiplyScalar(0.012)); } return out; },
     update(T, opts = {}) {
       const t = T.t, { react = null, awe = null, standT = Infinity, sitT = Infinity, cheerT = null, applause = 0, seed: sx = 0 } = opts;
       const cheers = Array.isArray(cheerT) ? cheerT : cheerT == null ? [] : [cheerT];
@@ -657,8 +665,9 @@ export function createSeats(THREE, opts = {}) {
   const D = new THREE.Object3D(), c = new THREE.Color(), qY = new THREE.Quaternion();
   persons.forEach((p, i) => { qY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.yaw); D.position.set(p.x, p.y, p.z); D.quaternion.copy(qY); D.scale.setScalar(p.k); if (p.empty === 'gone') D.scale.setScalar(0); D.updateMatrix(); im.setMatrixAt(i, D.matrix); im.setColorAt(i, c.set(o.seatColor || '#3a1420').multiplyScalar(0.85 + 0.3 * H(o.seed, i, 3))); });
   group.add(im);
-  if (opts.steps !== false) { const st = new THREE.Mesh(stepsGeometry(THREE, persons, o.spacing, o.rowSpacing, o.riser), kit.mk({ color: '#1a1822', roughness: 0.9 }, 0.18)); st.frustumCulled = false; st.onBeforeRender = (r, s, cam) => kit.sync(cam); group.add(st); }
-  return { group, count: persons.length, setLightColor(col, s) { kit.setColor(col, s); return this; } };
+  let stepsMat = null;
+  if (opts.steps !== false) { stepsMat = new THREE.MeshBasicMaterial({ color: '#14121a', fog: true }); const st = new THREE.Mesh(stepsGeometry(THREE, persons, o.spacing, o.rowSpacing, o.riser), stepsMat); st.frustumCulled = false; group.add(st); }
+  return { group, count: persons.length, setLightColor(col, s) { kit.setColor(col, s); if (stepsMat) stepsMat.color.set('#14121a').add(kit.U.uRimColor.value.clone().multiplyScalar(0.012)); return this; } };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -688,7 +697,7 @@ export function createCouchGroup(THREE, { people = 4, seed = 11, style = 'rim', 
   if (pillow) parts.push({ geo: roundedBox(THREE, 0.36, 0.36, 0.14, 0.07, 5), m: mat4(THREE, [W / 2 - 0.5, 0.66, 0.24], [1, 1, 1], [-0.15, 0.2, 0.3]), c: C(PAL.amber).multiplyScalar(0.6) });
   const geo = mergeGeos(THREE, parts);
   // vertex colours: per part
-  const colArr = []; parts.forEach((pt) => { const n = (pt.geo.index ? pt.geo.toNonIndexed() : pt.geo).attributes.position.count; for (let i = 0; i < n; i++) colArr.push(pt.c.r, pt.c.g, pt.c.b); });
+  const colArr = []; parts.forEach((pt) => { const n = pt.geo.attributes.position.count; for (let i = 0; i < n; i++) colArr.push(pt.c.r, pt.c.g, pt.c.b); });
   geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colArr), 3));
   const fc = faces ?? facing === 'camera';
   const core = createCrowdCore(THREE, { persons, style, faces: fc, seed, facing, rim: { strength: 1.6 } });

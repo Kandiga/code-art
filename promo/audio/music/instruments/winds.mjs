@@ -147,7 +147,7 @@ function windVoice(ev, ctx, P) {
   }
   // breath
   const nz = noise('pink', n, seedOf(ctx.i, 'br', m), { rms: 1 });
-  const nzf = biquad(biquad(nz, 'bp', P.noiseHz, 0.6), 'hp', 1400, 0.7);
+  const nzf = biquad(biquad(biquad(nz, 'bp', P.noiseHz, 0.6), 'hp', 1400, 0.7), 'lp', 8000, 0.7);
   const bump = expEnv(n, 0.035);
   const amp = P.gain * velAmp(v, 1.1);
   const L = new Float32Array(n), R = new Float32Array(n);
@@ -163,7 +163,7 @@ function windVoice(ev, ctx, P) {
 }
 const harmList = (pairs) => { const a = pairs.map((p) => p[1]); a.idx = pairs.map((p) => p[0]); return a; };
 const FLUTE = {
-  a: 0.07, rel: 0.14, vib: 14, chiffCents: -22, noiseHz: 3800, noise: 0.28, gain: 0.34,
+  a: 0.07, rel: 0.14, vib: 14, chiffCents: -22, noiseHz: 3600, noise: 0.2, gain: 0.34,
   harm: (m, v) => harmList([[2, reg(m, [[60, 0.5], [72, 0.28], [84, 0.1]]) * (0.6 + 0.6 * v)], [3, reg(m, [[60, 0.22], [72, 0.1], [84, 0.03]]) * (0.5 + 0.7 * v)], [4, reg(m, [[60, 0.08], [72, 0.03], [84, 0]])]]),
 };
 const CLAR = {

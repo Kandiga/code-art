@@ -11,7 +11,7 @@ import { createStage } from '../stage3d.js';
 import { createAmrita } from '../amrita3d.js';
 import * as E from '../ease.js';
 import { hash, rng as mkRng, noise1 } from '../rng.js';
-import { lensFov, pxPerUnit, radialTexture, makeEnv, makeBeam, makeDust, makeSparks, makeRings, makeStylus } from './job_script.js';
+import { lensFov, pxPerUnit, radialTexture, makeEnv, makeBeam, makeDust, makeSparks, makeRings, makeStylus, makeBackdrop, buildStage } from './job_script.js';
 
 const { clamp, lerp, smooth, smoother, outCubic, outBack, spring } = E;
 const TAU = Math.PI * 2;
@@ -189,12 +189,18 @@ export default {
   id: 'job_storyboard', kind: '3d', ratio: 2.39,
   setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#03050a'); scene.fog = new THREE.FogExp2('#080c14', 0.024);
-    const stage = createStage(THREE, { THREE, S, renderer }); scene.add(stage.group);
+    const stage = buildStage(THREE, { THREE, S, renderer }); scene.add(stage.group);
     scene.environment = makeEnv(THREE, renderer, [
-      { w: 7, h: 3.5, pos: [-5, 4, 5], color: '#cfe6ff', i: 4.5 }, { w: 2.2, h: 8, pos: [6, 3, -4], color: '#ffd9b0', i: 2.2 },
+      { w: 7, h: 3.5, pos: [-5, 4, 5], color: '#dbe9ff', i: 2.4 }, { w: 2.2, h: 8, pos: [6, 3, -4], color: '#ffd9b0', i: 2.2 },
       { w: 10, h: 2, pos: [0, 8, 1], color: '#ffffff', i: 1.0 }, { w: 6, h: 2, pos: [3, 0.5, 6], color: '#9ad0ff', i: 0.9 },
     ]);
-    scene.environmentIntensity = 0.5;
+    scene.environmentIntensity = 0.3;
+    // perf: unlit baked backdrop instead of the PBR cyc; no shadow maps (blob decal below); drop the weak stage fill light
+    stage.cyc.visible = false; stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
+    scene.add(makeBackdrop(THREE, S, [
+      { x: -2.5, y: 3.6, rx: 6, ry: 3.4, color: '110,150,230', a: 0.2 }, { x: 2.5, y: 2.6, rx: 5.5, ry: 3.0, color: '140,170,240', a: 0.12 },
+      { x: 6.5, y: 2.8, rx: 4.5, ry: 3.2, color: '255,150,60', a: 0.16 }, { x: 0.5, y: 0.4, rx: 12, ry: 0.9, color: '110,120,160', a: 0.1 },
+    ], { base: ['#04060b', '#090d16'] }));
     const camera = new THREE.PerspectiveCamera(lensFov(35), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root); A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(0.82, 0.12, 0.45); stylus.group.rotation.z = -0.9;
@@ -217,16 +223,16 @@ export default {
 
     // ---- light cones + dust (cool key from the front-left, amber rim from behind-right)
     const KEYP = new THREE.Vector3(-4.2, 6.6, 5.2), RIMP = new THREE.Vector3(4.4, 6.0, -4.6);
-    const beamKey = makeBeam(THREE, { color: '#bcdcff', length: 11, radius: 1.4, intensity: 0.13, power: 1.5 }); scene.add(beamKey); beamKey.userData.aim(KEYP, new THREE.Vector3(-1.0, 1.0, 0.3), 11);
+    const beamKey = makeBeam(THREE, { color: '#bcdcff', length: 11, radius: 1.1, intensity: 0.13, power: 1.5 }); scene.add(beamKey); beamKey.userData.aim(KEYP, new THREE.Vector3(-3.3, 0.8, 0.4), 11);
     const beamRim = makeBeam(THREE, { color: '#ffb868', length: 12, radius: 1.1, intensity: 0.085, power: 1.5 }); scene.add(beamRim); beamRim.userData.aim(RIMP, new THREE.Vector3(1.6, 1.0, 0.2), 12);
-    const dustA = makeDust(THREE, { count: 320, center: [0, 2.0, 0.5], size: [9, 5, 6], color: '#d8ecff', psize: 0.02, intensity: 1.1, seed: 7 }); dustA.userData.setBeam(KEYP, beamKey.userData.dir, 0.13); scene.add(dustA);
+    const dustA = makeDust(THREE, { count: 320, center: [0, 2.0, 0.5], size: [9, 5, 6], color: '#d8ecff', psize: 0.02, intensity: 1.1, seed: 7 }); dustA.userData.setBeam(KEYP, beamKey.userData.dir, 0.1); scene.add(dustA);
     const dustB = makeDust(THREE, { count: 160, center: [0, 2.0, 0], size: [10, 5, 8], color: '#ffd9a0', psize: 0.017, intensity: 0.55, seed: 8 }); dustB.userData.setBeam(RIMP, beamRim.userData.dir, 0.12); scene.add(dustB);
 
     // ---- panels
     const thumbs = makeThumbs(THREE, S), brk = bracketTexture(THREE, S);
     const panels = thumbs.map((t, k) => {
       const p = buildPanel(THREE, t, k); scene.add(p.g); p.g.visible = false;
-      const ghost = new THREE.Mesh(new THREE.PlaneGeometry(PW + 0.3, (PW + 0.3) * 380 / 640), new THREE.MeshBasicMaterial({ map: brk, transparent: true, opacity: 0, alphaTest: 0.25, depthWrite: true, blending: THREE.AdditiveBlending, color: new THREE.Color(1.6, 1.1, 0.4), fog: false }));
+      const ghost = new THREE.Mesh(new THREE.PlaneGeometry(PW + 0.13, (PW + 0.13) * 380 / 640), new THREE.MeshBasicMaterial({ map: brk, transparent: true, opacity: 0, alphaTest: 0.25, depthWrite: true, blending: THREE.AdditiveBlending, color: new THREE.Color(1.6, 1.1, 0.4), fog: false }));
       ghost.position.set(CELLS[k][0], CELLS[k][1], CELLS[k][2] - 0.02); ghost.renderOrder = 3; scene.add(ghost);
       const halo = sprite([0.55, 0.72, 1.0], 2.1, 1.35, 0); halo.position.set(CELLS[k][0], CELLS[k][1], CELLS[k][2] - 0.25); scene.add(halo);
       return { ...p, ghost, halo, cell: CELLS[k] };
@@ -262,6 +268,8 @@ export default {
   update(st, T, S) {
     const { THREE, camera, A, panels, tmp, stage } = st;
     const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
+    st.scene.visible = !D.empty;
+    st.poolGrid.visible = st.poolAm.visible = st.blob.visible = !D.noPools; A.root.visible = !D.noAmrita; st.panels.forEach((p) => { if (D.noPanels) p.g.visible = false; });
     st.beamKey.visible = st.beamRim.visible = !D.noBeams; st.dustA.visible = st.dustB.visible = !D.noDust; st.bulbs.visible = !D.noBulbs; st.sparks.visible = !D.noSparks;
     const popK = lt >= POP ? Math.exp(-(lt - POP) / 0.16) : 0;
     const nSnap = SNAPS.reduce((n, s) => n + (lt >= s ? 1 : 0), 0), lastSnap = nSnap ? SNAPS[nSnap - 1] : -1;
@@ -276,7 +284,7 @@ export default {
     // ---------------- Amrita: watches the grid, flicks the stylus on each snap, startles at the pop, then smiles
     const sg = lt - lastSnap, nod = nSnap && lt < 1.0 ? -0.07 * Math.exp(-sg / 0.05) : 0;
     const popB = lt >= POP ? 0.15 * Math.exp(-(lt - POP) / 0.12) * Math.cos((lt - POP) * 24) : 0;
-    A.pose({ squash: nod + popB, yaw: 0.52 + 0.03 * Math.sin(t * 1.5), roll: 0.02 * Math.sin(t * 1.3), bob: 0.035 * Math.sin(t * 2.3) });
+    A.pose({ squash: nod + popB, yaw: 0.34 + 0.03 * Math.sin(t * 1.5), roll: 0.02 * Math.sin(t * 1.3), bob: 0.035 * Math.sin(t * 2.3) });
     A.eyes({ open: 1 - A.blinkAt(T), squint: 0, sleepy: 0, determined: lt < 0.95 ? 0.5 : 0, surprised: lt >= POP && lt < 1.62 ? 0.8 * Math.exp(-(lt - POP) / 0.2) : 0, happy: (lt >= 0.95 && lt < POP) || lt >= 1.62 ? 1 : 0, lookX: 0.85, lookY: 0.1 });
     A.setProp(null);
     { const fl = nSnap && lt < 1.0 ? Math.exp(-sg / 0.06) : 0, idle = Math.sin(t * 2.5) * 0.02;
@@ -319,7 +327,7 @@ export default {
 
     // ---------------- lights
     const L = stage.lights;
-    L.key.color.set('#cfe6ff'); L.key.intensity = 200; L.key.position.copy(st.KEYP); L.key.target.position.set(-1.2, 1.0, 0.3); L.key.angle = 0.45; L.key.penumbra = 0.7;
+    L.key.color.set('#fff1e0'); L.key.intensity = 235; L.key.position.set(-2.6, 4.6, 6.4); L.key.target.position.set(-0.8, 1.0, 0.3); L.key.angle = 0.5; L.key.penumbra = 0.75;
     L.rim.color.set('#ffb35c'); L.rim.intensity = 330; L.rim.position.copy(st.RIMP); L.rim.target.position.set(0.8, 1.1, 0); L.rim.angle = 0.3; L.rim.penumbra = 0.8;
     L.fill.color.set('#5f7fc0'); L.fill.intensity = 6; L.amb.intensity = 0.08;
     st.glow.position.set(GRID[0] - 0.3, GRID[1] + 0.2, 2.4); st.glow.intensity = 2.0 * (nSnap / 6) + 4 * flash * 0.5 + 6 * popK;

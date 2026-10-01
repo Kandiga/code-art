@@ -1,0 +1,93 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>hud contact sheets</title>
+<style>body{margin:0;background:#1b1a22}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// =====================================================================================================================
+// HUD lab — contact sheets for web/engine/hud.js.   node tools/lab.mjs --page "web/lab/hud.html?sheet=pictos" --out out/stills/hud_pictos.png --w 2000 --h 1200
+//   ?sheet=pictos  : the 12 era pictograms big (paper on paper, digital on dark) + at real strip size
+//   ?sheet=odo     : year counter through every roll beat (frame by frame), paper
+//   ?sheet=now     : the NOW slam, frame by frame (21.40 .. 22.00)
+//   ?sheet=glitch  : the digital counter + caption through a future jump (42.0 .. 42.5)
+//   ?sheet=cap     : the era caption write-on / out through era 1 (4.0 .. 5.8)
+//   ?sheet=bg      : the whole HUD (paper) over white paper / black bars / mid-tone / dive blur, + digital over bars
+//   ?sheet=strip   : the strip at 1:1 scrolling across the whole timeline (every era hold)
+// =====================================================================================================================
+import '/web/engine/main.js';
+await new Promise((r) => { const i = setInterval(() => { if (window.film) { clearInterval(i); r(); } }, 20); });
+await window.film.init({ scale: 1 });
+const S = window.film.S, P = S.pencil, C = S.BRAND.palette, hud = S.hud, cues = S.cues;
+const q = new URLSearchParams(location.search), which = q.get('sheet') || 'pictos';
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const font = (px, w = 600) => `${w} ${px}px Inter, sans-serif`;
+const label = (g, txt, x, y, o = {}) => { g.save(); g.font = font(o.size || 22, o.w || 700); g.fillStyle = o.color || '#EDE7D8'; g.textAlign = o.align || 'left'; g.fillText(txt, x, y); g.restore(); };
+function Tat(t) { const T = cues.makeT(t); return T; }
+// bg: 'paper' | 'bars' | 'mid' | 'future'
+function frameAt(t, mode, bg = 'paper') {
+  const c = mk(1920, 1080), g = c.getContext('2d');
+  if (bg === 'paper') { P.paper(g, S, { seed: 3 }); }
+  else if (bg === 'mid') { const gr = g.createLinearGradient(0, 0, 1920, 1080); gr.addColorStop(0, '#8a7f6a'); gr.addColorStop(1, '#4f4a44'); g.fillStyle = gr; g.fillRect(0, 0, 1920, 1080); }
+  else if (bg === 'future') { const gr = g.createLinearGradient(0, 0, 0, 1080); gr.addColorStop(0, '#2a1a4a'); gr.addColorStop(1, '#0d0a18'); g.fillStyle = gr; g.fillRect(0, 0, 1920, 1080); g.fillStyle = '#000'; g.fillRect(0, 0, 1920, 138.5); g.fillRect(0, 941.5, 1920, 138.5); }
+  else { g.fillStyle = '#0b0a0d'; g.fillRect(0, 0, 1920, 1080); g.save(); g.fillStyle = '#F2EBDC'; g.fillRect(656, 0, 608, 1080); g.restore(); }
+  const T = Tat(t);
+  if (bg === 'paper' || bg === 'mid') { const m = (t >= 4 && t < 22) ? 0 : 0; }
+  hud.draw(g, T, S, mode);
+  return c;
+}
+const out = [];
+const add = (h, draw) => out.push({ h, draw });
+const W = +(q.get('w') || 2000);
+
+if (which === 'pictos') {
+  const ids = hud.PICTO_IDS.filter((x) => x !== 'unknown'), cols = 4, cw = W / cols, rh = 330;
+  add(70 + Math.ceil(ids.length / cols) * rh * 2 + 330, (g, y0) => {
+    label(g, 'PICTOGRAMS  (paper = colour pencil on cream cell, digital = teal line art)', 20, y0 + 36, { size: 30, w: 800 });
+    let y = y0 + 60;
+    ids.forEach((id, i) => {
+      const cx = (i % cols) * cw + cw / 2, cy = y + Math.floor(i / cols) * rh * 2 + rh / 2;
+      g.fillStyle = '#F2EBDC'; g.fillRect(cx - cw / 2 + 10, cy - rh / 2 + 6, cw - 20, rh - 12);
+      hud.drawPictogram(g, id, cx, cy, 3.6, { mode: 'paper', boil: 3, seed: 5 });
+      label(g, id, cx - cw / 2 + 20, cy - rh / 2 + 30, { size: 20, color: '#2A2833' });
+      const cy2 = cy + rh; g.fillStyle = '#04080b'; g.fillRect(cx - cw / 2 + 10, cy2 - rh / 2 + 6, cw - 20, rh - 12);
+      hud.drawPictogram(g, id, cx, cy2, 3.6, { mode: 'digital', lit: 1 });
+    });
+    y += Math.ceil(ids.length / cols) * rh * 2 + 20;
+    // real-size strip of pictograms
+    g.fillStyle = '#F2EBDC'; g.fillRect(0, y, W, 80); ids.forEach((id, i) => hud.drawPictogram(g, id, 70 + i * 150, y + 40, 1.45, { mode: 'paper', boil: 3, seed: 5 }));
+    g.fillStyle = '#04080b'; g.fillRect(0, y + 90, W, 80); ids.forEach((id, i) => hud.drawPictogram(g, id, 70 + i * 150, y + 130, 1.45, { mode: 'digital', lit: 1 }));
+    y += 190; g.fillStyle = '#F2EBDC'; g.fillRect(0, y, W, 60); ids.forEach((id, i) => hud.drawPictogram(g, id, 70 + i * 150, y + 30, 0.93, { mode: 'paper', boil: 3, seed: 5 }));
+    g.fillStyle = '#04080b'; g.fillRect(0, y + 64, W, 60); ids.forEach((id, i) => hud.drawPictogram(g, id, 70 + i * 150, y + 94, 0.93, { mode: 'digital', lit: 1 }));
+  });
+}
+function seqSheet(title, ts, mode, bg, crop, zoom, cols) {
+  const [cx, cy, cw, ch] = crop, tw = cw * zoom, th = ch * zoom, rows = Math.ceil(ts.length / cols);
+  add(60 + rows * (th + 34), (g, y0) => {
+    label(g, title, 20, y0 + 38, { size: 28, w: 800 });
+    ts.forEach((t, i) => {
+      const f = frameAt(t, mode, bg), x = (i % cols) * (tw + 8) + 8, y = y0 + 56 + Math.floor(i / cols) * (th + 34);
+      g.imageSmoothingQuality = 'high'; g.drawImage(f, cx, cy, cw, ch, x, y, tw, th);
+      label(g, `t=${t.toFixed(3)}`, x + 6, y + th + 22, { size: 18 });
+    });
+  });
+}
+const range = (a, b, s) => { const r = []; for (let t = a; t <= b + 1e-9; t += s) r.push(+t.toFixed(4)); return r; };
+if (which === 'odo') seqSheet('ODOMETER through the 1927 -> 1939 roll (dive beat 9.5..10.0), paper over cream', range(9.4, 10.1, 1 / 30).slice(0, 24), 'paper', 'paper', [70, 940, 520, 120], 1.45, 3);
+if (which === 'now') seqSheet('NOW slam 21.40 .. 22.00 (pillarbox bar)', [21.4, 21.5, 21.5333, 21.5667, 21.6, 21.6333, 21.6667, 21.7, 21.75, 21.8, 21.9, 21.99], 'paper', 'bars', [0, 820, 700, 260], 1.35, 3);
+if (which === 'glitch') seqSheet('DIGITAL jump 44.0 -> 2100: counter + strip + caption', [43.9, 44.0, 44.033, 44.067, 44.1, 44.133, 44.167, 44.233, 44.3, 44.4, 44.6, 45.0], 'digital', 'future', [0, 0, 1920, 1080], 0.42, 3);
+if (which === 'cap') seqSheet('CAPTION 1895 write-on / out (4.0 .. 5.8)', [4.0, 4.1, 4.2, 4.3, 4.4, 4.6, 5.0, 5.45, 5.55, 5.65, 5.75, 5.85], 'paper', 'paper', [60, 30, 760, 150], 1.05, 3);
+if (which === 'bg') {
+  add(0, () => {});
+  const times = [[4.5, 'paper'], [9.5, 'bars'], [15.9, 'mid'], [20.9, 'bars']];
+  out.length = 0;
+  add(4 * 380, (g, y0) => { times.forEach(([t, bg], i) => { const f = frameAt(t, 'paper', bg); g.drawImage(f, 0, 850, 1920, 230, 0, y0 + i * 380, 1920, 230); g.drawImage(f, 0, 30, 1000, 150, 0, y0 + i * 380 + 232, 1000, 140); label(g, `${bg}  t=${t}`, 1010, y0 + i * 380 + 270, { size: 22 }); }); });
+}
+if (which === 'strip') {
+  const ts = [4.5, 6.5, 8.5, 10.5, 12.5, 14.5, 16.5, 18.5, 20.5, 21.9];
+  add(ts.length * 130 + 40, (g, y0) => { label(g, 'STRIP at 1:1 (paper over mid-tone), each era hold', 20, y0 + 30, { size: 26, w: 800 }); ts.forEach((t, i) => { const f = frameAt(t, 'paper', 'mid'); g.drawImage(f, 0, 940, 1920, 120, 0, y0 + 44 + i * 130, 1920, 120); label(g, 't=' + t, 1840, y0 + 44 + i * 130 + 20, { size: 18 }); }); });
+}
+let H = 20; out.forEach((s) => { H += s.h; });
+const cv = mk(W, H); document.body.appendChild(cv);
+const g = cv.getContext('2d'); g.fillStyle = '#1b1a22'; g.fillRect(0, 0, W, H);
+let y = 10; out.forEach((s) => { s.draw(g, y); y += s.h; });
+window.__done = true;
+</script></body></html>
