@@ -7460,5 +7460,155 @@
     "minconf": 0.3035215437412262
    }
   }
+ },
+ "en_GB-cori-high|2|vo5": {
+  "voice": "en_GB-cori-high",
+  "seed": 2,
+  "id": "vo5",
+  "dur": 1.811156462585034,
+  "win": 3.200000000000003,
+  "metrics": {
+   "f0_med": 216.5570219428708,
+   "f0_mean": 217.13874818968952,
+   "f0_sd_st": 1.6672468716838154,
+   "f0_range_st": 5.818473202268393,
+   "hnr": 8.976840437606821,
+   "tilt_db_oct": -7.130943402759595,
+   "alpha_ratio_db": -13.732503984913363
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9331366300582886,
+    "minconf": 0.7247121334075928
+   },
+   "base.en": {
+    "hyp": "and she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.9010710418224335,
+    "minconf": 0.5525032877922058
+   },
+   "tiny.en+p": {
+    "hyp": "And she's just getting started.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 5,
+    "conf": 0.8285249203443528,
+    "minconf": 0.2005704790353775
+   },
+   "base.en+p": {
+    "hyp": "And she's just getting started. That's it.",
+    "wer": 0.4,
+    "errors": 2,
+    "nref": 5,
+    "conf": 0.830541269587619,
+    "minconf": 0.33877333998680115
+   }
+  }
+ },
+ "en_GB-cori-high|2|vo6a": {
+  "voice": "en_GB-cori-high",
+  "seed": 2,
+  "id": "vo6a",
+  "dur": 1.7763265306122449,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 200.84018865317518,
+   "f0_mean": 208.74442294909997,
+   "f0_sd_st": 2.510579875611533,
+   "f0_range_st": 6.835401491088323,
+   "hnr": 13.201466192997673,
+   "tilt_db_oct": -7.190576741210178,
+   "alpha_ratio_db": -15.466609524076686
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "I'm Rita Cinema Studio.",
+    "wer": 0.6666666666666666,
+    "errors": 2,
+    "nref": 3,
+    "conf": 0.6894368305802345,
+    "minconf": 0.20701923966407776
+   },
+   "base.en": {
+    "hyp": "Amrita Cinema Studio",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.8141194151507484,
+    "minconf": 0.7778685589631399
+   },
+   "tiny.en+p": {
+    "hyp": "Amrita Cinema Studio.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7050151270296839,
+    "minconf": 0.5814045071601868
+   },
+   "base.en+p": {
+    "hyp": "Amrita Cinema Studio. video.",
+    "wer": 0.3333333333333333,
+    "errors": 1,
+    "nref": 3,
+    "conf": 0.6580591586728891,
+    "minconf": 0.18987838923931122
+   }
+  }
+ },
+ "en_GB-cori-high|2|vo6b": {
+  "voice": "en_GB-cori-high",
+  "seed": 2,
+  "id": "vo6b",
+  "dur": 1.8808163265306121,
+  "win": 1.4500000000000028,
+  "metrics": {
+   "f0_med": 213.63540298538933,
+   "f0_mean": 212.74846833308794,
+   "f0_sd_st": 2.1074468384386478,
+   "f0_range_st": 6.122176325909573,
+   "hnr": 14.078069736923869,
+   "tilt_db_oct": -7.710534435821734,
+   "alpha_ratio_db": -14.879079951307776
+  },
+  "asr": {
+   "tiny.en": {
+    "hyp": "Your story. Directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7896260420481364,
+    "minconf": 0.4673844277858734
+   },
+   "base.en": {
+    "hyp": "Your story directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.6124794185161591,
+    "minconf": 0.4298594892024994
+   },
+   "tiny.en+p": {
+    "hyp": "Your story. Directed.",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.7896260420481364,
+    "minconf": 0.4673844277858734
+   },
+   "base.en+p": {
+    "hyp": "Your story. Directed. . .",
+    "wer": 0.0,
+    "errors": 0,
+    "nref": 3,
+    "conf": 0.6211322942748666,
+    "minconf": 0.011445988900959492
+   }
+  }
  }
 }
