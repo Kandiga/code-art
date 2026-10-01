@@ -44,7 +44,7 @@ const CAM = [
   { t: 23.5, p: [0.08, 1.53, 8.26], g: [0.03, 1.05, 0.0], mm: 35 },
   { t: 24.0, p: [0.38, 1.44, 7.9], g: [0.2, 0.97, 0.1], mm: 37 },
   { t: 25.0, p: [0.85, 1.17, 6.5], g: [0.5, 0.72, 0.25], mm: 44 },
-  { t: 26.0, p: [1.0, 1.12, 5.9], g: [0.55, 0.55, 0.3], mm: 50 },
+  { t: 26.0, p: [1.0, 1.12, 6.3], g: [0.55, 0.56, 0.3], mm: 50 },
 ];
 function hermite(a, b, ma, mb, u, dt) { const u2 = u * u, u3 = u2 * u; return (2 * u3 - 3 * u2 + 1) * a + (u3 - 2 * u2 + u) * dt * ma + (-2 * u3 + 3 * u2) * b + (u3 - u2) * dt * mb; }
 function camAt(t, out) {
@@ -211,6 +211,7 @@ void main(){
   float r = length(pc), phi = atan(pc.y, pc.x), ru = clamp(r / uRMax, 0.0, 1.0);
   float oA = texture2D(tAng, vec2(ru, uRowA)).r, oB = texture2D(tAng, vec2(ru, uRowB)).r;
   float sA = wrapPi(phi - (uBaseA + oA)) * r, sB = wrapPi((uBaseB + oB) - phi) * r;
+  if (sA < 0.0 || sB < 0.0) discard; // not this piece (cheap early-out before any noise fetch)
   float openA = 1.0 - smoothstep(uFrontA - 0.03, uFrontA, r), openB = 1.0 - smoothstep(uFrontB - 0.03, uFrontB, r);
   vec4 n1 = texture2D(tNoise, pf * 9.0), n2 = texture2D(tNoise, pf * 2.3 + 0.37), n3 = texture2D(tNoise, pf * 31.0 + 0.11);
   float gA = uGap * openA * (0.3 + 1.2 * n1.r), gB = uGap * openB * (0.3 + 1.2 * n3.r);
@@ -220,19 +221,22 @@ void main(){
   float band = torn * (1.0 - smoothstep(0.0015, 0.010 + 0.013 * n2.g, dMin));
   bool fr = gl_FrontFacing;
   vec3 tex = texture2D(tMap, vUv).rgb;
-  vec3 albF = invACES(tex);
-  float lum = dot(tex, vec3(0.3, 0.55, 0.15));
-  vec3 albB = invACES(vec3(0.74, 0.69, 0.575) * (0.93 + 0.12 * n2.g + 0.05 * (n1.r - 0.5))) * (1.0 - 0.2 * (1.0 - clamp(lum * 1.4, 0.0, 1.0)));
-  vec3 albW = invACES(vec3(0.96, 0.94, 0.89) * (0.82 + 0.2 * n3.b));
-  vec3 alb = fr ? albF : albB;
+  vec3 albB = vec3(0.0);
+  vec3 alb;
+  if (fr) alb = invACES(tex);
+  else {
+    float lum = dot(tex, vec3(0.3, 0.55, 0.15));
+    albB = invACES(vec3(0.74, 0.69, 0.575) * (0.93 + 0.12 * n2.g + 0.05 * (n1.r - 0.5))) * (1.0 - 0.2 * (1.0 - clamp(lum * 1.4, 0.0, 1.0)));
+    alb = albB;
+  }
   alb *= 1.0 + uLit * (0.10 * (n1.a - 0.5) + 0.07 * (n3.b - 0.5) + 0.05 * (n2.g - 0.5));
-  alb = mix(alb, albW, band * 0.9);
+  if (band > 0.01) alb = mix(alb, invACES(vec3(0.96, 0.94, 0.89) * (0.82 + 0.2 * n3.b)), band * 0.9);
   float outM = step(vUv.x, 0.0) + step(1.0, vUv.x) + step(vUv.y, 0.0) + step(1.0, vUv.y); // the sheet's cut outer edge (outside the frame)
-  alb = mix(alb, albW, clamp(outM, 0.0, 1.0));
+  if (outM > 0.5) alb = invACES(vec3(0.96, 0.94, 0.89));
   vec3 N = normalize(vN); if (!fr) N = -N;
   vec3 V = normalize(cameraPosition - vWP), L = normalize(uLightDir);
   float dl = max(dot(N, L), 0.0);
-  vec3 L2 = normalize(vec3(0.6, -0.3, 0.5)); float dl2 = max(dot(N, uLight2), 0.0);
+  float dl2 = max(dot(N, uLight2), 0.0);
   float shade = (0.16 + 1.25 * dl + 0.22 * dl2) / (0.16 + 1.25 * uDL0 + 0.22 * uDL02);
   shade = mix(1.0, shade, uLit);
   vec3 Lb = normalize(uBackPos - vWP); float dB2 = length(uBackPos - vWP);
@@ -241,7 +245,7 @@ void main(){
   vec3 H = normalize(L + V);
   float spec = pow(max(dot(N, H), 0.0), fr ? 26.0 : 8.0) * (fr ? 0.14 : 0.06) * uLit;
   vec3 col = alb * shade + vec3(1.0, 0.96, 0.88) * spec;
-  col += mix(alb, albB, 0.7) * vec3(1.0, 0.8, 0.5) * (tr * 1.5 + rimB);
+  col += mix(alb, fr ? alb * 1.6 : albB, 0.7) * vec3(1.0, 0.8, 0.5) * (tr * 1.5 + rimB);
   // seam of light through the torn fibres
   vec3 hot = vec3(1.0, 0.86, 0.6);
   col += hot * uSeam * torn * (exp(-max(dMin, 0.0) / 0.0035) + 0.03 * exp(-max(dMin, 0.0) / 0.04));
@@ -534,7 +538,7 @@ export default {
     else {
       const x = tl; // contact: squash on the floor, then spring up to the hover height
       const sqz = -0.42 * Math.exp(-x / 0.09) + 0.1 * Math.sin(x * 22) * Math.exp(-x / 0.25) * smooth(x / 0.1);
-      sq = sqz; const hover = 1.0 + 0.035 * Math.sin(t * 2.6) * smooth(x / 0.6);
+      sq = sqz; const hover = 0.9 + 0.03 * Math.sin(t * 2.6) * smooth(x / 0.6);
       const base = 0.5 * (1 + sqz) * 0.92;
       ay = lerp(base, hover, spring(Math.max(0, x - 0.05), 2.1, 0.3)) ; if (x < 0.05) ay = base;
     }

@@ -300,29 +300,30 @@ function coverTexture(THREE, S) {
 function buildBooklet(THREE, S) {
   const K = 8, W2 = 0.525, H = 0.70, gap = 0.0045, th = 0.0035, L = 0.17;   // W2 = half-sheet width
   const texL = pageTexture(THREE, S, 1), texR = pageTexture(THREE, S, 2), texC = coverTexture(THREE, S);
-  const mkPage = (tex) => new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: new THREE.Color('#ffbd5e'), emissiveIntensity: 0.3, roughness: 0.82, metalness: 0, color: '#e2d3b0' });
-  const matL = mkPage(texL), matR = mkPage(texR);
+  // perf: pages are unlit (MeshBasicMaterial, tinted per frame in update): 16 big overlapping half-pages with PBR + 5 lights cost ~4 CPU-s/frame in software GL
+  const mkPage = (tex) => new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(0.9, 0.86, 0.74) });
   const root = new THREE.Group(); root.name = 'booklet';
   const pageGeo = new THREE.BoxGeometry(W2, H, th);
   const tri = new THREE.Shape(); const hl = L / Math.SQRT2; tri.moveTo(-hl, 0); tri.lineTo(hl, 0); tri.lineTo(0, hl); tri.closePath();
   const flapGeo = new THREE.ExtrudeGeometry(tri, { depth: th * 0.7, bevelEnabled: false });
-  const flapMat = new THREE.MeshStandardMaterial({ color: '#e6d6b2', emissive: new THREE.Color('#ffbd5e'), emissiveIntensity: 0.3, roughness: 0.8, side: THREE.DoubleSide });
+  const flapMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.88, 0.82, 0.68), side: THREE.DoubleSide });
   const sheets = [];
   for (let k = 0; k < K; k++) {
     const g = new THREE.Group(), zk = -0.003 - (K - 1 - k) * gap, za = -zk;          // stack height (booklet-local) and hinge-axis offset above the sheet
-    const right = new THREE.Mesh(pageGeo, matR); right.position.x = W2 / 2; g.add(right);
+    const mR = mkPage(texR), mL = mkPage(texL);
+    const right = new THREE.Mesh(pageGeo, mR); right.position.x = W2 / 2; g.add(right);
     const hinge = new THREE.Group(); hinge.position.z = za; g.add(hinge);
-    const left = new THREE.Mesh(pageGeo, matL); left.position.set(-W2 / 2, 0, -za); hinge.add(left);
+    const left = new THREE.Mesh(pageGeo, mL); left.position.set(-W2 / 2, 0, -za); hinge.add(left);
     // dog-ear: hinge line through the top-left corner of the LEFT half (left-mesh local coords: corner at (-W2/2, +H/2))
     const fo = new THREE.Group(); fo.position.set(-W2 / 2 + L / 2, H / 2 - L / 2, th / 2 + 0.0009); fo.rotation.z = Math.PI / 4;
     const fi = new THREE.Group(); fo.add(fi); const fm = new THREE.Mesh(flapGeo, flapMat); fi.add(fm); left.add(fo);
     g.visible = false; root.add(g);
-    sheets.push({ g, hinge, flap: fi, zk, za, k });
+    sheets.push({ g, hinge, flap: fi, zk, za, k, mL, mR });
   }
   // cover set
   const edge = new THREE.MeshStandardMaterial({ color: '#2a2833', roughness: 0.55, metalness: 0.3 });
-  const coverMat = new THREE.MeshStandardMaterial({ map: texC, roughness: 0.5, metalness: 0.15, emissiveMap: texC, emissive: new THREE.Color('#ffb62e'), emissiveIntensity: 0.12 });
-  const backMat = new THREE.MeshStandardMaterial({ color: '#25232e', roughness: 0.55, metalness: 0.2 });
+  const coverMat = new THREE.MeshBasicMaterial({ map: texC, color: new THREE.Color(0.9, 0.9, 0.9) });
+  const backMat = new THREE.MeshBasicMaterial({ color: '#1d1c25' });
   const bGeo = new THREE.BoxGeometry(W2 + 0.012, H + 0.012, 0.010);
   const front = new THREE.Mesh(bGeo, [edge, edge, edge, edge, coverMat, backMat]); const back = new THREE.Mesh(bGeo, [edge, edge, edge, edge, backMat, backMat]);
   front.visible = back.visible = false; root.add(front, back);
@@ -332,7 +333,7 @@ function buildBooklet(THREE, S) {
   const brads = [0.23, 0, -0.23].map((y) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.012, 20), brassM); m.rotation.x = Math.PI / 2; m.position.set(-W2 / 2 + 0.052, y, 0.052); m.visible = false; root.add(m); return m; });
   const tabCols = [PX.vermilion, PX.amber, PX.teal, PX.violet, PX.sky];
   const tabs = tabCols.map((c, i) => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.062, 0.009), new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.05, emissive: new THREE.Color(c), emissiveIntensity: 0.18 })); m.position.set(W2 / 2, 0.25 - i * 0.125, -0.012 + i * 0.005); m.visible = false; root.add(m); return m; });
-  return { root, sheets, front, back, spine, brads, tabs, matL, matR, flapMat, coverMat, brassM, K, W2, H, gap, th };
+  return { root, sheets, front, back, spine, brads, tabs, flapMat, coverMat, brassM, K, W2, H, gap, th };
 }
 
 export default {
@@ -354,7 +355,7 @@ export default {
     ]));
     const camera = new THREE.PerspectiveCamera(lensFov(45), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
-    if (stage.reflect) stage.reflect(A.root, { strength: 0.8 });
+    const refl = stage.reflect ? stage.reflect(A.root, { strength: 0.8 }) : null;
     A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(-0.7, -0.45, 0.6); stylus.group.rotation.z = 0.6;
@@ -439,14 +440,12 @@ export default {
     const ringsG = makeRings(THREE, rings); scene.add(ringsG);
 
     const tmp = { v: new THREE.Vector3(), v2: new THREE.Vector3(), c: new THREE.Color(), q: new THREE.Quaternion(), e: new THREE.Euler() };
-    return { scene, camera, stage, A, THREE, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
+    return { scene, camera, stage, A, refl, THREE, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
   },
 
   update(st, T, S) {
     const { THREE, camera, A, words, book, tmp, stage } = st;
     const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact);
-    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
-    { const D = globalThis.__dbg || {}; if (D.hide !== undefined || st._hid) { for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } } }
     const snapP = lt >= SNAP ? Math.exp(-(lt - SNAP) / 0.09) : 0;
     const kIdx = Math.min(7, Math.floor(lt / 0.125)), kAge = Math.max(0, lt - 0.125 * kIdx);
     const typedN = KEYS.reduce((n, k) => n + (lt >= k ? 1 : 0), 0);
@@ -525,9 +524,10 @@ export default {
       sh.flap.rotation.x = Math.PI * smooth(seg(u, 0.35, 0.95));
       const tf = FOLD0 + (K - 1 - k) * 0.009; sh.hinge.rotation.y = Math.PI * smoother(seg(lt, tf, tf + 0.11));
     }
-    const pe = (lt < SNAP ? 0.3 : 0.1 + 0.3 * (1 - seg(lt, 1.52, 1.95))) + 0.6 * snapP;
-    book.matL.emissiveIntensity = book.matR.emissiveIntensity = book.flapMat.emissiveIntensity = pe;
-    book.coverMat.emissiveIntensity = 0.12 + 0.9 * snapP;
+    const pe = (lt < SNAP ? 0.3 : 0.1 + 0.3 * (1 - seg(lt, 1.52, 1.95))) + 0.6 * snapP, pb = 0.74 + 0.5 * pe;   // unlit page brightness (warm cream, glows at the snap)
+    book.flapMat.color.setRGB(pb, pb * 0.94, pb * 0.8);
+    for (const sh of book.sheets) { const th = sh.hinge.rotation.y, tl = 0.72 + 0.28 * Math.abs(Math.cos(th)); sh.mR.color.setRGB(pb, pb * 0.95, pb * 0.82); sh.mL.color.setRGB(pb * tl, pb * tl * 0.95, pb * tl * 0.82); }
+    book.coverMat.color.setScalar(0.86 + 0.9 * snapP);
     // boards slam in, spine/brads/tabs snap on at 27.5
     const ub = seg(lt, 1.36, SNAP), eb = ub ** 2.2, ib = 1 - eb;
     book.front.visible = book.back.visible = lt >= 1.36;
@@ -557,6 +557,8 @@ export default {
     st.beamKey.material.uniforms.uTime.value = t; st.beamRim.material.uniforms.uTime.value = t;
     st.ringsG.userData.update(t, camera);
 
+    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
+    { const D = globalThis.__dbg || {}; if (st.refl) st.refl.setVisible(!D.noRefl); for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } }
     // ---------------- DOF: focus rides from Amrita to the folding pages and back to Amrita + booklet
     const f = smooth(seg(lt, 0.97, 1.12)), f2 = smooth(seg(lt, 1.52, 1.85));
     const mx = lerp(AM[0], REST[0], 0.5), my = lerp(AM[1], REST[1], 0.5), mz = lerp(AM[2], REST[2], 0.5);

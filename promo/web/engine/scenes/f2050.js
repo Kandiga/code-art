@@ -36,10 +36,10 @@ const EV = { hit: 0, gasp: 0.5, pop: 1.0, laugh: 1.25, snap: 1.5, oh: 1.75 };
 
 // ---- world layout (meters, +Y up, camera looks toward -Z) ----------------------------------------------------------------------------
 const BACK = -4.2;                       // back wall z
-const PANE = { x: 0.3, y: 1.5, z: 0.65, w: 2.3, h: 1.045, d: 0.5 }; // floating cinema screen (centre)
-const TABLE = { x: 0.05, z: 0.9, top: 0.4 };
+const PANE = { x: 0.3, y: 1.5, z: 0.65, w: 2.0, h: 0.91, d: 0.46 }; // floating cinema screen (centre)
+const TABLE = { x: -0.1, z: 0.9, top: 0.4 };
 const EMIT = [0.3, TABLE.top + 0.03, 0.84];
-const AMR = [-0.72, 1.06, 1.25];         // Amrita hologram centre
+const AMR = [-0.98, 1.06, 1.25];         // Amrita hologram centre
 const SOFA = [0.0, 0.0, 2.85];          // couch group origin (family faces -Z)
 const LAMP = [2.15, 0, -0.1];
 const WIN = { x: 2.3, y: 1.62, w: 1.9, h: 1.55 };
@@ -236,7 +236,7 @@ function trainMaterial(THREE, uT) {
         float scan = 0.84 + 0.16 * sin(vW.y * 260.0 - uT * 7.0);
         vec3 col = vC * lam * 1.35 + uRim * fr * 1.5;
         col = mix(col, vC * (1.6 + 0.6 * uGlow), vE);
-        col += uRim * edgeD * uDissolve * 6.0;
+        col += uRim * edgeD * uDissolve * 1.6;
         col *= scan * uFlick;
         gl_FragColor = vec4(col, uAlpha * (0.92 + 0.08 * fr));
       }`,
@@ -261,7 +261,7 @@ function coneMaterial(THREE, uT) {
         float fall = pow(1.0 - hgt, 1.15);
         float rev = smoothstep(uReveal, uReveal - 0.12, hgt);
         float lead = exp(-pow((hgt - uReveal) / 0.035, 2.0)) * step(0.001, uReveal) * step(hgt, 0.999);
-        float base = (0.07 + 0.55 * fr) * (0.45 + 0.35 * stream + 0.2 * stream2) * (0.25 + 0.75 * fall) + rise * (0.06 + 0.35 * fr) + lead * 0.9 + 0.35 * fall * fall * fall;
+        float base = (0.16 + 0.6 * fr) * (0.5 + 0.3 * stream + 0.2 * stream2) * (0.3 + 0.7 * fall) + rise * (0.1 + 0.35 * fr) + lead * 0.9 + 0.35 * fall * fall * fall;
         vec3 col = mix(uCol, uCol2, clamp(fall * 0.55 + rise * 0.5 + lead, 0.0, 1.0)) * base * uInt * rev * uFlick;
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -364,12 +364,12 @@ function buildRoom(THREE, st) {
   // baseboards + a picture rail glow strip (warm LED cove along the top of the back wall)
   F.push(item(THREE, BOX(THREE, 13, 0.14, 0.03), { p: [0, 0.07, BACK + 0.015], c: '#2b221d' }));
   // coffee table: rounded top, brass legs, lower shelf, books, mug, emitter pedestal
-  const topG = new THREE.ExtrudeGeometry(roundedRectShape(THREE, 1.9, 0.86, 0.32), { depth: 0.045, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2, curveSegments: 14 }); topG.rotateX(-Math.PI / 2);
+  const topG = new THREE.ExtrudeGeometry(roundedRectShape(THREE, 2.1, 0.86, 0.32), { depth: 0.045, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2, curveSegments: 14 }); topG.rotateX(-Math.PI / 2);
   F.push(item(THREE, topG, { p: [TABLE.x, TABLE.top - 0.045, TABLE.z], c: '#5a3a28' }));
-  for (const [x, z] of [[-0.82, -0.3], [0.82, -0.3], [-0.82, 0.3], [0.82, 0.3]]) F.push(item(THREE, CYL(THREE, 0.02, 0.016, 0.34, 10), { p: [TABLE.x + x, 0.19, TABLE.z + z], c: '#c09a58' }));
-  F.push(item(THREE, BOX(THREE, 1.6, 0.025, 0.64), { p: [TABLE.x, 0.14, TABLE.z], c: '#3a261b' }));
-  F.push(item(THREE, BOX(THREE, 0.34, 0.035, 0.24), { p: [TABLE.x + 0.7, TABLE.top + 0.018, TABLE.z + 0.14], c: '#2a4e5a', r: [0, 0.3, 0] }), item(THREE, BOX(THREE, 0.3, 0.03, 0.22), { p: [TABLE.x + 0.7, TABLE.top + 0.052, TABLE.z + 0.14], c: '#8c3b2a', r: [0, 0.1, 0] }), item(THREE, CYL(THREE, 0.04, 0.034, 0.085, 18), { p: [TABLE.x + 0.68, TABLE.top + 0.1, TABLE.z + 0.1], c: '#e8dcc6' }));
-  F.push(item(THREE, BOX(THREE, 0.28, 0.03, 0.2), { p: [TABLE.x - 0.5, 0.17, TABLE.z], c: '#d8c9a6', r: [0, -0.2, 0] }));
+  for (const [x, z] of [[-0.92, -0.3], [0.92, -0.3], [-0.92, 0.3], [0.92, 0.3]]) F.push(item(THREE, CYL(THREE, 0.02, 0.016, 0.34, 10), { p: [TABLE.x + x, 0.19, TABLE.z + z], c: '#c09a58' }));
+  F.push(item(THREE, BOX(THREE, 1.8, 0.025, 0.64), { p: [TABLE.x, 0.14, TABLE.z], c: '#3a261b' }));
+  F.push(item(THREE, BOX(THREE, 0.34, 0.035, 0.24), { p: [TABLE.x + 0.82, TABLE.top + 0.018, TABLE.z + 0.14], c: '#2a4e5a', r: [0, 0.3, 0] }), item(THREE, BOX(THREE, 0.3, 0.03, 0.22), { p: [TABLE.x + 0.82, TABLE.top + 0.052, TABLE.z + 0.14], c: '#8c3b2a', r: [0, 0.1, 0] }), item(THREE, CYL(THREE, 0.04, 0.034, 0.085, 18), { p: [TABLE.x + 0.8, TABLE.top + 0.1, TABLE.z + 0.1], c: '#e8dcc6' }));
+  F.push(item(THREE, BOX(THREE, 0.28, 0.03, 0.2), { p: [TABLE.x - 0.6, 0.17, TABLE.z], c: '#d8c9a6', r: [0, -0.2, 0] }));
   F.push(item(THREE, CYL(THREE, 0.2, 0.23, 0.028, 40), { p: [EMIT[0], TABLE.top + 0.014, EMIT[2]], c: '#0b1215' }));
   // floor lamp (pole, base)
   F.push(item(THREE, CYL(THREE, 0.17, 0.19, 0.03, 28), { p: [LAMP[0], 0.015, LAMP[2]], c: '#3a2c20' }), item(THREE, CYL(THREE, 0.011, 0.011, 1.35, 8), { p: [LAMP[0], 0.7, LAMP[2]], c: '#b88a4c' }));
@@ -418,19 +418,19 @@ function buildRoom(THREE, st) {
   const cur = (x) => { const g = new THREE.PlaneGeometry(0.7, 2.9, 30, 1), p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, 0.07 * Math.sin(p.getX(i) * 34)); g.computeVertexNormals(); return item(THREE, g, { p: [x, 1.55, BACK + 0.14], c: '#a68660' }); };
   st.curtains = add(new THREE.Mesh(mergeItems(THREE, [cur(WIN.x - WIN.w / 2 - 0.52), cur(WIN.x + WIN.w / 2 + 0.52)]), std({ vertexColors: true, roughness: 1, side: THREE.DoubleSide })));
   // framed print: Amrita's mark on the wall
-  const pg = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.6), std({ map: tex(THREE, posterCanvas()), roughness: 0.5 })); pg.position.set(-2.1, 1.72, BACK + 0.032); add(pg);
-  const pf = new THREE.Mesh(mergeItems(THREE, [item(THREE, BOX(THREE, 0.5, 0.64, 0.02), { p: [0, 0, 0], c: '#171210' })]), std({ vertexColors: true })); pf.position.set(-2.1, 1.72, BACK + 0.02); add(pf);
+  const pg = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.6), std({ map: tex(THREE, posterCanvas()), roughness: 0.5 })); pg.position.set(-2.75, 1.85, BACK + 0.032); add(pg);
+  const pf = new THREE.Mesh(mergeItems(THREE, [item(THREE, BOX(THREE, 0.5, 0.64, 0.02), { p: [0, 0, 0], c: '#171210' })]), std({ vertexColors: true })); pf.position.set(-2.75, 1.85, BACK + 0.02); add(pf);
 
   // floor lamp shade (self-lit) + glow
   const shadeG = new THREE.CylinderGeometry(0.15, 0.24, 0.34, 28, 1, true);
-  st.lampShade = add(new THREE.Mesh(shadeG, new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 1.45, 0.62), side: THREE.DoubleSide, toneMapped: false, fog: false }))); st.lampShade.position.set(LAMP[0], 1.5, LAMP[2]);
-  st.lampCap = add(new THREE.Mesh(new THREE.CircleGeometry(0.15, 24), new THREE.MeshBasicMaterial({ color: new THREE.Color(3.0, 2.0, 1.0), toneMapped: false, fog: false }))); st.lampCap.rotation.x = -Math.PI / 2; st.lampCap.position.set(LAMP[0], 1.5 - 0.1, LAMP[2]);
+  st.lampShade = add(new THREE.Mesh(shadeG, new THREE.MeshBasicMaterial({ color: new THREE.Color(1.7, 0.98, 0.4), side: THREE.DoubleSide, toneMapped: false, fog: false }))); st.lampShade.position.set(LAMP[0], 1.5, LAMP[2]);
+  st.lampCap = add(new THREE.Mesh(new THREE.CircleGeometry(0.15, 24), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 1.4, 0.6), toneMapped: false, fog: false }))); st.lampCap.rotation.x = -Math.PI / 2; st.lampCap.position.set(LAMP[0], 1.5 - 0.1, LAMP[2]);
   st.lampGlow = glowSprite(THREE, { color: '#ffa860', size: 1.9, intensity: 0.9 }); st.lampGlow.position.set(LAMP[0], 1.5, LAMP[2]); add(st.lampGlow);
 
   // contact shadows (soft dark blobs): table, sofa, shelf, plant, lamp
   const blob = radialAlphaTexture(THREE, [[0, 0.95], [0.5, 0.55], [1, 0]]);
   const sh = (x, z, w, d, a) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: blob, color: '#000000', transparent: true, opacity: a, depthWrite: false, fog: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.014, z); m.renderOrder = 1; return add(m); };
-  sh(TABLE.x, TABLE.z + 0.05, 2.5, 1.5, 0.6); sh(SOFA[0], SOFA[2] + 0.05, 4.4, 1.9, 0.7); sh(SHELF.x, BACK + 0.45, 2.3, 0.9, 0.7); sh(PL[0], PL[1], 0.9, 0.9, 0.6); sh(LAMP[0], LAMP[2], 0.6, 0.6, 0.6);
+  sh(TABLE.x, TABLE.z + 0.05, 2.8, 1.5, 0.6); sh(SOFA[0], SOFA[2] + 0.05, 4.4, 1.9, 0.7); sh(SHELF.x, BACK + 0.45, 2.3, 0.9, 0.7); sh(PL[0], PL[1], 0.9, 0.9, 0.6); sh(LAMP[0], LAMP[2], 0.6, 0.6, 0.6);
   return { PL };
 }
 
@@ -441,7 +441,7 @@ function buildTrainGeometry(THREE) {
   const I = [], rotZ = (g) => g.rotateX(Math.PI / 2); // axis y -> z (top -> +z = front)
   const CylZ = (rt, rb, h, seg = 22) => rotZ(new THREE.CylinderGeometry(rt, rb, h, seg));
   const col = { chassis: '#0f3a46', boiler: '#2cc4bb', dark: '#0a2a33', amber: '#ffb62e', cab: '#dff8f2', roof: '#124a58', wheel: '#c98a22', verm: '#f2542d', car: '#1f9aa0' };
-  const lamp = [3.4, 3.0, 2.2], win = [2.4, 1.5, 0.55];
+  const lamp = [2.4, 2.1, 1.6], win = [2.4, 1.5, 0.55];
   I.push(item(THREE, BOX(THREE, 0.66, 0.12, 1.6), { p: [0, 0.2, 0.05], c: col.chassis }));
   I.push(item(THREE, CylZ(0.3, 0.3, 1.0), { p: [0, 0.55, 0.12], c: col.boiler }));
   I.push(item(THREE, CylZ(0.315, 0.315, 0.16), { p: [0, 0.55, 0.68], c: col.dark }));
@@ -466,11 +466,12 @@ function buildTrainGeometry(THREE) {
 // path of the loco in PANE-LOCAL space: q in [0,1] along the rails on the ground (far -> near edge), q in [1,2] lifts off the screen toward the family
 const RAIL = (v) => { const g = gpos(0.4 + 0.2 * v, v); return [g[0], g[1] + 0.012, g[2]]; };
 function makeExitCurve(THREE) {
-  const f = RAIL(1), pts = [[f[0], f[1], f[2]], [f[0] + 0.05, f[1] + 0.13, f[2] + 0.35], [f[0] + 0.13, f[1] + 0.24, f[2] + 0.78], [f[0] + 0.17, f[1] + 0.2, f[2] + 1.2]].map((p) => new THREE.Vector3(...p));
+  const f = RAIL(1), W = (x, y, z) => [x - PANE.x, y - PANE.y, z - PANE.z];
+  const pts = [[f[0], f[1], f[2]], W(0.56, 1.0, 1.35), W(0.6, 0.93, 1.85), W(0.62, 0.95, 2.32)].map((p) => new THREE.Vector3(...p));
   return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
 }
 const qOf = (lt) => (lt < EV.pop ? Math.pow(seg(lt, 0.3, EV.pop), 1.5) : 1 + Math.pow(seg(lt, EV.pop, EV.snap), 1.15));
-const kOf = (q) => (q <= 1 ? lerp(0.04, 0.105, Math.pow(q, 1.2)) : 0.105 + (0.3 - 0.105) * Math.pow(q - 1, 1.3));
+const kOf = (q) => (q <= 1 ? lerp(0.06, 0.19, Math.pow(q, 1.2)) : 0.19 + (0.42 - 0.19) * Math.pow(q - 1, 1.3));
 function trainPose(st, lt, out) { // pure: position (pane-local), forward tangent, scale for scene time lt
   const q = qOf(lt); let p, tan;
   if (q <= 1) { const a = RAIL(clamp(q, 0, 1)), b = RAIL(clamp(q + 0.01, 0, 1.0)); p = a; tan = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; }
@@ -515,6 +516,7 @@ function buildHolo(THREE, st) {
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: 'precision highp float; varying vec2 vUv; uniform float uT, uI; void main(){ float d = vUv.x * 0.8 + vUv.y * 0.55 - fract(uT * 0.17) * 2.4 + 0.5; float band = exp(-d * d * 60.0) * 0.5 + exp(-(d - 0.22) * (d - 0.22) * 400.0) * 0.35; float vg = smoothstep(0.0, 0.5, vUv.x) * smoothstep(1.0, 0.5, vUv.x) * 0.6 + 0.4; gl_FragColor = vec4(vec3(0.3, 1.0, 0.95) * band * 0.12 * uI * vg + vec3(0.1, 0.6, 0.6) * 0.012 * uI, 1.0); }',
   })), pane); st.sheen.position.z = hd + 0.004; st.sheen.renderOrder = 26;
+  { const gr = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), (st.glassRingMat = ringMaterial(THREE, uT, 'ring'))); gr.position.set(0.23, -0.2, hd + 0.01); gr.renderOrder = 27; gr.frustumCulled = false; pane.add(gr); st.glassRing = gr; }
   // moon halo (pulses at the 'oh')
   st.moonGlow = glowSprite(THREE, { color: '#9ffcf0', size: 0.5, intensity: 0.0, depthTest: false }); st.moonGlow.position.set((MOON.u - 0.5) * PANE.w, (0.5 - MOON.v) * PANE.h, -0.19); st.moonGlow.renderOrder = 18; pane.add(st.moonGlow);
 
@@ -528,7 +530,7 @@ function buildHolo(THREE, st) {
   const bg = trumpetGeometry(THREE, { h: 4.2, r0: [0.06, 0.06], r1: [0.9, 0.9], pw: 1.0, n: 36, m: 8 }); bg.rotateX(Math.PI / 2);
   st.lampBeamMat = coneMaterial(THREE, uT); st.lampBeamMat.uniforms.uCol.value.set('#ffd9a0'); st.lampBeamMat.uniforms.uCol2.value.set('#fff4dc'); st.lampBeamMat.uniforms.uInt.value = 0.5;
   const lb = new THREE.Mesh(bg, st.lampBeamMat); lb.position.copy(st.lampLocal); lb.renderOrder = 21; lb.frustumCulled = false; train.add(lb); st.lampBeam = lb;
-  st.flare = lensFlare(THREE, { color: '#d6fbff', size: 0.55, intensity: 0, streak: true, ghosts: 4, ring: true, visibility: 1, ghostDist: 3 }); scene.add(st.flare);
+  st.flare = lensFlare(THREE, { color: '#d6fbff', size: 0.4, intensity: 0, streak: true, ghosts: 0, ring: false, visibility: 1, ghostDist: 3 }); scene.add(st.flare);
 
   // ---- projector: trumpet + emitter + rings + pool
   st.coneMat = coneMaterial(THREE, uT);
@@ -575,7 +577,8 @@ function buildCast(THREE, st, renderer) {
   A.setProp('slate', { t: 0, glow: 0.2 }); A.root.scale.setScalar(0.9); A.root.position.set(...AMR);
   A.root.traverse((o) => { if (o.isMesh) o.renderOrder = 30; });
   scene.add(A.root);
-  st.ampGlow = glowSprite(THREE, { color: '#41f0e0', size: 1.7, intensity: 0.0, depthTest: false }); st.ampGlow.renderOrder = 29; scene.add(st.ampGlow);
+  st.ampGlow = glowSprite(THREE, { color: '#41f0e0', size: 1.7, intensity: 0.0, depthTest: false }); st.ampGlow.renderOrder = 28; scene.add(st.ampGlow);
+  st.ampDark = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), new THREE.MeshBasicMaterial({ map: radialAlphaTexture(THREE, [[0, 0.85], [0.55, 0.62], [0.8, 0.2], [1, 0]]), color: '#02060a', transparent: true, opacity: 0.0, depthWrite: false, fog: false })); st.ampDark.renderOrder = 29; scene.add(st.ampDark);
   // family
   const fam = st.fam = createCouchGroup(THREE, { people: 4, seed: 11, style: 'rim', sofaColor: '#5b3a2c' });
   fam.group.position.set(...SOFA); fam.group.scale.setScalar(0.92); fam.setLightColor('#52f0ff', 0.6); scene.add(fam.group);
@@ -585,7 +588,7 @@ function buildCast(THREE, st, renderer) {
   st.tableL = new THREE.PointLight('#38f0e0', 2.6, 0, 2); st.tableL.position.set(0.2, 0.72, 1.3); scene.add(st.tableL);
   st.cityL = new THREE.PointLight('#8aa8ff', 5, 0, 2); st.cityL.position.set(WIN.x, WIN.y + 0.2, BACK + 0.9); scene.add(st.cityL);
   st.hemi = new THREE.HemisphereLight('#3a4668', '#4a3424', 0.5);
-  st.warmL = new THREE.PointLight('#ffb272', 9, 0, 2); st.warmL.position.set(1.6, 2.5, 5.2); scene.add(st.warmL); scene.add(st.hemi);
+  st.warmL = new THREE.PointLight('#ffb272', 24, 0, 2); st.warmL.position.set(1.9, 2.6, 5.6); scene.add(st.warmL); scene.add(st.hemi);
   st.shelfL = new THREE.PointLight('#ffb878', 2.2, 0, 2); st.shelfL.position.set(SHELF.x + 0.4, 2.0, BACK + 1.2); scene.add(st.shelfL);
 }
 
@@ -669,14 +672,15 @@ export default {
     const pw = lt < 0.4 ? (H(gf, 3) < sm(0.0, 0.4, lt) * 1.25 ? 1 : 0.14) : 1;       // power-on flicker (frame-quantised)
     const micro = 1 - 0.2 * (H(gf, 8) > 0.978 ? 1 : 0);
     const flick = pw * micro;
-    const surge = sm(1.78, 2.0, lt);
+    const surge = sm(1.8, 2.0, lt) * 0.55;
     const hitK = env(lt, 0, 0.22), popK = env(lt, EV.pop, 0.22), snapK = env(lt, EV.snap, 0.18), ohK = sm(EV.oh, EV.oh + 0.25, lt);
 
     // ---- camera: slow dolly-in over the sofa's shoulder (35 mm), a stepped glitch jitter on the cut -------------------------------------
     const u = lt / 2, e = 0.55 * u + 0.45 * sm(0, 1, u), jit = g0 > 0.04 ? g0 : 0;
-    const cx = lerp(1.1, 0.55, e) + 0.02 * Math.sin(t * 1.3) + jit * (H(gf, 21) - 0.5) * 0.22, cy = lerp(1.55, 1.4, e) + 0.012 * Math.sin(t * 1.9 + 1) + jit * (H(gf, 22) - 0.5) * 0.08, cz = lerp(6.3, 5.15, e);
-    camera.position.set(cx, cy, cz);
-    K.v1.set(lerp(-0.05, 0.1, e) + 0.01 * Math.sin(t * 0.9), lerp(1.4, 1.46, e), 0.4); camera.lookAt(K.v1); camera.updateMatrixWorld(true);
+    const cx = lerp(1.1, 0.6, e) + 0.02 * Math.sin(t * 1.3) + jit * (H(gf, 21) - 0.5) * 0.22, cy = lerp(1.8, 1.6, e) + 0.012 * Math.sin(t * 1.9 + 1) + jit * (H(gf, 22) - 0.5) * 0.08, cz = lerp(6.3, 5.15, e);
+    camera.position.set(cx + 0.012 * popK * (H(gf, 31) - 0.5) * 2, cy + 0.012 * popK * (H(gf, 32) - 0.5) * 2 - 0.02 * snapK, cz - 0.06 * popK - 0.03 * snapK);
+    K.v1.set(lerp(-0.2, -0.02, e) + 0.01 * Math.sin(t * 0.9), lerp(0.86, 1.0, e), 0.4); camera.lookAt(K.v1); camera.updateMatrixWorld(true);
+    if (globalThis.__cam) { const o = globalThis.__cam; camera.position.set(o[0], o[1], o[2]); camera.lookAt(o[3], o[4], o[5]); if (o[6]) { camera.fov = o[6]; camera.updateProjectionMatrix(); } camera.updateMatrixWorld(true); }
     st.cam.fwd.set(0, 0, -1).applyQuaternion(camera.quaternion);
 
     // ---- loco pose (pane-local) -----------------------------------------------------------------------------------------------------------
@@ -686,12 +690,12 @@ export default {
     const trVis = lt > 0.3 && lt < 1.64;
     tr.visible = trVis; st.trainMat.uniforms.uDissolve.value = Math.max(1 - seg(lt, 0.3, 0.5), seg(lt, 1.46, 1.62)); st.trainMat.uniforms.uFlick.value = pw * (lt < 0.4 ? 0 : 1) + (lt >= 0.4 ? 0 : 0);
     st.trainMat.uniforms.uFlick.value = micro;
-    st.headGlow.scale.setScalar(lerp(3.2, 1.9, clamp(tp.k / 0.3))); st.headGlow.userData.set({ intensity: (0.5 + 0.35 * popK + 0.25 * env(lt, EV.laugh, 0.2)) * (trVis ? 1 : 0) });
-    st.lampBeamMat.uniforms.uInt.value = (0.1 + 0.18 * popK) * (trVis ? 1 : 0) * micro;
+    st.headGlow.scale.setScalar(lerp(0.2, 0.34, clamp(tp.k / 0.5)) / tp.k); st.headGlow.userData.set({ intensity: (0.4 + 0.25 * popK + 0.2 * env(lt, EV.laugh, 0.2)) * (trVis ? 1 : 0) });
+    st.lampBeamMat.uniforms.uInt.value = (0.05 + 0.1 * popK) * (trVis ? 1 : 0) * micro;
     tr.updateMatrixWorld(true); st.locoWorld.copy(st.lampLocal); tr.localToWorld(st.locoWorld);
     // lens flare at the headlamp (only while it faces the camera)
     K.v2.set(tp.t[0], tp.t[1], tp.t[2]).normalize(); const facing = clamp(-K.v2.dot(st.cam.fwd) * 1.4, 0, 1);
-    st.flare.position.copy(st.locoWorld); st.flare.userData.set({ intensity: (trVis ? 1 : 0) * facing * (0.06 + 0.28 * popK + 0.1 * sm(0.5, 1.0, lt)) * (lt > 1.5 ? 1 - seg(lt, 1.5, 1.64) : 1), visibility: 1 });
+    st.flare.position.copy(st.locoWorld); st.flare.userData.set({ intensity: (trVis ? 1 : 0) * facing * (0.04 + 0.22 * popK + 0.08 * sm(0.5, 1.0, lt)) * (lt > 1.5 ? 1 - seg(lt, 1.5, 1.64) : 1), visibility: 1 });
 
     // ---- projector trumpet, emitter, rings, lights ---------------------------------------------------------------------------------------
     const coneR = outBack(seg(lt, 0.02, 0.32), 1.1) * 1.04;
@@ -700,12 +704,12 @@ export default {
     st.emitRing.scale.setScalar(1 + 0.3 * hitK); st.emitRing2.scale.setScalar(1 + 0.3 * snapK + 0.2 * hitK);
     st.emitRing.material.color.setRGB(0.6, 3.2, 2.9).multiplyScalar(0.25 + 0.75 * flick * sm(0, 0.1, lt) + hitK * 0.8);
     st.emitRing2.material.color.setRGB(0.6, 3.2, 2.9).multiplyScalar(0.25 + 0.75 * flick * sm(0.05, 0.15, lt));
-    st.poolMat.uniforms.uInt.value = (0.55 + 1.6 * hitK + 0.4 * popK) * flick * sm(0, 0.08, lt);
+    st.poolMat.uniforms.uInt.value = (0.4 + 1.4 * hitK + 0.25 * popK) * flick * sm(0, 0.08, lt);
     const shk = lt < 0.9 ? seg(lt, 0.0, 0.5) : seg(lt, EV.pop, EV.pop + 0.5);
     st.shockMat.uniforms.uR.value = 0.04 + 0.96 * shk; st.shockMat.uniforms.uW.value = 0.05; st.shockMat.uniforms.uInt.value = 1.6 * (1 - shk) * (lt < 0.55 || (lt > EV.pop && lt < EV.pop + 0.55) ? 1 : 0);
     const fsh = lt < 0.9 ? seg(lt, 0.0, 0.75) : seg(lt, EV.pop, EV.pop + 0.7);
     st.floorMat.uniforms.uR.value = 0.03 + 0.97 * fsh; st.floorMat.uniforms.uW.value = 0.035; st.floorMat.uniforms.uInt.value = 0.8 * (1 - fsh) * (lt < 0.8 || (lt > EV.pop && lt < EV.pop + 0.75) ? 1 : 0);
-    st.floorGlowMat.uniforms.uInt.value = (0.28 + 0.5 * hitK + 0.25 * popK + 0.3 * surge) * flick * sm(0, 0.15, lt);
+    st.floorGlowMat.uniforms.uInt.value = (0.2 + 0.45 * hitK + 0.15 * popK + 0.25 * surge) * flick * sm(0, 0.15, lt);
     st.emitGlow.userData.set({ intensity: (0.45 + 1.6 * hitK + 0.4 * popK) * flick * sm(0, 0.05, lt), size: 1.0 + 0.8 * hitK });
     st.beam.set({ intensity: (0.5 + 0.9 * hitK + 0.3 * surge) * flick * coneR }); st.beam.update(t);
     st.haze.update(t);
@@ -725,7 +729,8 @@ export default {
     { const U = st.ground.mat.uniforms; st.ground.m.scale.z = spread; U.uReveal.value = seg(lt, 0.4, 0.8) * 1.08; U.uGlitch.value = glitch; U.uFlick.value = pw; U.uPulse.value = pulseP; }
     { const L = st.wings, U = L.mat.uniforms; L.m.position.z = L.z * spread; U.uReveal.value = seg(lt, 0.46, 0.86) * 1.08; U.uGlitch.value = glitch; U.uFlick.value = pw; }
     st.frame.material.opacity = clamp(0.25 + 0.75 * sm(0.05, 0.3, lt), 0, 1) * (0.55 + 0.45 * pw) * (1 + 0.0); st.sheen.material.uniforms.uI.value = (0.7 + 1.5 * pulseP) * sm(0.3, 0.7, lt);
-    st.moonGlow.userData.set({ intensity: (0.12 + 0.9 * ohK + 0.25 * env(lt, EV.laugh, 0.3)) * sm(0.5, 0.9, lt), size: 0.5 + 0.35 * ohK });
+    { const gk = seg(lt, EV.pop, EV.pop + 0.55); st.glassRingMat.uniforms.uR.value = 0.03 + 0.97 * gk; st.glassRingMat.uniforms.uW.value = 0.04; st.glassRingMat.uniforms.uInt.value = 1.5 * (1 - gk) * (lt > EV.pop && lt < EV.pop + 0.55 ? 1 : 0); }
+    st.moonGlow.userData.set({ intensity: (0.1 + 0.4 * ohK + 0.2 * env(lt, EV.laugh, 0.3)) * sm(0.5, 0.9, lt), size: 0.45 + 0.2 * ohK });
     st.paneProxy.visible = lt > 0.3;
 
     // ---- sparks / puffs / motes (pane-local) ---------------------------------------------------------------------------------------------
@@ -733,18 +738,18 @@ export default {
     const burst = (n, origin, t0, speed, life, cols, size, seed, bias) => {
       for (let j = 0; j < n; j++, si++) {
         const age = lt - t0; if (age < 0 || age > life || si >= SP.N) { SP.hide(si); continue; }
-        const a = H(seed, j, 1) * TAU, b = H(seed, j, 2) * 2 - 1, r = Math.sqrt(1 - b * b), sp = speed * (0.35 + 0.65 * H(seed, j, 3)), k = 1 - Math.exp(-4 * age), fall = 0.35 * age * age;
+        const a = H(seed, j, 1) * TAU, b = H(seed, j, 2) * 2 - 1, r = Math.sqrt(1 - b * b), sp = speed * (0.35 + 0.65 * H(seed, j, 3)), k = 1 - Math.exp(-4 * age), fall = 0.9 * age * age;
         const dx = r * Math.cos(a) + bias[0], dy = b + bias[1], dz = r * Math.sin(a) + bias[2], c = cols[j % cols.length], f = Math.pow(1 - age / life, 2) * (0.6 + 0.8 * H(seed, j, 4));
         SP.set(si, origin[0] + dx * sp * k / 4, origin[1] + dy * sp * k / 4 - fall, origin[2] + dz * sp * k / 4, c[0] * f, c[1] * f, c[2] * f, size * (0.6 + 0.8 * H(seed, j, 5)) * (0.5 + 0.5 * f));
       }
     };
     const front = RAIL(1), exitEnd = st.exitCurve.getPointAt(1), snapO = [exitEnd.x, exitEnd.y, exitEnd.z];
     A.propAnchor(K.v1, 'slate'); const slateO = [K.v1.x - pane.position.x, K.v1.y - pane.position.y, K.v1.z - pane.position.z];
-    const TEAL = [[1.0, 3.0, 2.8], [2.6, 3.2, 3.0], [0.5, 2.2, 2.4]], AMB = [[3.2, 2.2, 0.7], [1.0, 3.0, 2.8], [3.0, 1.0, 0.7], [2.0, 2.4, 3.2]];
-    burst(80, [front[0], front[1] + 0.05, front[2]], EV.pop, 2.4, 0.75, TEAL, 0.034, 7, [0, 0.2, 0.7]);
-    burst(120, snapO, EV.snap, 3.2, 1.0, AMB, 0.04, 9, [0, 0.0, 0.0]);
-    burst(60, slateO, EV.snap, 1.6, 0.8, AMB, 0.028, 13, [0, 0.4, 0.2]);
-    burst(60, [0, -0.45, 0.1], 0.05, 2.0, 0.7, TEAL, 0.03, 17, [0, 0.9, 0.3]);
+    const TEAL = [[0.6, 1.8, 1.7], [1.5, 2.0, 1.9], [0.3, 1.4, 1.5]], AMB = [[2.0, 1.4, 0.45], [0.6, 1.8, 1.7], [1.9, 0.65, 0.45], [1.2, 1.5, 2.0]];
+    burst(70, [front[0], front[1] + 0.05, front[2]], EV.pop, 2.4, 0.75, TEAL, 0.02, 7, [0, 0.2, 0.7]);
+    burst(110, snapO, EV.snap, 3.0, 1.0, AMB, 0.017, 9, [0, 0.0, 0.0]);
+    burst(50, slateO, EV.snap, 1.6, 0.8, AMB, 0.016, 13, [0, 0.4, 0.2]);
+    burst(50, [0, -0.45, 0.1], 0.05, 2.0, 0.7, TEAL, 0.018, 17, [0, 0.9, 0.3]);
     for (; si < SP.N; si++) SP.hide(si); SP.commit();
     const PF = st.puffs;
     for (let i = 0; i < 28; i++) {
@@ -752,7 +757,7 @@ export default {
       if (age < 0 || age > 1.0 || te > 1.5) { PF.hide(i); continue; }
       const q = trainPose(st, te, st.tpose2); K.v1.set(q.t[0], q.t[1], q.t[2]).normalize(); K.lm.lookAt(K.v1, K.zero, K.up); K.tq.setFromRotationMatrix(K.lm);
       K.v2.set(0, 1.2, 0.5).multiplyScalar(q.k).applyQuaternion(K.tq); const cxp = q.p[0] + K.v2.x, cyp = q.p[1] + K.v2.y, czp = q.p[2] + K.v2.z;
-      const f = Math.pow(1 - age, 1.4) * sm(0, 0.08, age) * 0.5, sz = (0.04 + 0.2 * age) * Math.pow(q.k / 0.105, 0.6);
+      const f = Math.pow(1 - age, 1.4) * sm(0, 0.08, age) * 0.5, sz = (0.04 + 0.2 * age) * Math.pow(q.k / 0.15, 0.6);
       PF.set(i, cxp + 0.03 * age, cyp + 0.11 * age + 0.02 * Math.sin(age * 5 + i), czp + 0.04 * age, 0.55 * f, 1.0 * f, 1.0 * f, sz);
     }
     for (let i = 0; i < 6; i++) { // the big TOOT puffs at the laugh
@@ -772,9 +777,9 @@ export default {
     // ---- Amrita (hologram): scan-in, directing, slate --------------------------------------------------------------------------------------
     const ap = sm(0.0, 0.42, lt), as = 0.9 * (0.35 + 0.65 * outBack(seg(lt, 0.0, 0.45), 1.7));
     const apw = lt < 0.4 ? (H(gf, 4) < sm(0.02, 0.4, lt) * 1.2 ? 1 : 0.1) : 1;
-    A.setStyle('hologram', { hue: 0.5 + 0.015 * Math.sin(t * 2.1), alpha: 0.86 * ap * apw * micro + 0.12 * hitK, t });
+    A.setStyle('hologram', { hue: 0.5 + 0.015 * Math.sin(t * 2.1), alpha: 1.45 * ap * apw * micro + 0.15 * hitK, t });
     A.time(t);
-    const yawT = lerp(0.42, 0.88, sm(0.45, 0.8, lt)) + 0.12 * sm(0.85, 1.05, lt) - 0.78 * sm(EV.laugh - 0.05, EV.laugh + 0.15, lt) + 0.7 * sm(EV.snap, EV.snap + 0.2, lt) + 0.0;
+    const yawT = lerp(0.36, 0.6, sm(0.45, 0.8, lt)) + 0.08 * sm(0.85, 1.05, lt) - 0.5 * sm(EV.laugh - 0.05, EV.laugh + 0.2, lt) + 0.3 * sm(EV.snap, EV.snap + 0.25, lt);
     const yaw = clamp(yawT, 0.1, 1.1);
     const stretch = 0.38 * (1 - seg(lt, 0, 0.3)) * ap;
     const P = addPose(hover(t, { amp: 0.032, seed: 5 }), { squash: stretch + punch(lt, EV.pop, { amp: -0.2 }) + punch(lt, EV.laugh, { amp: 0.16, freq: 5 }) + punch(lt, EV.snap, { amp: -0.3, freq: 4.5 }) + punch(lt, EV.oh, { amp: 0.12, freq: 4 }), pivot: -1 });
@@ -786,10 +791,11 @@ export default {
     A.expression(to, amt, from);
     const aim = lt < 0.9 ? K.v1.set(PANE.x + 0.2, PANE.y - 0.1, PANE.z) : lt < EV.laugh ? K.v1.copy(st.locoWorld) : lt < EV.snap ? K.v1.set(0.2, 1.4, 2.6) : K.v1.set(0.3, 1.3, 1.2);
     A.lookAt(aim, { gain: 2.4 }); A.eyes({ open: A.eyesState.open * (1 - A.blinkAt(T, 3)) });
-    const sg = 0.55 + 0.25 * Math.sin(t * 3.0) + 1.5 * env(lt, EV.pop, 0.22) + 1.1 * env(lt, EV.snap, 0.2) + 0.5 * env(lt, 0.0, 0.3);
+    const sg = 0.38 + 0.15 * Math.sin(t * 3.0) + 0.5 * env(lt, EV.pop, 0.22) + 0.45 * env(lt, EV.snap, 0.2) + 0.3 * env(lt, 0.0, 0.3);
     A.setProp('slate', { t, glow: clamp(sg, 0, 3), pos: [0.05 * env(lt, EV.snap, 0.2) - 0.04 * env(lt, EV.pop, 0.2), 0.07 * env(lt, EV.pop, 0.25) - 0.08 * env(lt, EV.snap, 0.12) + 0.02 * Math.sin(t * 2.4), 0], rotY: -0.3 - 0.4 * env(lt, EV.laugh, 0.5) * Math.sin(TAU * 2.5 * Math.max(0, lt - EV.laugh)), float: 0.03 });
     A.glow(0.35 + 0.8 * snapK + 0.5 * popK);
-    st.ampGlow.position.set(AMR[0], AMR[1], AMR[2] - 0.12); st.ampGlow.userData.set({ intensity: 0.28 * ap * apw + 0.5 * hitK + 0.4 * snapK, size: 2.0 * as / 0.9 });
+    st.ampDark.position.set(AMR[0], AMR[1], AMR[2] - 0.09); st.ampDark.scale.setScalar(as / 0.9 * 1.15); st.ampDark.material.opacity = 0.8 * ap; st.ampDark.lookAt(camera.position);
+    st.ampGlow.position.set(AMR[0], AMR[1], AMR[2] - 0.12); st.ampGlow.userData.set({ intensity: 0.1 * ap * apw + 0.4 * hitK + 0.3 * snapK, size: 1.7 * as / 0.9 });
     st.ampProxy.position.set(AMR[0], AMR[1] + 0.02, AMR[2] - 0.05); st.ampProxy.scale.setScalar(as / 0.74 * 0.9);
     st.trumpProxy.position.set(0, (EMIT[1] + PANE.y - PANE.h / 2) / 2, EMIT[2]); st.trumpProxy.scale.set(1.6, 0.6, 1);
     st.ampProxy.lookAt(camera.position); st.trumpProxy.lookAt(camera.position.x, st.trumpProxy.position.y, camera.position.z);
@@ -800,7 +806,7 @@ export default {
 
     // ---- focus, bloom, exposure ----------------------------------------------------------------------------------------------------------
     const dA = K.v1.set(AMR[0] * 0.5 + PANE.x * 0.5, 1.2, AMR[2] * 0.4 + PANE.z * 0.6).sub(camera.position).dot(st.cam.fwd);
-    const dL = K.v2.copy(st.locoWorld).sub(camera.position).dot(st.cam.fwd), ft = sm(0.75, 1.05, lt) * (1 - sm(1.5, 1.78, lt)) * (trVis ? 1 : 0);
+    const dL = K.v2.copy(st.locoWorld).sub(camera.position).dot(st.cam.fwd), ft = sm(0.8, 1.1, lt) * (1 - sm(1.55, 1.8, lt)) * (trVis ? 1 : 0);
     const focus = lerp(dA, Math.max(2, dL), ft * 0.8);
     return { dof: globalThis.__nodof ? { enabled: false } : { focus, strength: 0.24, maxPx: 9, bokeh: 1.5 }, bloom: { strength: globalThis.__nobloom ? 0 : 0.5 + 0.3 * T.impact + 0.3 * surge + 0.1 * popK, radius: 0.5, threshold: 1.15 }, exposure: 1.0 + 0.16 * T.impact + 0.28 * surge, shake: 4 };
   },

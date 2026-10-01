@@ -178,7 +178,7 @@ function buildPanel(THREE, texs, k) {
   const lipMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 1.35, 0.4), toneMapped: true });
   const lip = new THREE.Mesh(new THREE.ExtrudeGeometry(lipOuter, { depth: 0.004, bevelEnabled: false, curveSegments: 6 }), lipMat); g.add(lip);
   const layers = texs.map((tx, i) => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshStandardMaterial({ map: tx, emissiveMap: tx, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.22, roughness: 0.9, metalness: 0, transparent: i > 0, alphaTest: i > 0 ? 0.02 : 0, side: THREE.FrontSide }));
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH), new THREE.MeshBasicMaterial({ map: tx, color: new THREE.Color(0.8, 0.8, 0.8), transparent: i > 0, alphaTest: i > 0 ? 0.02 : 0, side: THREE.FrontSide }));
     m.renderOrder = 1 + i; g.add(m); return m;
   });
   return { g, frame, frameMat, lip, lipMat, layers };
@@ -189,7 +189,7 @@ export default {
   id: 'job_storyboard', kind: '3d', ratio: 2.39,
   setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#03050a'); scene.fog = new THREE.FogExp2('#080c14', 0.024);
-    const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'neutral', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false }); scene.add(stage.group);
+    const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'neutral', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false, ...((globalThis.__dbg || {}).stageOpts || {}) }); scene.add(stage.group);
     if (stage.setLook) stage.setLook('neutral', { intensity: 0.7 });
     scene.environment = makeEnv(THREE, renderer, [
       { w: 7, h: 3.5, pos: [-5, 4, 5], color: '#dbe9ff', i: 2.4 }, { w: 2.2, h: 8, pos: [6, 3, -4], color: '#ffd9b0', i: 2.2 },
@@ -204,7 +204,7 @@ export default {
     ], { base: ['#04060b', '#090d16'] }));
     const camera = new THREE.PerspectiveCamera(lensFov(35), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
-    if (stage.reflect) stage.reflect(A.root, { strength: 0.8 }); A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    const refl = stage.reflect ? stage.reflect(A.root, { strength: 0.8 }) : null; A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(0.82, 0.12, 0.45); stylus.group.rotation.z = -0.9;
     const glowTex = radialTexture(THREE, S);
     const sprite = (col, sx, sy, op = 1) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(...col), transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); m.scale.set(sx, sy, 1); m.renderOrder = 4; return m; };
@@ -264,20 +264,18 @@ export default {
     const ringsG = makeRings(THREE, rings); scene.add(ringsG);
 
     const tmp = { v: new THREE.Vector3(), v2: new THREE.Vector3(), v3: new THREE.Vector3(), q: new THREE.Quaternion() };
-    return { scene, camera, stage, A, THREE, stylus, tipHalo, panels, bulbs, whoosh, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, poolGrid, poolAm, blob, tmp, KEYP, RIMP };
+    return { scene, camera, stage, A, refl, THREE, stylus, tipHalo, panels, bulbs, whoosh, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, poolGrid, poolAm, blob, tmp, KEYP, RIMP };
   },
 
   update(st, T, S) {
     const { THREE, camera, A, panels, tmp, stage } = st;
     const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact);
-    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
-    { const D = globalThis.__dbg || {}; if (D.hide !== undefined || st._hid) { for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } } }
     const popK = lt >= POP ? Math.exp(-(lt - POP) / 0.12) : 0;
     const nSnap = SNAPS.reduce((n, s) => n + (lt >= s ? 1 : 0), 0), lastSnap = nSnap ? SNAPS[nSnap - 1] : -1;
 
     // ---------------- camera: constant-speed dolly-in (35 mm) + a lateral swoop on the pop so the diorama layers parallax
     const s = lerp(lt / 2, smooth(lt / 2), 0.4), swoop = smooth(seg(lt, POP - 0.05, 2.0));
-    camera.position.set(lerp(-0.8, -0.35, s) + 0.5 * swoop + 0.012 * noise1(t * 0.8, 1) + imp * 0.02 * noise1(t * 53, 7), lerp(1.02, 1.26, s) + imp * 0.014 * noise1(t * 47, 9) + 0.03 * swoop, lerp(6.5, 5.2, s));
+    camera.position.set(lerp(-0.8, -0.35, s) + 0.5 * swoop + 0.012 * noise1(t * 0.8, 1) + imp * 0.02 * noise1(t * 53, 7), lerp(0.6, 0.9, s) + imp * 0.014 * noise1(t * 47, 9) + 0.03 * swoop, lerp(6.5, 5.2, s));
     camera.fov = lensFov(35) * (1 - 0.035 * popK);
     camera.lookAt(tmp.v.set(lerp(-0.3, 0.0, s) + 0.25 * swoop, lerp(1.12, 1.2, s), 0.2));
     camera.updateProjectionMatrix();
@@ -316,7 +314,7 @@ export default {
       const fan = smooth(seg(lt, POP + 0.05, POP + 0.45)), yaw = -(col - 1) * 0.2 * fan + 0.05 * Math.sin(t * 2.2 + k * 0.8) * fan, pit = (row - 0.5) * 0.1 * fan;
       p.g.position.set(x, y, z); p.g.rotation.set(pit, ry + yaw, rz); p.g.scale.setScalar(sc);
       const Dp = 0.012 + 0.5 * ep; p.frame.scale.z = Dp;
-      p.layers.forEach((m, i) => { m.position.z = LAYER_Z[i] * 1.2 * ep + 0.0016 * i; m.material.color.setScalar(lerp(1, LAYER_SHADE[i], smooth(pp))); m.material.emissiveIntensity = 0.22 * lerp(1, 0.8, smooth(pp)) + 0.7 * pPop * (0.4 + 0.2 * i) + 0.9 * bump; });
+      p.layers.forEach((m, i) => { m.position.z = LAYER_Z[i] * 1.2 * ep + 0.0016 * i; m.material.color.setScalar(0.8 * lerp(1, LAYER_SHADE[i], smooth(pp)) + 0.55 * pPop * (0.4 + 0.2 * i) + 0.7 * bump); });
       p.frameMat.emissiveIntensity = 1.5 * bump + 1.3 * pPop + (pp > 0 ? 0.05 : 0);
       p.lip.position.z = 0.4 * Dp + 0.002; p.lipMat.color.setRGB(2.2, 1.35, 0.4).multiplyScalar(0.55 + 0.9 * bump + 0.6 * pPop + 0.25 * ep);
       p.halo.visible = true; p.halo.material.opacity = clamp((a >= 0 ? 0.06 : 0) + 0.45 * bump + 0.35 * pPop + 0.05 * ep, 0, 1);
@@ -341,6 +339,8 @@ export default {
     for (const d of [st.dustA, st.dustB]) { d.material.uniforms.uTime.value = t; d.material.uniforms.uPx.value = px; }
     st.beamKey.material.uniforms.uTime.value = t; st.beamRim.material.uniforms.uTime.value = t; st.ringsG.userData.update(t, camera);
 
+    // DEV-HOOK (removed before delivery): globalThis.__dbg.hide = ['beamKey', 'stage.group', ...] toggles visibility of named parts for profiling
+    { const D = globalThis.__dbg || {}; if (st.refl) st.refl.setVisible(!D.noRefl); for (const n of st._hid || []) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = true; } st._hid = D.hide || []; for (const n of st._hid) { const o = n.split('.').reduce((a, k) => a && a[k], st); if (o) o.visible = false; } }
     const fp = tmp.v.set(lerp(AM[0], GRID[0], 0.45), 1.15, lerp(AM[2], GRID[2], 0.85));
     return { dof: { focus: camera.position.distanceTo(fp), strength: 0.6, maxPx: 13, bokeh: 1.4 }, bloom: { strength: 0.34 + 0.2 * imp + 0.3 * popK + 0.06 * Math.min(1, flash), radius: 0.5, threshold: 1.15 } };
   },

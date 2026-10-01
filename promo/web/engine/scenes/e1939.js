@@ -30,7 +30,7 @@ function layer(S, key, draw) {
   const g = c.getContext('2d'); g.setTransform(S.scale, 0, 0, S.scale, 0, 0);
   draw(g);
   LAYERS.set(k, c);
-  if (LAYERS.size > 9) LAYERS.delete(LAYERS.keys().next().value);
+  if (LAYERS.size > 8) LAYERS.delete(LAYERS.keys().next().value);
   return c;
 }
 let TMP = null;
@@ -112,8 +112,8 @@ const ROUTE = ROUTE_S.map(ribPos);
 const BLOOM_C = [ROUTE[0][0], ROUTE[0][1] - 150];     // the circle of colour grows out of Amrita
 
 // ---------------------------------------------------------------- bloom ----------------------------------------------------------------
-const BLOOM_T = 0.56, BLOOM_MAX = 1500;
-const bloomR = (lt) => (lt <= 0 ? 0 : BLOOM_MAX * inOutCubic(lt / BLOOM_T));
+const BLOOM_T = 0.55, BLOOM_MAX = 1500;
+const bloomR = (lt) => (lt <= 0 ? 0 : BLOOM_MAX * inOutCubic(Math.pow(clamp(lt / BLOOM_T), 0.8)));
 function hitTime(x, y) {               // lt at which the wavefront reaches (x,y)
   const d = Math.hypot(x - BLOOM_C[0], y - BLOOM_C[1]);
   let a = 0, b = BLOOM_T; if (d >= BLOOM_MAX) return BLOOM_T;

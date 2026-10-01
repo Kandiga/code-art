@@ -26,7 +26,7 @@ function layer(S, key, draw) {
   const k = key + '@' + S.scale; let c = LAYERS.get(k); if (c) return c;
   c = S.mk(Math.round(1920 * S.scale), Math.round(1080 * S.scale));
   const g = c.getContext('2d'); g.setTransform(S.scale, 0, 0, S.scale, 0, 0); draw(g);
-  LAYERS.set(k, c); if (LAYERS.size > 9) LAYERS.delete(LAYERS.keys().next().value);
+  LAYERS.set(k, c); if (LAYERS.size > 6) LAYERS.delete(LAYERS.keys().next().value);
   return c;
 }
 let TMP = null;
@@ -480,7 +480,7 @@ function drawAmrita(ctx, T, S) {
 const FINDER = { cx: 1112, cy: 428, size: 466 };
 function drawFinder(ctx, T, S, am) {
   const t = T.t, lt = t - T0;
-  const k = outCubic(clamp((t - T0) / 0.25)), e = t < T0 ? 0 : k;
+  const k = inOutCubic(clamp((t - T0) / 0.25)), e = t < T0 ? 0 : k;
   const sx = am.x + am.size * 1.95, sy = am.y - am.size * 0.12, s0 = am.size * 0.95;
   const bob = Math.sin(lt * 2.3) * 3.5 * e, wob = Math.sin(lt * 1.7) * 0.006 * e;
   const x = lerp(sx, FINDER.cx, e), y = lerp(sy, FINDER.cy, e) + bob, size = lerp(s0, FINDER.size, e);
