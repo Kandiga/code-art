@@ -27,6 +27,16 @@ if(mode==='bodies'){
   const st=q.get('style')||'ink'; fillBg(st,0,0,1920,1080);
   const props=(q.get('which')||'crank,megaphone,viewfinder,clapper,slate,baton,brush').split(','); const big=q.get('big')?1:0;
   props.forEach((p,i)=>{ const cols=big?2:4, cw=1920/cols, ch=big?540:540, col=i%cols, row=Math.floor(i/cols); A.drawAmrita(g,T,S,{x:(big?330:230)+col*cw,y:(big?270:260)+row*ch,size:big?170:120,yaw:0.5,style:st,expr:i%2?'happy':'determined',prop:p,propAnim:{clap:i===3?0.2:1,sound:1,hit:0.5,swing:1,paint:0.8,glow:1}}); });
+} else if(mode==='perf'){
+  fillBg('ink',0,0,1920,1080);
+  for(const st of ['ink','line','clean','phone','hologram','glow']){
+    for(const prop of [null,'crank']){
+      const n=6; g.getImageData(0,0,1,1); const t0=performance.now(); let rec=0;
+      for(let i=0;i<n;i++){ T.boil=i; const a0=performance.now(); A.drawAmrita(g,T,S,{x:960,y:540,size:250,yaw:0.45,style:st,expr:'happy',prop}); rec+=performance.now()-a0; }
+      g.getImageData(0,0,1,1);
+      console.log('PERF',st,prop||'-','record',(rec/n).toFixed(1)+'ms','total',((performance.now()-t0)/n).toFixed(1)+'ms');
+    }
+  }
 } else if(mode==='hero'){
   const sts=(q.get('styles')||'ink,clean').split(',');
   sts.forEach((st,i)=>{ const w=1920/sts.length; fillBg(st,i*w,0,w,1080); A.drawAmrita(g,T,S,{x:i*w+w/2-60,y:500,size:+(q.get('size')||400)/sts.length*1.0,yaw:+(q.get('yaw')||0.45),style:st,expr:q.get('expr')||'happy',prop:q.get('prop')||null}); });

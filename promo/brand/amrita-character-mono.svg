@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.06 -1.06 2.12 2.12" width="512" height="512" role="img" aria-label="Amrita character, one colour (PROPOSAL)">
+<title>Amrita character, one colour (PROPOSAL)</title>
+<desc>PROPOSAL. Single-colour version: blades are inset so the seams are real gaps (transparent), no knock-out masks. Recolour by editing the fill on the group.</desc>
+<g fill="#0E0D12" fill-rule="evenodd"><path id="blades" d="M0.62 -0.04L0.067 -0.9978A1 1 0 0 1 0.8757 -0.4829ZM0.3446 0.5169L0.8976 -0.4408A1 1 0 0 1 0.856 0.5169ZM-0.2754 0.5569L0.8306 0.5569A1 1 0 0 1 -0.0197 0.9998ZM-0.62 0.04L-0.067 0.9978A1 1 0 0 1 -0.8757 0.4829ZM-0.3446 -0.5169L-0.8976 0.4408A1 1 0 0 1 -0.856 -0.5169ZM0.2754 -0.5569L-0.8306 -0.5569A1 1 0 0 1 0.0197 -0.9998Z"/><path id="play" d="M0.45 -0.0866A0.1 0.1 0 0 1 0.45 0.0866L-0.15 0.433A0.1 0.1 0 0 1 -0.3 0.3464L-0.3 -0.3464A0.1 0.1 0 0 1 -0.15 -0.433ZM-0.155 -0.17A0.075 0.125 0 1 0 -0.005 -0.17A0.075 0.125 0 1 0 -0.155 -0.17ZM-0.155 0.17A0.075 0.125 0 1 0 -0.005 0.17A0.075 0.125 0 1 0 -0.155 0.17Z"/></g>
+</svg>

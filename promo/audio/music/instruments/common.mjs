@@ -14,6 +14,7 @@
 // =============================================================================
 import * as dsp from '../../lib/dsp.mjs';
 import * as cues from '../../../shared/cues.js';
+import LEVELS from './levels.mjs';
 
 export const { SR, Buf } = dsp;
 export const TAU = Math.PI * 2;
@@ -144,6 +145,46 @@ export function vibrato(n, { rate = 5.5, cents: depth = 8, delay = 0.25, fade = 
   return out;
 }
 
+/**
+ * pitchMod(n, f0, opts) -> Float32Array of instantaneous Hz (single pass): vibrato (onset delay + fade-in, wandering rate)
+ * + slow random-ish drift + static detune + lip scoop (flat start that settles).
+ * opts {rate=5.5, cents=8, delay=0.25, fade=0.5, rng, rateJitter=0.08, drift=1.4 (cents), detune=0 (cents), scoop=0 (cents), scoopTau=0.05}
+ */
+export function pitchMod(n, f0, o = {}) {
+  const { rate = 5.5, cents: depth = 8, delay = 0.25, fade = 0.5, rng, rateJitter = 0.08, drift: dcents = 1.4, detune = 0, scoop = 0, scoopTau = 0.05 } = o;
+  const out = new Float32Array(n);
+  const r = rng || (() => 0.5);
+  let ph = r(), dph = r(), jph = r();
+  const dRate = (0.25 + 0.45 * r()) / SR, jRate = (0.3 + 0.3 * r()) / SR;
+  const dl = delay * SR, fd = Math.max(1, fade * SR);
+  const base = f0 * (1 + detune * 5.775e-4 + detune * detune * 1.668e-7);
+  const ks = scoop ? Math.exp(-1 / (scoopTau * SR)) : 0;
+  let se = scoop;
+  let rt = rate / SR;
+  for (let i = 0; i < n; i++) {
+    const a = i < dl ? 0 : i - dl > fd ? 1 : (i - dl) / fd;
+    const c = depth * a * Math.sin(TAU * ph) + dcents * Math.sin(TAU * dph) - se;
+    out[i] = base * (1 + c * 5.775e-4 + c * c * 1.668e-7);
+    ph += rt; if (ph >= 1) ph -= 1;
+    dph += dRate; if (dph >= 1) dph -= 1;
+    jph += jRate; if (jph >= 1) jph -= 1;
+    if ((i & 511) === 0) rt = (rate * (1 + rateJitter * Math.sin(TAU * jph))) / SR;
+    se *= ks;
+  }
+  return out;
+}
+
+/** slow LFO (sine) evaluated every `step` samples and linearly interpolated: mid + depth*sin(2 pi (rate t + phase)) */
+export function slowLfo(n, rateHz, mid, depth, phase = 0, step = 48) {
+  const out = new Float32Array(n);
+  let prev = mid + depth * Math.sin(TAU * phase), next = prev, base = 0;
+  for (let i = 0; i < n; i++) {
+    if (i % step === 0) { base = i; prev = next; next = mid + depth * Math.sin(TAU * (rateHz * (i + step) / SR + phase)); }
+    out[i] = prev + (next - prev) * ((i - base) / step);
+  }
+  return out;
+}
+
 /** velocity -> linear amplitude (perceptual-ish curve) */
 export const velAmp = (v, k = 1.35) => Math.pow(clamp(v, 0, 1.2), k);
 
@@ -209,7 +250,7 @@ export function defineInstrument(spec) {
     defaults: spec.defaults || {},
     options: spec.options || {},
     reverb: spec.reverb || { preset: 'hall', wet: 0.25 },
-    gainDb: spec.gainDb || 0,
+    gainDb: LEVELS[spec.id] != null ? LEVELS[spec.id] : spec.gainDb || 0,
     render(notes, opts = {}) {
       return renderNotes(inst, notes, opts);
     },
@@ -266,6 +307,7 @@ export function renderNotes(inst, notes, opts = {}) {
   if (!voiced.length) return out;
 
   // 2. group into segments (gap > segGap seconds of nothing) and mix, running the bus processor per segment
+  const subHz = o.subHz != null ? o.subHz : inst.subHz != null ? inst.subHz : 22;
   const gap = Math.round((o.segGap != null ? o.segGap : 0.4) * SR);
   const tailN = Math.round((inst.busTail != null ? inst.busTail : 0.05) * SR);
   let i = 0;
@@ -282,6 +324,7 @@ export function renderNotes(inst, notes, opts = {}) {
       for (let q = 0; q < v.L.length; q++) { seg.L[off + q] += v.L[q]; seg.R[off + q] += v.R[q]; }
     }
     if (inst.bus) seg = inst.bus(seg, { o, t0: a / SR, inst, seed });
+    if (subHz > 0) seg = dsp.biquad(seg, 'hp', subHz, 0.707); // subsonic guard (no energy wasted below the audible bass)
     dsp.addAt(out, seg, a / SR, 20 * Math.log10(g), 0);
     i = j + 1;
   }

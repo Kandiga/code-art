@@ -38,10 +38,10 @@ const vfovOf = (mm) => (2 * Math.atan(SENSOR_H / 2 / mm)) / DEG;
 // ------------------------------------------------------------------ camera path (stage metres)
 const CAM = [
   { t: 22.5, p: [0.0, 1.55, 8.4], g: [0.0, 1.05, 0.0], mm: 35 },
-  { t: 23.25, p: [0.1, 1.52, 8.12], g: [0.04, 1.05, 0.0], mm: 35 },
-  { t: 24.0, p: [0.42, 1.42, 7.45], g: [0.22, 1.0, 0.1], mm: 37 },
-  { t: 25.0, p: [0.85, 1.28, 6.3], g: [0.5, 1.0, 0.25], mm: 44 },
-  { t: 26.0, p: [1.0, 1.25, 5.6], g: [0.55, 1.02, 0.3], mm: 50 },
+  { t: 23.5, p: [0.1, 1.52, 8.12], g: [0.04, 1.05, 0.0], mm: 35 },
+  { t: 24.0, p: [0.42, 1.42, 7.45], g: [0.22, 0.95, 0.1], mm: 37 },
+  { t: 25.0, p: [0.85, 1.25, 6.3], g: [0.5, 0.9, 0.25], mm: 44 },
+  { t: 26.0, p: [1.0, 1.22, 5.6], g: [0.55, 0.84, 0.3], mm: 50 },
 ];
 function hermite(a, b, ma, mb, u, dt) { const u2 = u * u, u3 = u2 * u; return (2 * u3 - 3 * u2 + 1) * a + (u3 - 2 * u2 + u) * dt * ma + (-2 * u3 + 3 * u2) * b + (u3 - u2) * dt * mb; }
 function camAt(t, out) {
@@ -81,13 +81,13 @@ const PIECES = Array.from({ length: NC }, (_, k) => {
   return {
     k, kA: k, kB: kb, phi, d: [Math.cos(phi), Math.sin(phi)], l: [-Math.sin(phi), Math.cos(phi)],
     t0: TEAR + [0.0, 0.045, 0.02, 0.075, 0.035][k], // stagger of the peel start
-    dur: 0.78 + 0.26 * h(1), // time for the fold line to sweep the whole piece
+    dur: 1.25 + 0.35 * h(1), // time for the fold line to sweep the whole piece
     thMax: 2.72 + 0.3 * h(2), // final fold angle (rad), ~160-175 deg: cream back faces the lens
     rho0: 0.055 + 0.02 * h(3), rho1: 0.03 + 0.01 * h(4), // fold radius (m) start -> end
     twist: (h(5) < 0.5 ? -1 : 1) * (0.28 + 0.4 * h(6)), // roll of the flap about the peel axis
     fAmp: 0.18 + 0.16 * h(7), fW: 5.5 + 3 * h(8), fK: 7 + 5 * h(9), fPh: 6.28 * h(10), // flutter of the flap
-    relDelay: 0.34 + 0.2 * h(11), relDur: 0.9 + 0.3 * h(12), // rigid release / fly-away
-    psi: 1.15 + 0.5 * h(13), drift: 1.25 + 0.5 * h(14), side: (h(15) - 0.5) * 0.9, zTrav: DP + 1.0 + 0.4 * h(16), spin: (h(17) - 0.5) * 3.2,
+    relDelay: 0.62 + 0.3 * h(11), relDur: 1.0 + 0.3 * h(12), // rigid release / fly-away
+    psi: 1.25 + 0.5 * h(13), drift: 1.0 + 0.45 * h(14), side: (h(15) - 0.5) * 0.9, zTrav: DP + 0.9 + 0.5 * h(16), spin: (h(17) - 0.5) * 3.2,
     S: 0.8, // longest extent along d (set from the mesh in setup)
   };
 });
@@ -98,7 +98,7 @@ function pieceState(pc, t, sc) {
   const x = t - pc.t0;
   const ps = { on: x > 0, x };
   if (x <= 0) return ps;
-  const p = (() => { const q = clamp(x / pc.dur, 0, 1); const e = q * q * (3 - 2 * q); return mix(q, e, 0.55); })();
+  const p = (() => { const q = clamp(x / pc.dur, 0, 1); return 1 - Math.pow(1 - q, 1.9) * (1 - 0.0 * q); })();
   const Sc = p * (pc.S + 0.05);
   const th = pc.thMax * sstep(0, 0.5, x);
   const rho = mix(pc.rho0, pc.rho1, sstep(0, 1, p));
@@ -222,6 +222,8 @@ void main(){
   vec3 alb = fr ? albF : albB;
   alb *= 1.0 + uLit * 0.06 * (n1.a - 0.5);
   alb = mix(alb, albW, band * 0.9);
+  float outM = step(vUv.x, 0.0) + step(1.0, vUv.x) + step(vUv.y, 0.0) + step(1.0, vUv.y); // the sheet's cut outer edge (outside the frame)
+  alb = mix(alb, albW, clamp(outM, 0.0, 1.0));
   vec3 N = normalize(vN); if (!fr) N = -N;
   vec3 V = normalize(cameraPosition - vWP), L = normalize(uLightDir);
   float dl = max(dot(N, L), 0.0);
@@ -229,11 +231,11 @@ void main(){
   shade = mix(1.0, shade, uLit);
   vec3 Lb = normalize(uBackPos - vWP); float dB2 = length(uBackPos - vWP);
   float rimB = pow(clamp(1.0 - abs(dot(N, V)), 0.0, 1.0), 3.0) * uTrans * 0.6;
-  float tr = max(-dot(N, Lb), 0.0) * uTrans * (0.9 * exp(-max(dMin, 0.0) / 0.07) * torn + 0.1 * exp(-r / 0.25));
+  float tr = max(-dot(N, Lb), 0.0) * uTrans * (0.5 * exp(-max(dMin, 0.0) / 0.03) * torn + 0.04 * exp(-r / 0.25));
   vec3 H = normalize(L + V);
   float spec = pow(max(dot(N, H), 0.0), fr ? 26.0 : 10.0) * (fr ? 0.16 : 0.07) * uLit;
   vec3 col = alb * shade + vec3(1.0, 0.96, 0.88) * spec;
-  col += mix(alb, albB, 0.7) * vec3(1.0, 0.8, 0.5) * (tr * 2.2 + rimB);
+  col += mix(alb, albB, 0.7) * vec3(1.0, 0.8, 0.5) * (tr * 1.5 + rimB);
   // seam of light through the torn fibres
   vec3 hot = vec3(1.0, 0.86, 0.6);
   col += hot * uSeam * torn * (exp(-max(dMin, 0.0) / 0.0035) + 0.05 * exp(-max(dMin, 0.0) / 0.04));
@@ -479,7 +481,7 @@ export default {
       }
       // burst light behind the paper
       const bi = x < 0 ? 0.0 : (1 - sstep(0, 0.03, 0.03 - x)) * (12 * Math.exp(-x / 0.45) + 0.8 * Math.exp(-x / 1.4));
-      st.glowU.uI.value = ((x < 0 ? 0.0 : 1.0) * (9 * Math.exp(-x / 0.4) * sstep(0, 0.03, x) + 0.7 * Math.exp(-x / 1.0)) + hairK * 1.4) * (1 - sstep(23.2, 23.9, t));
+      st.glowU.uI.value = ((x < 0 ? 0.0 : 1.0) * (5 * Math.exp(-x / 0.3) * sstep(0, 0.03, x) + 0.6 * Math.exp(-x / 0.9)) + hairK * 1.4) * (1 - sstep(23.2, 23.9, t));
       st.glowU.uTime.value = t;
       st.burst.intensity = x < 0 ? 0 : 520 * Math.exp(-x / 0.5) + 30 * Math.exp(-x / 1.6);
       st.burst.position.copy(new THREE.Vector3(0, 0.05, -1.4).applyMatrix4(st.sheet.matrixWorld));
@@ -490,7 +492,7 @@ export default {
     const spotK = t < SPOT ? 0 : (() => { const x = t - SPOT; return (1 + 0.9 * Math.exp(-x / 0.12) * Math.sin(2 * Math.PI * x * 11 + 1.2) + 1.6 * Math.exp(-x / 0.06)) * smooth(x / 0.012 + 0.02); })();
     const settled = sstep(SPOT, SPOT + 1.2, t);
     L.key.position.copy(st.apex); L.key.target.position.set(0.45, 0.2, 0.35); L.key.target.updateMatrixWorld();
-    L.key.angle = 0.215; L.key.penumbra = 0.55; L.key.color.set('#ffe0b0'); L.key.intensity = 620 * spotK; L.key.distance = 0; L.key.decay = 2;
+    L.key.angle = 0.215; L.key.penumbra = 0.55; L.key.color.set('#ffe0b0'); L.key.intensity = 340 * spotK; L.key.distance = 0; L.key.decay = 2;
     const landX = 1.05, landZ = 0.5;
     // Amrita path
     const tl = t - LAND;
@@ -562,7 +564,10 @@ export default {
     focus = lerp(focus, lerp(chairZ, amriZ, sstep(24.3, 24.95, t)), sstep(24.3, 24.9, t));
     const dof = { focus, strength: lerp(0.5, 0.42, sstep(23.5, 24.5, t)), maxPx: 16, bokeh: 1.3 };
     const frozen = t < TEAR - 0.045;
-    const bloom = { strength: frozen || D.noBloom ? 0 : 0.42 + 0.3 * Math.min(1, imp), radius: 0.62, threshold: lerp(3.2, 0.85, sstep(23.0, 24.3, t)) };
+    const bloom = { strength: frozen || D.noBloom ? 0 : 0.34 + 0.2 * Math.min(1, imp), radius: 0.62, threshold: lerp(3.2, 0.85, sstep(23.0, 24.3, t)) };
     return { dof, bloom, exposure: 1, jitter: !frozen };
   },
 };
+
+// pure helpers exposed for offline checks (node): camera path, paper physics
+export const __phys = { PIECES, pieceState, deform, makeScratch, camAt, wedgeDist, crackAngle, CRACK_C, DP, ASPECT, vfovOf, CELL, SENSOR_H };

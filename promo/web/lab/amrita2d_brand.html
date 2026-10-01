@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><title>amrita2d brand svgs</title><style>
+body{margin:0;background:#888;font:600 16px Inter,sans-serif;display:grid;grid-template-columns:repeat(4,1fr)}
+div{padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px}img{width:300px;height:300px}
+</style></head><body>
+<script>
+const files=['amrita-mark.svg','amrita-mark-mono.svg','amrita-character.svg','amrita-character-mono.svg'], bgs=['#F2EBDC','#14121A','#6B5BFF','#FFB62E'];
+let n=0;
+for(const b of bgs) for(const f of files){ const d=document.createElement('div'); d.style.background=b; const i=new Image(); i.src='/brand/'+f; i.style.filter=(b==='#14121A'&&f.includes('mono'))?'invert(1)':''; i.onload=()=>{ if(++n===16) setTimeout(()=>window.__done=true,300); }; d.appendChild(i); d.append(f.replace('.svg','')); document.body.appendChild(d); }
+</script></body></html>

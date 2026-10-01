@@ -17,7 +17,10 @@
 //           palette:{blade,bladeAlt,face,ink,eye}, alpha, seed, shadow:true|false|{y,a,w}, groundY, thick, iris, glow:'#hex', hue }
 //   drawProp(ctx, T, S, kind, {x,y,size,anim,boil,seed,style})
 //   drawMark(ctx, S, {x,y,size,style:'flat'|'ink'|'mono', boil, palette, seed, alpha, play, eyes, expr, iris, yaw, color})
-//   EXPR (presets) · STYLES · blinkAmount(T) · eyeAnim(T, script) · hoverBob(T) · poseAt(kind,u) · mixEye(a,b,t) · eyeFor(expr,amt)
+//   more o: blink (0..1 closed, e.g. blinkAmount(T)), blush (0..1, auto when happy), pitch (rad), hue/glow ('#hex' for hologram / glow), iris (.04..1.5 aperture opening)
+//   helpers: EXPR (presets) · STYLES · blinkAmount(T,{seed}) · eyeAnim(T, script) · hoverBob(T,{size}) · poseAt('hop'|'pop'|'land'|'anticipate'|'dash'|'nod', u) ·
+//            clapAt(t, tHit) -> {clap,hit} · lookToward(x,y,tx,ty) · mixEye(a,b,t) · eyeFor(expr,amt) · eyeShape / apertureGeom / triUnit / GEO (unit geometry)
+//   usage:  const e = eyeAnim(T, [{t:0,expr:'neutral'},{t:1.2,expr:'happy',ease:'spring'}]);  drawAmrita(ctx,T,S,{x,y,size:260,eye:e, ...hoverBob})
 //   markSVG / monoSVG / characterSVG (string builders: brand/ files are generated from the same geometry by brand/build.mjs)
 // Every frame is a pure function of its inputs (seeded hashing only).
 // =============================================================================
@@ -124,7 +127,7 @@ export function eyeShape(e, side = 1, n = 14) {
   const sur = clamp(e.surprised || 0, 0, 1.2), hp = clamp(e.happy || 0, 0, 1), det = clamp(e.determined || 0, -1.2, 1.2), slp = clamp(e.sleepy || 0, 0, 1), sq = clamp(e.squint || 0, 0, 1);
   const wk = e.wink || 0, hpE = clamp(Math.max(hp, side > 0 ? clamp(wk, 0, 1) : clamp(-wk, 0, 1) + (wk > 0 ? 0 : 0)), 0, 1);
   const openE = e.open * (1 - 0.0);
-  const hwB = GEO.eyeHW * (1 + 0.32 * sur + 0.16 * hpE), hhB = GEO.eyeHH * (1 + 0.16 * sur);
+  const hwB = GEO.eyeHW * (1 + 0.32 * sur + 0.30 * hpE), hhB = GEO.eyeHH * (1 + 0.16 * sur);
   const v = Math.max(0.075, openE), hh = hhB * v, hw = hwB * (1 + 0.1 * (1 - clamp(v, 0, 1)));
   const top = [], bot = [], adet = Math.abs(det);
   // squint = a flattened lens with a cheek lift (rounded, no hard lid corners); sleepy/determined = lid lines (clip) on top
@@ -133,7 +136,7 @@ export function eyeShape(e, side = 1, n = 14) {
     const th = (Math.PI * i) / n, u = -Math.cos(th), s = Math.sqrt(Math.max(0, 1 - u * u));
     let t = -hh * s * sqk + sq * hh * 0.10 * s, b = hh * s * sqk - sq * hh * (0.16 * s + 0.10 * (1 - s));
     // happy arch
-    const tA = hhB * (0.34 - 0.84 * s), bA = tA + hhB * (0.30 + 0.46 * s);
+    const tA = hhB * (0.36 - 0.80 * s), bA = tA + hhB * (0.20 + 0.28 * s);
     t = lerp(t, tA, hpE); b = lerp(b, bA, hpE);
     // lids
     const lidK = 1 - hpE, topLid = -hh * sqk + 2 * hh * sqk * (slp * 0.55 + adet * 0.34) + det * 0.95 * hh * u;
@@ -199,6 +202,38 @@ const centroid = (pts) => { let x = 0, y = 0; for (const p of pts) { x += p[0]; 
 const path = (ctx, pts, closed = true) => { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); if (closed) ctx.closePath(); };
 const arcPts = (pts, a0, a1) => { const n = pts.length; return Array.from({ length: Math.round(((a1 - a0) / TAU) * n) + 1 }, (_, i) => pts[(Math.round((a0 / TAU) * n) + i + n * 4) % n]); };
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// batched colored-pencil hatching: same strokes as pencil.hatch (same seeds / jitter / density), but segments are collected
+// into 3 alpha buckets and stroked with 3 calls instead of one call per segment (raster cost, not JS cost, dominated v0).
+// ---------------------------------------------------------------------------------------------------------------------
+function hatchB(ctx, pts, { color = '#C0431F', angle = -0.75, gap = 7, width = 1.3, alpha = 0.65, boil = 0, seed = 3, jitter = 1.2, cross = 0, shade = null, comp = 'multiply', margin = 0, segLen = 38 } = {}) {
+  const b = P.bounds(pts), Rr = Math.hypot(b.w, b.h) / 2 + 6;
+  ctx.save(); path(ctx, pts); ctx.clip();
+  ctx.globalCompositeOperation = comp; ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineWidth = width;
+  const buckets = [new Path2D(), new Path2D(), new Path2D()], used = [false, false, false];
+  const dirs = cross ? [angle, angle + Math.PI / 2 + 0.25] : [angle];
+  dirs.forEach((ang, di) => {
+    const c = Math.cos(ang), s = Math.sin(ang), nx = -s, ny = c, lines = Math.ceil((Rr * 2) / gap);
+    for (let li = 0; li < lines; li++) {
+      const off = -Rr + li * gap + (hash(li, seed, di) - 0.5) * gap * 0.5 + noise1(li * 0.31, seed + boil * 7) * jitter;
+      const ox = b.cx + nx * off, oy = b.cy + ny * off; let t0 = -Rr, guard = 0;
+      while (t0 < Rr && guard++ < 400) {
+        const len = segLen * (0.6 + hash(li, Math.floor((t0 + Rr) / segLen), seed + 5 * di) * 0.9), t1 = Math.min(Rr, t0 + len);
+        const mx = ox + (c * (t0 + t1)) / 2, my = oy + (s * (t0 + t1)) / 2, dens = shade ? shade(mx, my) : 1;
+        if (hash(li, Math.floor(t0), seed + 11) < dens * (0.55 + margin) || shade == null) {
+          const j = (k) => noise1(li * 0.7 + k, seed * 3 + boil * 5) * jitter, bi = Math.min(2, Math.floor(hash(li, Math.floor(t0), seed + 7) * 3)), pa = buckets[bi]; used[bi] = true;
+          pa.moveTo(ox + c * t0 + nx * j(0), oy + s * t0 + ny * j(0));
+          pa.quadraticCurveTo(ox + (c * (t0 + t1)) / 2 + nx * j(1) * 1.5, oy + (s * (t0 + t1)) / 2 + ny * j(1) * 1.5, ox + c * t1 + nx * j(2), oy + s * t1 + ny * j(2));
+        }
+        t0 = t1 + gap * (0.15 + hash(li, Math.floor(t0), seed + 13) * 0.6);
+      }
+    }
+  });
+  for (let k = 0; k < 3; k++) if (used[k]) { ctx.globalAlpha = alpha * (0.6 + 0.4 * ((k + 0.5) / 3)); ctx.stroke(buckets[k]); }
+  ctx.restore();
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // painters
 // ---------------------------------------------------------------------------------------------------------------------
@@ -207,6 +242,23 @@ function palOf(o) {
   return { blade: C.vermilion, bladeAlt: C.amber, face: C.cream, ink: C.graphite, eye: C.ink, ...(o.palette || {}) };
 }
 const bladeCol = (pal, k) => (k % 2 ? pal.bladeAlt : pal.blade);
+
+
+// soft cheek blush on the play-plate when she is happy (o.blush overrides: 0..1)
+function drawBlush(ctx, F, o, pal) {
+  if (o.noEyes || o.style === 'line') return;
+  const amt = o.blush != null ? o.blush : clamp((F.eyes[0].sh.happy - 0.35) / 0.65, 0, 1) * 0.9;
+  if (amt < 0.03) return;
+  const col = o.style === 'phone' ? '#FF7A6E' : C.vermilion;
+  for (const side of [-1, 1]) {
+    const c = F.pr(0.17, side * 0.21, Z_PLATE + 0.004), rx = F.R * 0.085 * F.sx, ry = F.R * 0.055 * F.sy;
+    ctx.save(); ctx.translate(c[0], c[1]); ctx.scale(1, ry / rx);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+    g.addColorStop(0, P.rgba(col, 0.55 * amt)); g.addColorStop(0.6, P.rgba(col, 0.28 * amt)); g.addColorStop(1, P.rgba(col, 0));
+    if (o.style === 'ink') ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill(); ctx.restore();
+  }
+}
 
 // ---- hand-drawn (ink / line) ---------------------------------------------------------------------------------------
 function renderHand(ctx, F, o, pal, boil, seed) {
@@ -222,8 +274,8 @@ function renderHand(ctx, F, o, pal, boil, seed) {
   const bandCol = P.mix(C.graphite, '#4B2A3A', 0.35);
   if (F.band) {
     if (!line) P.fill(ctx, F.band, { color: bandCol, offset: off2, boil, amp, seed: seed + 1, comp: 'source-over' });
-    else { ctx.save(); ctx.fillStyle = '#F3EBDB'; path(ctx, F.band); ctx.fill(); ctx.restore(); }
-    P.hatch(ctx, F.band, { color: line ? inkC : '#0E0D12', gap: R * (line ? 0.03 : 0.035), width: hw * (line ? 1.4 : 1.1), alpha: line ? 0.85 : 0.55, angle: 0.5 + F.yaw * 0.3, boil, seed: seed + 2, comp: 'source-over', cross: line ? 1 : 0, segLen: seg, jitter: 0.8 });
+    else { ctx.save(); ctx.fillStyle = '#F3EBDB'; path(ctx, F.band); ctx.fill(); ctx.globalAlpha = 0.78; ctx.fillStyle = inkC; path(ctx, F.band); ctx.fill(); ctx.restore(); }
+    hatchB(ctx, F.band, { color: line ? inkC : '#0E0D12', gap: R * (line ? 0.03 : 0.035), width: hw * (line ? 1.4 : 1.1), alpha: line ? 0.85 : 0.55, angle: 0.5 + F.yaw * 0.3, boil, seed: seed + 2, comp: 'source-over', cross: line ? 1 : 0, segLen: seg, jitter: 0.8 });
     ink(F.band, { s: 3 });
   }
   // 2) pale base under the blades (so mis-registered fills never expose the dark edge)
@@ -236,11 +288,12 @@ function renderHand(ctx, F, o, pal, boil, seed) {
     if (!line) {
       P.fill(ctx, b.pts, { color: col, offset: off, boil, amp, seed: seed + 10 + b.k, comp: 'source-over' });
       // pale lit side (light pencil) then dark pencil on the shadow side
-      P.hatch(ctx, b.pts, { color: '#FFF3D6', gap: hg * 1.15, width: hw * 1.6, alpha: 0.5, angle: ang + 0.12, boil, seed: seed + 20 + b.k, comp: 'source-over', shade: (x, y) => clamp(1.15 - shadeFn(cc[0], cc[1])(x, y) * 1.1, 0, 1), margin: 0.1, segLen: seg, jitter: 0.8 });
-      P.hatch(ctx, b.pts, { color: P.darken(col, 0.38), gap: hg, width: hw * 1.15, alpha: 0.55, angle: ang + 0.12, boil, seed: seed + 30 + b.k, shade: shadeFn(cc[0], cc[1]), margin: 0.15, segLen: seg, jitter: 0.8 });
+      hatchB(ctx, b.pts, { color: '#FFF3D6', gap: hg * 1.15, width: hw * 1.6, alpha: 0.5, angle: ang + 0.12, boil, seed: seed + 20 + b.k, comp: 'source-over', shade: (x, y) => clamp(1.15 - shadeFn(cc[0], cc[1])(x, y) * 1.1, 0, 1), margin: 0.1, segLen: seg, jitter: 0.8 });
+      hatchB(ctx, b.pts, { color: P.darken(col, 0.38), gap: hg, width: hw * 1.15, alpha: 0.55, angle: ang + 0.12, boil, seed: seed + 30 + b.k, shade: shadeFn(cc[0], cc[1]), margin: 0.15, segLen: seg, jitter: 0.8 });
     } else {
-      P.hatch(ctx, b.pts, { color: inkC, gap: R * (even ? 0.045 : 0.1), width: hw * 1.1, alpha: even ? 0.75 : 0.6, angle: ang + 0.1, boil, seed: seed + 30 + b.k, comp: 'source-over', segLen: seg, jitter: 0.8 });
-      if (even) P.hatch(ctx, b.pts, { color: inkC, gap: R * 0.09, width: hw, alpha: 0.5, angle: ang + 1.2, boil, seed: seed + 40 + b.k, comp: 'source-over', segLen: seg, jitter: 0.8, shade: shadeFn(cc[0], cc[1]), margin: 0.2 });
+      hatchB(ctx, b.pts, { color: inkC, gap: R * (even ? 0.032 : 0.085), width: hw * (even ? 1.35 : 1.0), alpha: even ? 0.88 : 0.6, angle: ang + 0.1, boil, seed: seed + 30 + b.k, comp: 'source-over', segLen: seg, jitter: 0.8 });
+      if (even) hatchB(ctx, b.pts, { color: inkC, gap: R * 0.05, width: hw * 1.1, alpha: 0.7, angle: ang + 1.1, boil, seed: seed + 40 + b.k, comp: 'source-over', segLen: seg, jitter: 0.8 });
+      else hatchB(ctx, b.pts, { color: inkC, gap: R * 0.07, width: hw, alpha: 0.5, angle: ang + 1.1, boil, seed: seed + 40 + b.k, comp: 'source-over', segLen: seg, jitter: 0.8, shade: shadeFn(cc[0], cc[1]), margin: 0.0 });
     }
     // seam shadow: the blade is tucked under its pinwheel neighbour -> soft graphite smudge along the seam
     const s = F.seams[b.k], dx = s[1][0] - s[0][0], dy = s[1][1] - s[0][1], L = Math.hypot(dx, dy) || 1; let nx = -dy / L, ny = dx / L;
@@ -251,7 +304,7 @@ function renderHand(ctx, F, o, pal, boil, seed) {
   });
   // 4) the hole
   if (!line) P.fill(ctx, F.hex, { color: DARK, offset: off2, boil, amp, seed: seed + 50, comp: 'source-over' });
-  else { P.hatch(ctx, F.hex, { color: inkC, gap: R * 0.028, width: hw * 1.5, alpha: 0.9, angle: -0.6, boil, seed: seed + 50, comp: 'source-over', cross: 1, segLen: seg, jitter: 0.6 }); }
+  else { P.fill(ctx, F.hex, { color: inkC, offset: [0, 0], boil, amp: amp * 0.8, seed: seed + 50, comp: 'source-over', alpha: 0.93 }); }
   // inner depth: lighter rim just inside the hole (a pencil highlight on the bottom edge), subtle
   // 5) ink: outer circle, seams, hexagon
   ink(F.front, { s: 60, width: iw * 1.12 });
@@ -264,10 +317,11 @@ function renderHand(ctx, F, o, pal, boil, seed) {
   P.fill(ctx, F.triBand, { color: ptC, offset: [0, 0], boil, amp: amp * 0.6, seed: seed + 100, comp: 'source-over' });
   ink(F.triBand, { s: 101, width: iw * 0.8, amp: amp * 0.8 });
   P.fill(ctx, F.tri, { color: line ? '#FBF6EA' : pal.face, offset: [R * 0.012, R * 0.009], boil, amp: amp * 0.7, seed: seed + 102, comp: 'source-over' });
-  if (!line) P.hatch(ctx, F.tri, { color: '#D9B77C', gap: R * 0.052, width: hw, alpha: 0.4, angle: 2.2, boil, seed: seed + 103, comp: 'multiply', shade: (x, y) => clamp(0.25 + 0.9 * (((x - cc[0]) * -light[0] + (y - cc[1]) * -light[1]) / R), 0, 1), margin: 0.1, segLen: seg * 0.8, jitter: 0.6 });
-  else P.hatch(ctx, F.tri, { color: inkC, gap: R * 0.085, width: hw * 0.9, alpha: 0.4, angle: 2.2, boil, seed: seed + 103, comp: 'source-over', shade: (x, y) => clamp(0.05 + 0.8 * (((x - cc[0]) * -light[0] + (y - cc[1]) * -light[1]) / R), 0, 1), margin: 0, segLen: seg * 0.8, jitter: 0.6 });
+  if (!line) hatchB(ctx, F.tri, { color: '#D9B77C', gap: R * 0.052, width: hw, alpha: 0.4, angle: 2.2, boil, seed: seed + 103, comp: 'multiply', shade: (x, y) => clamp(0.25 + 0.9 * (((x - cc[0]) * -light[0] + (y - cc[1]) * -light[1]) / R), 0, 1), margin: 0.1, segLen: seg * 0.8, jitter: 0.6 });
+  else hatchB(ctx, F.tri, { color: inkC, gap: R * 0.085, width: hw * 0.9, alpha: 0.4, angle: 2.2, boil, seed: seed + 103, comp: 'source-over', shade: (x, y) => clamp(0.05 + 0.8 * (((x - cc[0]) * -light[0] + (y - cc[1]) * -light[1]) / R), 0, 1), margin: 0, segLen: seg * 0.8, jitter: 0.6 });
   ink(F.tri, { s: 104, width: iw * 0.88, amp: amp * 0.8 });
   // 7) eyes
+  drawBlush(ctx, F, o, pal);
   if (!o.noEyes) F.eyes.forEach((E, i) => handEye(ctx, F, E, o, pal, boil, seed, iw, amp));
   // 8) rim light (a pencil highlight along the upper-left of the disc)
   const rimPts = arcPts(F.front.map((p) => [p[0] * 0.93, p[1] * 0.93]), Math.PI * 1.06, Math.PI * 1.62);
@@ -315,8 +369,8 @@ function renderVector(ctx, F, o, pal, boil, seed, px) {
     const far = b.pts[Math.floor(b.pts.length * 0.55)];
     let fill = col;
     if (!phone) {
-      const inner = dk(col, 0.12), outer = lt(col, b.k % 2 ? 0.30 : 0.18);
-      fill = grad(tip[0], tip[1], far[0] * 1.0, far[1] * 1.0, [[0, inner], [0.55, col], [1, outer]]);
+      const ev = b.k % 2 === 0, inner = ev ? '#D83A17' : '#F29A14', outer = ev ? '#FF7A4A' : '#FFD468';
+      fill = grad(tip[0], tip[1], far[0] * 1.0, far[1] * 1.0, [[0, inner], [0.5, col], [1, outer]]);
     }
     ctx.save(); ctx.fillStyle = fill; ctx.strokeStyle = fill; ctx.lineWidth = 1; ctx.lineJoin = 'round'; path(ctx, b.pts); ctx.fill(); ctx.stroke();
     if (!phone) { // seam shadow (tucked under its neighbour) + soft form shading
@@ -324,7 +378,7 @@ function renderVector(ctx, F, o, pal, boil, seed, px) {
       const s = F.seams[b.k], dx = s[1][0] - s[0][0], dy = s[1][1] - s[0][1], L = Math.hypot(dx, dy) || 1; let nx = -dy / L, ny = dx / L;
       if ((cen[0] - s[0][0]) * nx + (cen[1] - s[0][1]) * ny < 0) { nx = -nx; ny = -ny; }
       const w = R * 0.16, g = ctx.createLinearGradient(s[0][0], s[0][1], s[0][0] + nx * w, s[0][1] + ny * w);
-      g.addColorStop(0, P.rgba(dk(col, 0.62), 0.55)); g.addColorStop(1, P.rgba(dk(col, 0.62), 0)); ctx.fillStyle = g; ctx.fillRect(cen[0] - R * 1.3, cen[1] - R * 1.3, R * 2.6, R * 2.6);
+      g.addColorStop(0, P.rgba(dk(col, 0.62), 0.42)); g.addColorStop(1, P.rgba(dk(col, 0.62), 0)); ctx.fillStyle = g; ctx.fillRect(cen[0] - R * 1.3, cen[1] - R * 1.3, R * 2.6, R * 2.6);
       const gs = ctx.createLinearGradient(cc[0] - R * 0.7, cc[1] - R * 0.9, cc[0] + R * 0.7, cc[1] + R * 0.9); gs.addColorStop(0, 'rgba(255,255,255,0.16)'); gs.addColorStop(0.5, 'rgba(255,255,255,0)'); gs.addColorStop(1, 'rgba(60,10,0,0.26)');
       ctx.fillStyle = gs; ctx.fillRect(cen[0] - R * 1.3, cen[1] - R * 1.3, R * 2.6, R * 2.6);
     }
@@ -349,6 +403,7 @@ function renderVector(ctx, F, o, pal, boil, seed, px) {
   path(ctx, F.tri); ctx.fill();
   ctx.strokeStyle = phone ? 'rgba(42,40,51,0.55)' : 'rgba(180,130,70,0.55)'; ctx.lineWidth = lw * 0.9; ctx.lineJoin = 'round'; path(ctx, F.tri); ctx.stroke(); ctx.restore();
   // eyes
+  drawBlush(ctx, F, o, pal);
   if (!o.noEyes) F.eyes.forEach((E) => vectorEye(ctx, F, E, pal, phone, glow));
   // gloss highlight: a thin white arc along the upper-left rim
   if (!phone) {
@@ -431,9 +486,9 @@ function glowBefore(ctx, F, o, T, boil, seed) {
   const R = F.R, gc = o.glow || C.amber, pulse = 0.88 + 0.12 * Math.sin(((T && T.t) || 0) * 2.4);
   const mid = P.mix(gc, C.violet, 0.55);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  const g = ctx.createRadialGradient(0, 0, R * 0.35, 0, 0, R * 2.5 * pulse);
-  g.addColorStop(0, P.rgba(gc, 0.50)); g.addColorStop(0.35, P.rgba(mid, 0.2)); g.addColorStop(1, P.rgba(mid, 0));
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R * 2.5 * pulse, 0, TAU); ctx.fill(); ctx.restore();
+  const g = ctx.createRadialGradient(0, 0, R * 0.8, 0, 0, R * 2.6 * pulse);
+  g.addColorStop(0, P.rgba(gc, 0.62)); g.addColorStop(0.3, P.rgba(mid, 0.28)); g.addColorStop(1, P.rgba(mid, 0));
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R * 2.6 * pulse, 0, TAU); ctx.fill(); ctx.restore();
 }
 function glowAfter(ctx, F, o, T, boil, seed) {
   const R = F.R, gc = o.glow || C.amber, t = (T && T.t) || 0;
@@ -467,11 +522,11 @@ function mkPP(ctx, style, boil, seed, s, pal) {
       if (hand) {
         if (style === 'ink') {
           if (col) P.fill(ctx, pts, { color: col, offset: [s * 0.018, s * 0.013], boil, amp, seed: sd, comp: 'source-over', alpha });
-          if (hatchC) P.hatch(ctx, pts, { color: hatchC, gap, width: hw, alpha: 0.5, angle: ang, boil, seed: sd + 1, segLen: s * 0.3, jitter: 0.8 });
+          if (hatchC) hatchB(ctx, pts, { color: hatchC, gap, width: hw, alpha: 0.5, angle: ang, boil, seed: sd + 1, segLen: s * 0.3, jitter: 0.8 });
         } else if (col) {
           const L = lum(col);
-          if (L < 0.32) P.hatch(ctx, pts, { color: pal.ink, gap: s * 0.036, width: hw * 1.3, alpha: 0.85, angle: ang, cross: 1, comp: 'source-over', boil, seed: sd + 1, segLen: s * 0.3, jitter: 0.6 });
-          else if (L < 0.75) P.hatch(ctx, pts, { color: pal.ink, gap: s * (0.045 + 0.09 * ((L - 0.32) / 0.43)), width: hw, alpha: 0.6, angle: ang, comp: 'source-over', boil, seed: sd + 1, segLen: s * 0.3, jitter: 0.6 });
+          if (L < 0.32) hatchB(ctx, pts, { color: pal.ink, gap: s * 0.036, width: hw * 1.3, alpha: 0.85, angle: ang, cross: 1, comp: 'source-over', boil, seed: sd + 1, segLen: s * 0.3, jitter: 0.6 });
+          else if (L < 0.75) hatchB(ctx, pts, { color: pal.ink, gap: s * (0.045 + 0.09 * ((L - 0.32) / 0.43)), width: hw, alpha: 0.6, angle: ang, comp: 'source-over', boil, seed: sd + 1, segLen: s * 0.3, jitter: 0.6 });
         }
         if (ink && ink !== 'none') P.ink(ctx, pts, { closed, color: pal.ink, width: w, amp, boil, step, seed: sd + 2, passes: 2 });
       } else if (holo) {
@@ -600,7 +655,8 @@ const PROPS = {
     // REC dot (blinks) + label
     const on = (Math.floor(t * 1.5) % 2) === 0 || a.rec;
     pp.circle((-W + 0.36) * s, (-H + 0.13) * s, 0.05 * s, on ? C.vermilion : P.mix(C.vermilion, C.graphite, 0.6), { w: pp.iw * 0.7 });
-    ctx.save(); ctx.font = `700 ${Math.round(s * 0.11)}px Inter, sans-serif`; ctx.textBaseline = 'middle'; ctx.fillStyle = pp.hand ? C.graphite : '#FFF3D6'; ctx.globalAlpha *= pp.holo ? 0.9 : 0.95; ctx.fillText('REC', (-W + 0.44) * s, (-H + 0.135) * s); ctx.restore();
+    { const m = ctx.getTransform(), mir = m.a * m.d - m.b * m.c < 0; ctx.save(); ctx.font = `700 ${Math.round(s * 0.11)}px Inter, sans-serif`; ctx.textBaseline = 'middle'; ctx.fillStyle = pp.hand ? C.graphite : '#FFF3D6'; ctx.globalAlpha *= pp.holo ? 0.9 : 0.95;
+      ctx.translate((-W + 0.44) * s, (-H + 0.135) * s); if (mir) { ctx.scale(-1, 1); ctx.textAlign = 'right'; } ctx.fillText('REC', 0, 0); ctx.restore(); }
     // grip tube under the frame
     pp.poly(P.rectPts(-0.10 * s, (H + 0.02) * s, 0.20 * s, 0.30 * s, 0.05 * s), C.graphite, { col2: '#46425a', dir: [1, 0] });
     pp.rect(-0.13 * s, (H + 0.02) * s, 0.26 * s, 0.07 * s, 0.025 * s, C.amber, { w: pp.iw * 0.7 });
@@ -648,7 +704,7 @@ const PROPS = {
     // device
     pp.poly(P.rectPts(-0.34 * s, -0.48 * s, 0.68 * s, 0.96 * s, 0.1 * s), C.graphite, { col2: '#46425a', dir: [1, 1] });
     const scr = P.rectPts(-0.285 * s, -0.42 * s, 0.57 * s, 0.84 * s, 0.065 * s);
-    if (hand) { P.fill(ctx, scr, { color: C.violet, offset: [0, 0], comp: 'source-over', boil: pp.boil || 0, seed: 77, amp: 0.6 }); P.hatch(ctx, scr, { color: '#2a1f8a', gap: s * 0.05, width: 1.2, alpha: 0.45, angle: 0.9, boil: pp.boil || 0, seed: 78, segLen: s * 0.3 }); }
+    if (hand) { P.fill(ctx, scr, { color: C.violet, offset: [0, 0], comp: 'source-over', boil: pp.boil || 0, seed: 77, amp: 0.6 }); hatchB(ctx, scr, { color: '#2a1f8a', gap: s * 0.05, width: 1.2, alpha: 0.45, angle: 0.9, boil: pp.boil || 0, seed: 78, segLen: s * 0.3 }); }
     else { ctx.save(); const sg = ctx.createLinearGradient(0, -0.42 * s, 0, 0.42 * s); sg.addColorStop(0, P.mix(C.violet, '#9AA8FF', 0.45 * glow)); sg.addColorStop(1, P.mix(C.violet, '#2A1F8A', 0.55)); ctx.fillStyle = sg; path(ctx, scr); ctx.fill(); ctx.restore(); }
     ctx.save(); path(ctx, scr); ctx.clip();
     const cream = '#FFF3D6', K = (v) => v * s;
@@ -696,7 +752,7 @@ const PROPS = {
   // ---- brush: paints light ----
   brush(pp, ctx, s, a, T) {
     const t = a.t || 0, paint = a.paint ?? (0.5 + 0.5 * Math.sin(t * 1.5)), ang = a.angle ?? Math.sin(t * 2.2) * 0.2;
-    ctx.save(); ctx.translate(-0.05 * s, -0.1 * s); ctx.rotate(ang);
+    ctx.save(); ctx.translate(-0.28 * s, -0.12 * s); ctx.rotate(ang);
     // ribbon of light behind the tip
     const N = 26, rib = [], rib2 = [];
     for (let i = 0; i <= N; i++) { const u = i / N, L = u * paint * 1.6; const x = 0.55 * s - L * s, y = 0.55 * s + Math.sin(u * 5.5 + t * 2) * s * 0.12 * (0.3 + u) + u * s * 0.22; const w = (0.025 + 0.07 * Math.sin(Math.PI * Math.min(1, u * 1.1))) * s * (1 - u * 0.35); rib.push([x, y - w]); rib2.push([x, y + w]); }
@@ -717,11 +773,12 @@ const PROPS = {
     ctx.restore(); ctx.restore();
   },
 };
-const PROP_K = { slate: 1.28, baton: 1.12, brush: 1.1, viewfinder: 1.0, crank: 1.0, megaphone: 1.0, clapper: 1.0 };
+const PROP_K = { slate: 1.3, baton: 1.15, brush: 1.1, viewfinder: 1.08, crank: 1.12, megaphone: 1.18, clapper: 1.12 };
 PROPS.clapperboard = PROPS.clapper; PROPS.camera = PROPS.crank; PROPS.finder = PROPS.viewfinder;
 
+const PROP_ALIAS = { clapperboard: 'clapper', camera: 'crank', finder: 'viewfinder' };
 export function drawProp(ctx, T, S, kind, { x = 0, y = 0, size = 100, anim = {}, boil = (T && T.boil) || 0, seed = 7, style = 'ink', palette = {} } = {}) {
-  const fn = PROPS[kind]; if (!fn) return;
+  kind = PROP_ALIAS[kind] || kind; const fn = PROPS[kind]; if (!fn) return;
   const st = STYLES.includes(style) ? style : 'ink', pal = { ...palOf({ palette }) };
   const b = st === 'clean' || st === 'phone' || st === 'glow' ? 0 : boil;
   const pp = mkPP(ctx, st, b, seed, size * (PROP_K[kind] || 1), pal); pp.boil = b;
@@ -830,6 +887,7 @@ export function drawAmrita(ctx, T, S, o = {}) {
   const { x = 960, y = 540, size = 200, roll = 0, alpha = 1, seed = 11, prop = null, propAnim = {}, propSide = 1 } = o;
   const style = STYLES.includes(o.style) ? o.style : 'ink';
   const R = size, pal = palOf(o), eyeP = resolveEye(o);
+  if (!(R > 0.75)) return { faceBox: { x, y, w: 0, h: 0 }, eyeY: y, center: [x, y], R, eyes: [[x, y], [x, y]], prop: null };
   if (o.blink != null) eyeP.open *= 1 - clamp(o.blink, 0, 1);
   const flatStyle = style === 'clean' || style === 'phone' || style === 'glow';
   const boil = flatStyle ? 0 : (T && T.boil) || 0;
@@ -943,6 +1001,17 @@ export function eyeAnim(T, script = [], opts = {}) {
   if (opts.blink !== false) out.open = (out.open ?? 1) * (1 - blinkAmount(T, { seed: opts.seed ?? 3, time: opts.time === 't' ? T.t : T.t })) ;
   return out;
 }
+// Clapperboard timing: returns {clap (0 open .. 1 shut), hit (0..1 impact burst)} for a snap at global/scene time `tHit`
+// (stick lifts over `pre` s, holds open, slams shut at tHit with a tiny rebound).  Feed into propAnim: { clap, hit }.
+export function clapAt(time, tHit, { pre = 0.4, hold = 0.12 } = {}) {
+  const d = time - tHit;
+  if (d < -pre) return { clap: 1, hit: 0 };
+  if (d < -hold) return { clap: 1 - smooth((d + pre) / (pre - hold)), hit: 0 };
+  if (d < 0) return { clap: 0, hit: 0 };
+  const k = d / 0.14, shut = k < 0.35 ? smooth(k / 0.35) : 1 - 0.1 * Math.sin(Math.min(1, (k - 0.35) / 0.65) * Math.PI) * Math.exp(-k);
+  return { clap: clamp(shut, 0, 1), hit: Math.exp(-d / 0.09) * (d < 0.4 ? 1 : 0) };
+}
+
 // Idle hover: gentle bob + breathing squash + a hint of roll.  Returns {dy (px if size given), dx, roll, squash}.
 export function hoverBob(T, { size = 1, amp = 0.045, freq = 0.62, phase = 0, drift = 0.015 } = {}) {
   const t = (T && T.t) || 0, w = TAU * freq;
@@ -1026,4 +1095,4 @@ export function monoSVG({ size = 512, color = '#0E0D12', eyes = false, title = '
 `;
 }
 export const characterSVG = (o = {}) => markSVG({ title: 'Amrita (character, PROPOSAL)', ...o, eyes: true });
-export default { drawAmrita, drawProp, drawMark, EXPR, STYLES, blinkAmount, eyeAnim, hoverBob, poseAt, lookToward, mixEye, eyeFor, markSVG, monoSVG, characterSVG, GEO };
+export default { drawAmrita, drawProp, drawMark, EXPR, STYLES, blinkAmount, eyeAnim, hoverBob, poseAt, lookToward, clapAt, mixEye, eyeFor, markSVG, monoSVG, characterSVG, GEO };

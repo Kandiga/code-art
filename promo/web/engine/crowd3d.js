@@ -74,6 +74,24 @@
 //       Layout: the conductor stands at the group origin; the players sit on 3 curved rows around her (arc ~225 deg centred on -Z),
 //       all facing her, open toward +Z so a camera behind/over her shoulder sees the whole orchestra. Rotate `group` to taste.
 // ---------------------------------------------------------------------------------------------------------------
+// EXAMPLES
+//   // job_cast (34-36): five icons step onto their marks on the foot_tap beats 34.25 + 0.25 k
+//   const cast = createIconCast(THREE, { seed: 3 });                       // star, heart, crown, bolt, moon
+//   cast.forEach((c) => { scene.add(c.root); });
+//   update: cast.forEach((c, i) => { c.idle(T, { groove: 0.5 }); c.pose({ yaw: 0.3 });
+//             const t0 = 34.25 + 0.25 * i; c.hop(T, t0, [x0[i], 0, z], marks[i], 0.7, 0.5); c.popIn(T, t0 - 0.3); });
+//   // recap (50-54): a cinema seen from behind, the screen light colours the rims, they cheer at 53.5
+//   const aud = createAudience(THREE, { rows: 12, cols: 24, spacing: 0.8, curve: 0.25, aisles: [11] }); scene.add(aud.group);
+//   update: aud.setLightColor(screenAverageColour); aud.update(T, { react: (t) => 0.4, applause: (t) => smooth((t - 50) / 3), cheerT: 53.5 });
+//   // f2050: the family on the sofa, the hologram blooms at 42.5
+//   const fam = createCouchGroup(THREE, { people: 4 }); fam.setLightColor('#5fe3ff'); update: fam.update(T, { awe: (t) => smooth((t - 42.4) / 0.6) });
+//   // f2150: the audience made of light
+//   const pa = createParticleAudience(THREE, { count: 90, bounds: { w: 16, d: 9, cz: -2 }, focus: [0, 2, -30] });
+//   update: pa.update(T, { litT: 46.4, standT: 48.0, cheerT: 48.0, hue: 0.58 + 0.1 * u, assemble: [46, 47] });
+//   // job_score (36-38): assemble 36.0 -> 37.0, baton down = hit at 37.0
+//   const orch = createOrchestraOfLight(THREE, { seed: 2 }); scene.add(orch.group);   // conductor (Amrita) at the group origin
+//   update: orch.assemble(T, 36.0, 37.0); orch.hit(T, 37.0);
+// ---------------------------------------------------------------------------------------------------------------
 // Rendering notes: audience/couch materials are MeshStandardMaterial with a small rim shader injected (fresnel + screen
 // facing term), so they read as lit silhouettes even in a dark scene; real scene lights still affect them. Particle
 // systems are ShaderMaterial Points with additive blending; sizes are in METERS (perspective-correct, any render scale).
@@ -439,14 +457,14 @@ const HAIR = [
   { p: [0, 0.28, 0.14], s: [1.3, 1.22, 1.22] }, // big puff
 ];
 
-function seatGeometry(THREE) {
+function seatGeometry(THREE, detail = 'high') {
+  const seg = detail === 'high' ? 5 : 3;
   const parts = [
-    { geo: roundedBox(THREE, 0.6, 0.14, 0.54, 0.06, 5), m: mat4(THREE, [0, 0.33, -0.02]) },
-    { geo: roundedBox(THREE, 0.6, 0.5, 0.12, 0.06, 5), m: mat4(THREE, [0, 0.49, 0.27], [1, 1, 1], [-0.1, 0, 0]) },
-    { geo: roundedBox(THREE, 0.07, 0.3, 0.46, 0.03, 3), m: mat4(THREE, [-0.33, 0.46, 0]) },
-    { geo: roundedBox(THREE, 0.07, 0.3, 0.46, 0.03, 3), m: mat4(THREE, [0.33, 0.46, 0]) },
-    { geo: roundedBox(THREE, 0.14, 0.3, 0.14, 0.05, 3), m: mat4(THREE, [0, 0.15, 0.1]) },
+    { geo: roundedBox(THREE, 0.6, 0.14, 0.54, 0.06, seg), m: mat4(THREE, [0, 0.33, -0.02]) },
+    { geo: roundedBox(THREE, 0.6, 0.5, 0.12, 0.06, seg), m: mat4(THREE, [0, 0.49, 0.27], [1, 1, 1], [-0.1, 0, 0]) },
+    { geo: roundedBox(THREE, 0.14, 0.3, 0.14, 0.05, 2), m: mat4(THREE, [0, 0.15, 0.1]) },
   ];
+  if (detail !== 'low') parts.push({ geo: roundedBox(THREE, 0.07, 0.3, 0.46, 0.03, 2), m: mat4(THREE, [-0.33, 0.46, 0]) }, { geo: roundedBox(THREE, 0.07, 0.3, 0.46, 0.03, 2), m: mat4(THREE, [0.33, 0.46, 0]) });
   return mergeGeos(THREE, parts);
 }
 
@@ -484,7 +502,7 @@ function personTraits(p, seed, style, i) {
 }
 
 function createCrowdCore(THREE, o) {
-  const { persons, style = 'silhouette', faces = false, seatGeo = null, stepsGeo = null, shadows = false, rim = {}, seatColor = '#3a1420', stepColor = '#1a1822', seed = 1, facing = 'screen' } = o;
+  const { persons, style = 'silhouette', faces = false, seatGeo = null, stepsGeo = null, shadows = false, rim = {}, seatColor = '#3a1420', stepColor = '#1a1822', seed = 1, facing = 'screen', detail = 'high' } = o;
   const N = persons.length;
   const group = new THREE.Group(); group.name = 'crowd';
   const icons = style === 'icons';
@@ -493,9 +511,13 @@ function createCrowdCore(THREE, o) {
   const mkMat = (extra = {}) => kit.mk({ color: '#ffffff', roughness: icons ? 0.45 : 0.85, metalness: 0, ...extra });
   const meshes = {};
   const sync = (mesh) => { mesh.onBeforeRender = (r, s, camera) => kit.sync(camera); mesh.frustumCulled = false; mesh.castShadow = shadows; mesh.receiveShadow = false; return mesh; };
-  const geos = {
+  const hi = detail === 'high';
+  const geos = hi ? {
     body: new THREE.CapsuleGeometry(0.5, 0.5, 5, 14), head: new THREE.SphereGeometry(1, 16, 12), arm: new THREE.CapsuleGeometry(0.5, 1.0, 3, 8),
     hair: new THREE.SphereGeometry(1, 12, 9), eye: new THREE.SphereGeometry(1, 10, 8),
+  } : {
+    body: new THREE.CapsuleGeometry(0.5, 0.5, 3, 10), head: new THREE.SphereGeometry(1, 12, 8), arm: new THREE.CapsuleGeometry(0.5, 1.0, 2, 6),
+    hair: new THREE.SphereGeometry(1, 8, 6), eye: new THREE.SphereGeometry(1, 6, 5),
   };
   const add = (name, geo, mat, count) => { const m = sync(new THREE.InstancedMesh(geo, mat, count)); m.name = 'crowd_' + name; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); meshes[name] = m; group.add(m); return m; };
   const bodyMat = mkMat(), headMat = mkMat(), hairMat = mkMat(), armMat = mkMat();
@@ -607,14 +629,15 @@ function stepsGeometry(THREE, persons, spacing, rowSpacing, riser) {
 
 function audienceOpts(o) {
   const spacing = o.spacing ?? 0.8;
-  return { rows: o.rows ?? 8, cols: o.cols ?? 16, spacing, rowSpacing: o.rowSpacing ?? spacing * 1.35, riser: o.riser ?? spacing * 0.42, curve: o.curve ?? 0, aisles: o.aisles ?? [], empty: o.empty ?? 0.05, seed: iseed(o.seed ?? 1), facing: o.facing ?? 'screen', scale: o.scale ?? 1, style: o.style ?? 'silhouette', seats: o.seats ?? true, faces: o.faces, shadows: o.shadows ?? false, seatColor: o.seatColor, steps: o.steps ?? true };
+  return { rows: o.rows ?? 8, cols: o.cols ?? 16, spacing, rowSpacing: o.rowSpacing ?? spacing * 1.35, riser: o.riser ?? spacing * 0.42, curve: o.curve ?? 0, aisles: o.aisles ?? [], empty: o.empty ?? 0.05, seed: iseed(o.seed ?? 1), facing: o.facing ?? 'screen', scale: o.scale ?? 1, style: o.style ?? 'silhouette', seats: o.seats ?? true, faces: o.faces, quality: o.quality ?? 'auto', shadows: o.shadows ?? false, seatColor: o.seatColor, steps: o.steps ?? true };
 }
 
 export function createAudience(THREE, opts = {}) {
   const o = audienceOpts(opts);
   const persons = layoutRows(o).map((p, i) => personTraits(p, o.seed, o.style, i));
   const faces = o.faces ?? (o.facing === 'camera' || o.style === 'icons');
-  const core = createCrowdCore(THREE, { persons, style: o.style, faces, seatGeo: o.seats ? seatGeometry(THREE) : null, stepsGeo: o.seats && o.steps ? stepsGeometry(THREE, persons, o.spacing, o.rowSpacing, o.riser) : null, shadows: o.shadows, seatColor: o.seatColor || '#3a1420', seed: o.seed, facing: o.facing });
+  const n = persons.length, detail = o.quality === 'auto' ? (n <= 140 ? 'high' : n <= 260 ? 'medium' : 'low') : o.quality;
+  const core = createCrowdCore(THREE, { persons, detail: detail === 'high' ? 'high' : 'low', style: o.style, faces, seatGeo: o.seats ? seatGeometry(THREE, detail) : null, stepsGeo: o.seats && o.steps ? stepsGeometry(THREE, persons, o.spacing, o.rowSpacing, o.riser) : null, shadows: o.shadows, seatColor: o.seatColor || '#3a1420', seed: o.seed, facing: o.facing });
   const xs = persons.map((p) => p.x), zs = persons.map((p) => p.z), ys = persons.map((p) => p.y);
   core.bounds = { minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs), maxY: Math.max(...ys) + 1.5 };
   core.seatPos = (i) => new THREE.Vector3(persons[i].x, persons[i].y, persons[i].z);
@@ -630,7 +653,7 @@ export function createSeats(THREE, opts = {}) {
   const group = new THREE.Group(); group.name = 'seats';
   const kit = makeRimKit(THREE, { strength: 1.2, amb: 0.03 }); kit.group = group;
   const sm = kit.mk({ color: '#ffffff', roughness: 0.75 });
-  const im = new THREE.InstancedMesh(seatGeometry(THREE), sm, persons.length); im.frustumCulled = false; im.onBeforeRender = (r, s, cam) => kit.sync(cam);
+  const im = new THREE.InstancedMesh(seatGeometry(THREE, persons.length > 260 ? 'low' : persons.length > 140 ? 'medium' : 'high'), sm, persons.length); im.frustumCulled = false; im.onBeforeRender = (r, s, cam) => kit.sync(cam);
   const D = new THREE.Object3D(), c = new THREE.Color(), qY = new THREE.Quaternion();
   persons.forEach((p, i) => { qY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.yaw); D.position.set(p.x, p.y, p.z); D.quaternion.copy(qY); D.scale.setScalar(p.k); if (p.empty === 'gone') D.scale.setScalar(0); D.updateMatrix(); im.setMatrixAt(i, D.matrix); im.setColorAt(i, c.set(o.seatColor || '#3a1420').multiplyScalar(0.85 + 0.3 * H(o.seed, i, 3))); });
   group.add(im);
@@ -705,7 +728,7 @@ function samplePerson(r, n) {
 
 const PT_VERT_COMMON = `
 const float TAU = 6.2831853;
-float easeBack(float x){ x = clamp(x, 0.0, 1.0); float c1 = 2.0, c3 = c1 + 1.0; return 1.0 + c3 * pow(x - 1.0, 3.0) + c1 * pow(x - 1.0, 2.0); }
+float easeBack(float x){ x = clamp(x, 0.0, 1.0); float c1 = 2.0, c3 = c1 + 1.0, d = x - 1.0; return 1.0 + c3 * d * d * d + c1 * d * d; }
 vec3 hsv2rgb(vec3 c){ vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0); vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www); return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y); }
 vec3 rotA(vec3 v, vec3 k, float a){ float c = cos(a), s = sin(a); return v * c + cross(k, v) * s + k * dot(k, v) * (1.0 - c); }
 float hash11(float n){ return fract(sin(n * 127.1) * 43758.5453); }
@@ -727,7 +750,8 @@ function hookPoints(THREE, points, mat) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-export function createParticleAudience(THREE, { count = 72, seed = 5, bounds = {}, layout = 'rows', pointsPerPerson = 130, size = 0.03, focus = null, depthWrite = true, hue = 0.58, aura = 1 } = {}) {
+export function createParticleAudience(THREE, { count = 72, seed = 5, bounds = {}, layout: layout0 = 'rows', pointsPerPerson = 130, size = 0.03, focus = null, depthWrite = true, hue = 0.58, aura = 1, style = null } = {}) {
+  let layout = layout0; if (style === 'rows' || style === 'ring' || style === 'scatter') layout = style; // `style` accepted as an alias of `layout`
   seed = iseed(seed); const r = mkRng(seed ^ 0x9e37);
   const B = { w: 14, d: 9, cx: 0, cz: 0, y: 0, ...bounds };
   // layout
@@ -778,8 +802,7 @@ void main(){
   } else if (part < 4.5) {
     float rise = fract(uTime * (0.10 + 0.12 * aPt.z) + aPt.y); p.y = 1.15 * kS + rise * 1.1; p.xz += vec2(sin(uTime * 0.8 + aPt.y * TAU), cos(uTime * 0.7 + aPt.z * TAU)) * 0.08 * rise; alpha = sin(rise * 3.14159);
   }
-  if (part > 6.5) { p.y *= kS; }
-  if (part < 4.5 || part > 6.5) { p.y += ch * 0.13 * abs(sin(uTime * 7.5 + ph)); p.x += sin(uTime * 1.1 + ph) * 0.014 * p.y; p.z += cos(uTime * 0.9 + ph * 1.3) * 0.012 * p.y; }
+  if (part < 4.5) { p.y += ch * 0.13 * abs(sin(uTime * 7.5 + ph)); p.x += sin(uTime * 1.1 + ph) * 0.014 * p.y; p.z += cos(uTime * 0.9 + ph * 1.3) * 0.012 * p.y; }
   vec3 world = aRoot + p;
   float sa = clamp((uAsm - 0.55 * aPer.y - 0.02 * aPt.y) / 0.4, 0.0, 1.0), e = sa * sa * (3.0 - 2.0 * sa);
   if (e < 1.0) { vec3 o = aRoot + aOrg; float sw = (1.0 - e) * 3.0; vec3 d = o - world; world = mix(o, world, e); world.xz += vec2(-d.z, d.x) * 0.15 * sin(e * 3.14159) * (1.0 + aPt.y); }
@@ -787,31 +810,51 @@ void main(){
   gl_Position = projectionMatrix * mv;
   float tw = 0.72 + 0.28 * sin(uTime * (2.0 + aPt.z * 5.0) + aPt.y * TAU);
   float spark = pow(max(0.0, sin(uTime * (1.0 + aPt.z * 3.0) + aPt.y * 50.0)), 24.0);
-  float sz = uSize * aPt.x * (part > 6.5 ? 1.0 : (0.6 + 0.4 * tw + spark * 1.2)) * (1.0 + (part > 6.5 ? 0.0 : 0.6) * lit + 0.5 * lvl) * (0.4 + 0.6 * e) * 1.5;
-  gl_PointSize = clamp(sz * uHalfH * projectionMatrix[1][1] / max(-mv.z, 0.1), 1.0, part > 6.5 ? 700.0 : 44.0);
+  float sz = uSize * aPt.x * (0.6 + 0.4 * tw + spark * 1.2) * (1.0 + 0.6 * lit + 0.5 * lvl) * (0.4 + 0.6 * e) * 1.5;
+  gl_PointSize = clamp(sz * uHalfH * projectionMatrix[1][1] / max(-mv.z, 0.1), 1.0, 0.07 * uHalfH);
   float hh = uHue + (aPer.w - 0.5) * 0.18 + part * 0.012;
-  float val = (0.12 + 0.95 * lit) * (tw + spark) * uIntensity * (part > 4.5 ? 0.55 : 1.0) * (1.0 + 1.3 * ch) * (0.3 + 0.7 * e);
+  float val = (0.1 + 0.75 * lit) * (tw + spark) * uIntensity * (part > 4.5 ? 0.55 : 1.0) * (1.0 + 1.3 * ch) * (0.3 + 0.7 * e);
   vCol = hsv2rgb(vec3(hh, 0.5 + 0.3 * lit - 0.25 * spark, 1.0)) * val; vA = alpha;
-  if (part > 6.5) { vCol = hsv2rgb(vec3(hh, 0.65, 1.0)) * (0.05 + 0.5 * lit) * uIntensity * uAura * (0.5 + 0.5 * e) * (1.0 + 1.5 * ch + 0.5 * lvl); vA = 1.0; }
 }`;
   const mat = pointsMaterial(THREE, vert, {
     uTime: { value: 0 }, uStandT: { value: 1e6 }, uLitT: { value: -1e6 }, uCheerT: { value: 1e6 }, uIntensity: { value: 1 }, uHue: { value: hue }, uSize: { value: size }, uReact: { value: 0 }, uAsm: { value: 2 }, uBounce: { value: new THREE.Vector2() }, uAura: { value: aura },
   }, { depthWrite });
   const points = new THREE.Points(geo, mat); points.name = 'particleAudience'; hookPoints(THREE, points, mat);
   const group = new THREE.Group(); group.add(points);
-  // soft aura: one big dim sprite per person (reads as a glowing figure from afar). No depth write.
-  let auraPts = null;
+  // soft aura: one big dim billboard quad per person (reads as a glowing figure from afar). No depth write.
+  let auraMesh = null;
   if (aura > 0) {
-    const ag = { pos: [], root: [], per: [], pt: [], pivot: [], K: [], org: [] };
-    people.forEach((pp, i) => { ag.pos.push(0, 0.72, 0); ag.root.push(pp.x, B.y, pp.z); ag.per.push(H(seed, i, 7), 0.5 * H(seed, i, 4) + (pp.row || 0) * 0.03, 1.1 * H(seed, i, 5), H(seed, i, 6)); ag.pt.push(30, 0.5, 0.5, 7); ag.pivot.push(0, 0, 0); ag.K.push(0, 0, 0); ag.org.push((H(seed, i, 8) - 0.5) * 16, 2 + 9 * H(seed, i, 9), (H(seed, i, 10) - 0.5) * 16); });
-    const g2 = new THREE.BufferGeometry();
-    g2.setAttribute('position', F(ag.pos, 3)); g2.setAttribute('aRoot', F(ag.root, 3)); g2.setAttribute('aPer', F(ag.per, 4)); g2.setAttribute('aPt', F(ag.pt, 4)); g2.setAttribute('aPivot', F(ag.pivot, 3)); g2.setAttribute('aK', F(ag.K, 3)); g2.setAttribute('aOrg', F(ag.org, 3));
-    const m2 = pointsMaterial(THREE, vert, { ...mat.uniforms, uCut: { value: 0.0 } }, { depthWrite: false });
-    auraPts = new THREE.Points(g2, m2); auraPts.name = 'particleAudienceAura'; auraPts.frustumCulled = false; auraPts.renderOrder = 2; group.add(auraPts);
+    const ig = new THREE.InstancedBufferGeometry(), pl = new THREE.PlaneGeometry(1, 1);
+    ig.index = pl.index; ig.setAttribute('position', pl.attributes.position); ig.instanceCount = N;
+    const aR = [], aP = []; people.forEach((pp, i) => { aR.push(pp.x, B.y, pp.z); aP.push(H(seed, i, 7), 0.5 * H(seed, i, 4) + (pp.row || 0) * 0.03, 1.1 * H(seed, i, 5), H(seed, i, 6)); });
+    ig.setAttribute('aRoot', new THREE.InstancedBufferAttribute(new Float32Array(aR), 3)); ig.setAttribute('aPer', new THREE.InstancedBufferAttribute(new Float32Array(aP), 4));
+    const avert = `${PT_VERT_COMMON}
+attribute vec3 aRoot; attribute vec4 aPer;
+uniform float uTime, uStandT, uLitT, uCheerT, uIntensity, uHue, uReact, uAsm, uAura;
+varying vec2 vUv; varying vec3 vCol;
+void main(){
+  float ph = aPer.x * TAU;
+  float stand = easeBack((uTime - uStandT - aPer.y) / 0.55);
+  float lit = smoothstep(0.0, 1.0, (uTime - uLitT - aPer.z) / 0.9);
+  float cu = uTime - uCheerT - aPer.y * 0.5; float ch = cu > 0.0 ? min(1.0, cu / 0.1) * exp(-cu / 1.5) : 0.0;
+  float lvl = max(max(uReact, ch * 0.95), min(stand, 1.0) * 0.9);
+  float kS = 1.0 + 0.55 * stand;
+  float sa = clamp((uAsm - 0.55 * aPer.y) / 0.4, 0.0, 1.0), e = sa * sa * (3.0 - 2.0 * sa);
+  vec3 world = aRoot + vec3(0.0, 0.72 * kS + ch * 0.13 * abs(sin(uTime * 7.5 + ph)), 0.0);
+  vec4 mv = modelViewMatrix * vec4(world, 1.0);
+  mv.xy += position.xy * vec2(1.0, 1.7 * kS) * (0.8 + 0.3 * lvl);
+  gl_Position = projectionMatrix * mv;
+  vUv = position.xy;
+  float hh = uHue + (aPer.w - 0.5) * 0.18;
+  vCol = hsv2rgb(vec3(hh, 0.65, 1.0)) * (0.03 + 0.28 * lit) * uIntensity * uAura * e * (1.0 + 1.5 * ch + 0.6 * lvl);
+}`;
+    const afrag = 'precision highp float; varying vec2 vUv; varying vec3 vCol; void main(){ float r = clamp(length(vUv) * 2.0, 0.0, 1.0); float a = (1.0 - r) * (1.0 - r) * (1.0 - r); gl_FragColor = vec4(vCol, a); }';
+    const am = new THREE.ShaderMaterial({ vertexShader: avert, fragmentShader: afrag, uniforms: { ...mat.uniforms }, transparent: true, depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide });
+    auraMesh = new THREE.Mesh(ig, am); auraMesh.name = 'particleAudienceAura'; auraMesh.frustumCulled = false; auraMesh.renderOrder = 2; group.add(auraMesh);
   }
   const U = mat.uniforms;
   return {
-    group, points, aura: auraPts, count: N, positions: people.map((p) => [p.x, B.y, p.z]), material: mat,
+    group, points, aura: auraMesh, count: N, positions: people.map((p) => [p.x, B.y, p.z]), material: mat,
     update(T, { standT = 1e6, litT = -1e6, intensity = 1, hue: hh = hue, cheerT = 1e6, react = 0, assemble = null } = {}) {
       U.uTime.value = T.t; U.uStandT.value = standT; U.uLitT.value = litT; U.uIntensity.value = intensity; U.uHue.value = hh; U.uCheerT.value = cheerT;
       U.uReact.value = typeof react === 'function' ? clamp(react(T.t)) : react;
@@ -911,6 +954,7 @@ export function createOrchestraOfLight(THREE, { seed = 7, count = 32, radius = 2
     }
   }
   musicians.forEach(buildMusician);
+  const auraData = musicians.map((m, mi) => ({ x: m.x, y: m.y, z: m.z, c: SEC[m.kind], start: 0.5 * H(seed, mi, 2) + 0.12 }));
   // ---- podium rings (conductor) + ambient sparks + shock rings
   for (const [R, n] of [[0.95, 90], [0.6, 56]]) for (let i = 0; i < n; i++) { const a = (i / n) * TAU; push(Math.cos(a) * R, 0.02, Math.sin(a) * R, { part: 7, c: colv(PAL.amber, 2.2), org: [0, 0, 0], s: 0.9, ax: [0, 1, 0] }); }
   for (let i = 0; i < sparks; i++) { const a = r() * TAU, rr = 1.5 + Math.sqrt(r()) * 9; push(Math.cos(a) * rr, r() * 7, Math.sin(a) * rr, { part: 5, c: colv(r() < 0.5 ? PAL.amber : PAL.sky, 1.4), s: 0.5 + 0.8 * r(), f: r() }); }
@@ -945,21 +989,37 @@ void main(){
   float spark = pow(max(0.0, sin(uTime * (1.0 + aPt.z * 3.0) + aPt.y * 50.0)), 30.0);
   float en = part < 4.5 ? mix(0.22, 1.0, e) : 1.0;
   float sz = uSize * aPt.x * (0.7 + 0.3 * tw + spark) * (0.45 + 0.55 * en) * (1.0 + 0.5 * uBurst) * (part > 5.5 && part < 6.5 ? 1.3 : 1.0) * 1.5;
-  gl_PointSize = clamp(sz * uHalfH * projectionMatrix[1][1] / max(-mv.z, 0.1), 1.0, 46.0);
+  gl_PointSize = clamp(sz * uHalfH * projectionMatrix[1][1] / max(-mv.z, 0.1), 1.0, 0.07 * uHalfH);
   vec3 c = aCol * (tw + spark * 1.2) * uIntensity * en * (1.0 + 1.1 * uBurst);
   c = mix(c, vec3(1.0, 0.92, 0.72) * dot(c, vec3(0.34)) * 1.3, clamp(uBurst * 0.3, 0.0, 0.4));
   vCol = c; vA = alpha;
 }`;
   const mat = pointsMaterial(THREE, vert, { uTime: { value: 0 }, uBeat: { value: 0 }, uAsm: { value: 1 }, uIntensity: { value: 1 }, uSize: { value: pointSize }, uBurst: { value: 0 }, uRingAge: { value: -1 }, uPlay: { value: 1 } }, { depthWrite });
   const points = new THREE.Points(geo, mat); points.name = 'orchestraOfLight'; hookPoints(THREE, points, mat);
-  const group = new THREE.Group(); group.add(points);
-  const U = mat.uniforms, state = { asm: null, hits: [], intensity: 1, play: 1 };
+  // soft per-musician glow billboards (make every player read as a glowing figure from afar)
+  const ig = new THREE.InstancedBufferGeometry(), pl = new THREE.PlaneGeometry(1, 1);
+  ig.index = pl.index; ig.setAttribute('position', pl.attributes.position); ig.instanceCount = auraData.length;
+  ig.setAttribute('aRoot', new THREE.InstancedBufferAttribute(new Float32Array(auraData.flatMap((d) => [d.x, d.y, d.z])), 3));
+  ig.setAttribute('aCol', new THREE.InstancedBufferAttribute(new Float32Array(auraData.flatMap((d) => d.c)), 3));
+  ig.setAttribute('aSt', new THREE.InstancedBufferAttribute(new Float32Array(auraData.map((d) => d.start)), 1));
+  const amat = new THREE.ShaderMaterial({
+    vertexShader: `attribute vec3 aRoot; attribute vec3 aCol; attribute float aSt; uniform float uAsm, uIntensity, uBurst, uBeat; varying vec2 vUv; varying vec3 vCol;
+void main(){ float sa = clamp((uAsm - aSt) / 0.4, 0.0, 1.0), e = sa * sa * (3.0 - 2.0 * sa);
+  vec4 mv = modelViewMatrix * vec4(aRoot + vec3(0.0, 0.85, 0.0), 1.0); mv.xy += position.xy * vec2(1.5, 2.1) * (0.5 + 0.5 * e);
+  gl_Position = projectionMatrix * mv; vUv = position.xy; vCol = aCol * 0.12 * e * uIntensity * (1.0 + 1.5 * uBurst) * (0.85 + 0.15 * sin(uBeat * 3.14159265 * 2.0)); }`,
+    fragmentShader: 'precision highp float; varying vec2 vUv; varying vec3 vCol; void main(){ float r = clamp(length(vUv) * 2.0, 0.0, 1.0); float a = (1.0 - r) * (1.0 - r) * (1.0 - r); gl_FragColor = vec4(vCol, a); }',
+    uniforms: { uAsm: { value: 1 }, uIntensity: { value: 1 }, uBurst: { value: 0 }, uBeat: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide,
+  });
+  const auraMesh = new THREE.Mesh(ig, amat); auraMesh.frustumCulled = false; auraMesh.renderOrder = 2; auraMesh.name = 'orchestraAura';
+  const group = new THREE.Group(); group.add(points, auraMesh);
+  const U = mat.uniforms, UA = amat.uniforms, state = { asm: null, hits: [], intensity: 1, play: 1 };
   function refresh(T) {
     U.uTime.value = T.t; U.uBeat.value = T.beat ?? T.t * 2;
     U.uAsm.value = state.asm ? clamp((T.t - state.asm[0]) / Math.max(1e-4, state.asm[1] - state.asm[0])) : 1;
     let burst = 0, ring = -1;
     for (const ht of state.hits) { const age = T.t - ht; if (age >= -1 / 60 && age < 1.5) { burst += Math.exp(-Math.max(age, 0) / 0.2) * (age < 0 ? 0 : 1); if (age >= 0 && age < 1.0 && (ring < 0 || age < ring)) ring = age; } }
     U.uBurst.value = Math.min(burst, 1.5); U.uRingAge.value = ring; U.uIntensity.value = state.intensity; U.uPlay.value = state.play;
+    UA.uAsm.value = U.uAsm.value; UA.uIntensity.value = state.intensity; UA.uBurst.value = U.uBurst.value; UA.uBeat.value = U.uBeat.value;
   }
   const api = {
     group, points, count: N, musicians: musicians.length, conductor: new THREE.Vector3(0, 0, 0), material: mat, layout: musicians,

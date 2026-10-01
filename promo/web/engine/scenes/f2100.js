@@ -21,13 +21,14 @@ const H = (...v) => hash(...v);
 
 // ---- world layout (meters, +Y up, camera looks toward -Z) ------------------------------------------------------------
 const HEAD_POS = [-2.85, 0, -0.2], HEAD_S = 0.82, HEAD_YAW = -0.1;
-const DIO = [0.35, 0.36, -0.10], DS = 1.12;    // diorama origin: x centre, y bottom, z centre plane; DS = size scale of the miniature
+const DIO = [0.35, 0.36, -0.10], DS = 1.22;    // diorama origin: x centre, y bottom, z centre plane; DS = size scale of the miniature
 const AMR = [2.62, 1.34, 0.65];                // Amrita
 const BATON_C = [1.72, 1.62, 1.15];            // baton conducting centre
 const FOCUS_DIO = [0.35, 1.35, -0.1];
 
 // ---- shared GLSL ------------------------------------------------------------------------------------------------------
 const GLSL_NOISE = `
+vec3 hash3(float n){ return fract(sin(vec3(n*127.1 + 1.7, n*311.7 + 9.2, n*74.7 + 3.3)) * 43758.5453); }
 float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
   return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }
@@ -41,7 +42,7 @@ float bEnv(float a){ return a > 0.0 ? exp(-a * 5.0) * smoothstep(0.0, 0.03, a) :
 // =============================================================================
 const RIBBON_VERT = `
 uniform float uT, uPass, uWidth, uBright, uGlitch, uSettle;
-uniform vec3 uEmit, uHead, uDio, uBaton, uC0, uC1, uC2, uC3;
+uniform vec3 uEmit, uEmitB, uHead, uDio, uBaton, uC0, uC1, uC2, uC3;
 uniform vec4 uBeat;
 attribute float aS; attribute float aSide;
 #ifdef FLOW
@@ -81,56 +82,63 @@ void main(){
   float s = aS;
   vec3 pos, tg, col; float alpha, width, tw;
 #ifdef FLOW
-  vec4 R = aR; float ty = R.w; vec3 sp = R.xyz - 0.5;
-  float root = 1.0 - step(0.12, ty);
-  float fg = step(0.95, ty);
-  vec3 P0 = mix(uEmit + vec3(sp.x*0.10, sp.y*0.60, sp.z*0.42), uHead + vec3(sp.x*1.0, 0.15 + sp.y*1.1, sp.z*0.7), root);
+  // ---- braided streams: ~16 coherent bundles of ~75 threads. Each braid has a role (roots / behind the painting / over the top /
+  //      conducted by the baton / wisps / foreground), a hue, a launch beat; threads inside a braid deviate slightly.
+  vec4 R = aR; vec3 sp = R.xyz - 0.5;
+  float b = floor(R.w * 16.0);
+  vec3 Rb = hash3(b + 1.0), Rb2 = hash3(b + 41.0);
+  float root = 1.0 - step(1.5, b);
+  float fg = 0.0;
+  vec3 P0 = mix(mix(uEmit, uEmitB, R.y) + vec3(0.03 + sp.x*0.06, 0.0, sp.z*0.55), uHead + vec3(sp.x*1.0, 0.15 + sp.y*1.1, sp.z*0.7), root);
   vec3 Tg;
-  if (ty < 0.12) Tg = uEmit + sp*vec3(0.12, 0.4, 0.3);
-  else if (ty < 0.42) Tg = uDio + vec3((R.x*2.0-1.0)*2.1, 0.5 + R.y*2.3, -0.8 - R.z*1.2);           // behind the painting (silhouettes it)
-  else if (ty < 0.52) Tg = uDio + vec3((R.x*2.0-1.0)*1.6, 2.2 + R.y*0.8, -0.2 + R.z*1.0);          // arching over the top
-  else if (ty < 0.66) Tg = uBaton + sp*2.0;
-  else if (ty < 0.95) Tg = uEmit + vec3(-1.4 + R.x*3.0, 0.2 + R.y*1.7, (R.z-0.5)*3.2);
-  else Tg = vec3(-3.0 + R.x*2.6, 0.3 + R.y*2.2, 2.7 + R.z*2.0);
-  vec3 d0 = normalize(vec3(0.5 + 0.7*R.x, 0.75 + 0.9*R.y, (R.z-0.5)*1.2));
-  float L0 = 1.0 + 1.6*fract(R.x*7.7 + R.y*3.3);
+  if (b < 2.0) Tg = uEmit + sp*vec3(0.12, 0.4, 0.3);
+  else if (b < 6.0) Tg = uDio + vec3(mix(-2.0, 2.0, (b - 2.0)/3.0) + Rb.x*0.5, 0.7 + Rb.y*1.8, -0.8 - Rb.z*0.9);       // behind the painting
+  else if (b < 8.0) Tg = uDio + vec3(mix(-1.3, 1.3, b - 6.0), 2.0 + Rb.y*0.4, -0.2 + Rb.z*0.8);                         // over the top
+  else if (b < 11.0) Tg = uBaton + (Rb - 0.5)*vec3(0.9, 0.9, 0.7);                                                        // conducted
+  else Tg = uEmit + vec3(-1.4 + Rb.x*3.2, 0.1 + Rb.y*1.8, -0.2 + (Rb.z - 0.5)*2.2);                                      // wisps around the head
+  Tg += sp * 0.34 * (1.0 - root);
+  vec3 d0 = normalize(vec3(0.9 + 0.9*Rb.x, 0.2 + 0.8*Rb.y, (Rb.z - 0.5)*1.6) + sp*0.45);
+  float L0 = 1.2 + 1.7*Rb2.x;
   vec3 P1 = P0 + d0*L0;
-  vec3 d3 = normalize(vec3(0.9, -0.4 + 0.9*(R.y-0.5), (fract(R.w*91.0)-0.5)*1.2));
-  float L2 = 0.7 + 1.3*fract(R.z*5.1 + R.x);
+  vec3 d3 = normalize(vec3(0.8, -0.5 + (Rb2.y - 0.5), (Rb2.z - 0.5)*1.4) + sp*0.35);
+  float L2 = 0.9 + 1.5*Rb2.x;
   vec3 P2 = Tg - d3*L2;
   if (root > 0.5) { P1 = mix(P0, Tg, 0.33) + sp*0.3; P2 = mix(P0, Tg, 0.66) - sp.zyx*0.3; }
   vec3 bz = bez(P0, P1, P2, Tg, s), db = dbez(P0, P1, P2, Tg, s);
   vec3 dbn = normalize(db + vec3(1e-4));
   vec3 n1 = normalize(cross(dbn, vec3(0.0, 1.0, 0.0)) + vec3(1e-4, 0.0, 0.0));
   vec3 n2 = cross(n1, dbn);
-  float env = pow(max(sin(PI*s), 0.0), 0.7) * (0.2 + 0.8*smoothstep(0.0, 0.3, s));
-  float amp = (0.04 + 0.12*fract(R.z*3.3 + R.y*1.9)) * env * (1.0 - 0.85*root);
-  float frq = 0.45 + 0.9*R.x, dph = 2.0*PI*frq;
-  float ph = dph*s - uT*(1.4 + 2.2*R.y) + R.w*60.0, ph2 = ph*0.83 + 1.7;
+  float env = pow(max(sin(PI*s), 0.0), 0.7) * (0.15 + 0.85*smoothstep(0.0, 0.35, s));
+  float amp = (0.10 + 0.34*Rb2.y) * env * (1.0 - 0.85*root);
+  float frq = 0.55 + 0.75*Rb.x, dph = 2.0*PI*frq;
+  float ph = dph*s - uT*(1.2 + 1.0*Rb.y) + Rb2.z*20.0 + sp.x*1.6, ph2 = ph*0.83 + 1.7;
   pos = bz + n1*sin(ph)*amp + n2*cos(ph2)*amp*0.85;
   tg = normalize(db + n1*cos(ph)*amp*dph - n2*sin(ph2)*0.83*dph*amp*0.85 + vec3(1e-4));
   pos += beatWarp(pos, n1, n2, 0.17*(1.0 - root));
-  // reveal: each ribbon grows from the forehead; ~45% later retract their tails (a living stream)
-  float dly = -0.6 + 1.9*fract(R.y*7.3 + R.x*3.1);
-  float grow = 0.45 + 0.55*fract(R.z*5.7);
+  // volleys launch on the baton beats (lt = 0, .5, 1, 1.5); the first volley is already in flight on the cut
+  float kv = floor(pow(Rb.z, 1.7)*3.999);
+  float dly = 0.5*kv - 0.30 - 0.18*step(kv, 0.5) + sp.y*0.16 + sp.x*0.08;
+  float grow = 0.60 + 0.35*Rb2.x + 0.08*sp.z;
   float hh = clamp((uT - dly)/grow, 0.0, 1.0);
   float head = hh*hh*(3.0 - 2.0*hh);
   head = mix(head, 1.0, root);
-  float life = fract(R.x*13.7) < 0.55 ? 99.0 : 0.9 + 1.3*fract(R.w*17.1);
-  float tl = clamp((uT - dly - life)/(grow*0.8), 0.0, 1.0); tl = tl*tl*(3.0 - 2.0*tl);
-  float vis = smoothstep(tl - 0.02, tl + 0.05, s) * (1.0 - smoothstep(head, head + 0.05, s));
+  float life = Rb2.z < 0.55 ? 99.0 : 1.0 + 0.9*Rb.y + 0.2*sp.x;
+  float tl = clamp((uT - dly - life)/(grow*0.9), 0.0, 1.0); tl = tl*tl*(3.0 - 2.0*tl);
+  float vis = smoothstep(tl - 0.02, tl + 0.06, s) * (1.0 - smoothstep(head, head + 0.05, s));
   vis *= mix(step(0.001, hh), 1.0, root);
+  vis *= mix((1.0 - smoothstep(head - 0.10, head, s)) * 0.7 + 0.3, 1.0, step(0.999, hh) + root);   // soft tip while growing
   float age = max(head - s, 0.0);
-  float hot = exp(-age*14.0) * mix(1.0, 0.3, step(0.999, hh)) * (1.0 - root);
-  float pulse = pow(0.5 + 0.5*sin(2.0*PI*(s*(2.0 + 3.0*R.x) - uT*(0.9 + 1.2*R.y) + R.z*9.0)), 5.0);
-  float sf = smoothstep(0.10, 0.50, s); float inten = 0.34 * (0.22 + 1.5*pulse) * (0.03 + 0.97*sf*sf) * (1.0 - 0.6*smoothstep(0.85, 1.0, s));
-  float ck = fract(R.x*5.31 + R.y*2.7);
-  col = pal(ck) * inten * (1.0 + 0.5*step(ck, 0.3) * 0.0) + vec3(1.0, 0.92, 1.0)*hot*0.9*(0.2 + 0.8*sf);
-  float silk = smoothstep(0.72, 0.92, fract(R.y*17.3 + R.w*5.0));
+  float hot = exp(-age*14.0) * mix(1.0, 0.25, step(0.999, hh)) * (1.0 - root);
+  float pulse = pow(0.5 + 0.5*sin(2.0*PI*(s*(2.0 + 3.0*Rb.x) - uT*(0.9 + 1.2*Rb.y) + Rb.z*9.0 + sp.y*0.5)), 5.0);
+  float sf = smoothstep(0.02, 0.40, s);
+  float inten = 0.34 * (0.22 + 1.5*pulse) * (0.25 + 0.75*sf*sf) * (1.0 - smoothstep(0.78, 1.0, s));
+  float ck = fract(Rb.x*5.31 + Rb2.y*2.7 + sp.x*0.30);
+  float silk = smoothstep(0.62, 0.84, fract(R.y*17.3 + R.x*5.0));
+  col = pal(ck) * inten + vec3(1.0, 0.92, 1.0)*hot*0.9*(0.2 + 0.8*sf);
   col *= mix(1.0, 0.65, root) * (1.0 + 0.5*fg) / (1.0 + 0.9*silk);
   alpha = vis * uBright * mix(1.0, 0.8, root);
   width = uWidth * (0.55 + 0.9*fract(R.z*3.7)) * (0.35 + 0.65*sin(PI*s)) * mix(1.0, 0.5, root) * (1.0 + 1.5*fg) * (1.0 + 2.2*silk);
-  tw = 2.0*PI*(R.z*3.0 + s*1.7) + uT*(0.8 + R.x);
+  tw = 2.0*PI*(R.z*3.0 + s*1.3) + uT*(0.8 + R.x);
 #else
   pos = position; tg = normalize(aTan);
   float t0 = aP.x, dur = aP.y, af = aP.z, key = aP.w;
@@ -166,7 +174,7 @@ void main(){
   vec3 camDir = normalize(cameraPosition - pos);
   vec3 p1 = normalize(cross(tg, camDir) + vec3(1e-5));
   vec3 p2 = cross(tg, p1);
-  float wmul = uPass > 0.5 ? 3.0 : 1.0;
+  float wmul = (uPass > 0.5 && uPass < 1.5) ? 3.0 : 1.0;
   pos += (p1*cos(tw) + p2*sin(tw)) * aSide * width * wmul;
   vCol = col; vSide = aSide; vA = alpha;
   gl_Position = projectionMatrix * viewMatrix * vec4(pos, 1.0);
@@ -179,6 +187,12 @@ void main(){
   if (vA < 0.004) discard;
   float x = abs(vSide);
   vec3 c;
+  if (uPass > 1.5) {            // depth proxy: only the bright cores write depth (so DOF knows the ribbon's distance) — no colour
+    float L = dot(vCol, vec3(0.3, 0.5, 0.2)) * vA;
+    if (L < 0.2 || x > 0.8) discard;
+    gl_FragColor = vec4(0.0);
+    return;
+  }
   if (uPass < 0.5) {
     float prof = 1.0 - smoothstep(0.5, 1.0, x);
     if (prof < 0.12) discard;
@@ -196,7 +210,7 @@ function ribbonMaterial(THREE, U, { flow, pass, width }) {
     defines: flow ? { FLOW: 1 } : {},
     uniforms: { ...U, uPass: { value: pass }, uWidth: { value: width } },
     vertexShader: RIBBON_VERT, fragmentShader: RIBBON_FRAG,
-    transparent: true, blending: THREE.AdditiveBlending, depthWrite: pass === 0, depthTest: true, side: THREE.DoubleSide,
+    transparent: true, blending: pass === 2 ? THREE.NoBlending : THREE.AdditiveBlending, depthWrite: pass === 2, colorWrite: pass !== 2, depthTest: true, side: THREE.DoubleSide,
   });
   if (pass === 1) { m.polygonOffset = true; m.polygonOffsetFactor = -1; m.polygonOffsetUnits = -1; }
   return m;
@@ -285,7 +299,7 @@ const ridge1 = (x) => 0.80 + 0.15 * Math.sin(1.3 * x + 0.4) + 0.07 * Math.sin(3.
 const ridge2 = (x) => 0.50 + 0.13 * Math.sin(1.7 * x + 2.0) + 0.06 * Math.sin(4.0 * x + 0.7) - 0.11 * Math.exp(-(((x - 0.30) / 0.5) ** 2));
 const ridge3L = (x) => 0.26 + 0.10 * Math.sin(2.4 * x + 0.9) + 0.04 * Math.sin(5.1 * x) + 0.1 * Math.exp(-(((x + 1.35) / 0.3) ** 2));
 const ridge3R = (x) => 0.20 + 0.07 * Math.sin(2.8 * x + 0.3) + 0.03 * Math.sin(6 * x) + 0.1 * Math.exp(-(((x - 1.4) / 0.3) ** 2));
-const CASTLE = { x: 0.80, k: 0.78 };
+const CASTLE = { x: 0.80, k: 0.92 };
 CASTLE.y = ridge1(CASTLE.x) - 0.03;
 const MOON = { x: -0.66, y: 1.60, r: 0.27 };
 const ROAD = (u) => ({ x: -0.34 + 0.98 * u + 0.30 * Math.sin(3.4 * u * Math.PI * 0.9) * (1 - u * 0.6), y: -0.02 + (CASTLE.y + 0.04 + 0.02) * Math.pow(u, 0.92) * 0.98 - 0.02 * 0, w: 0.40 * (1 - u) + 0.045 });
@@ -499,7 +513,7 @@ function buildSparkles(THREE, U, list) {
     fragmentShader: `uniform float uBright; varying float vK, vI, vH;
       void main(){ vec2 q = gl_PointCoord - 0.5; float d = length(q) * 2.0; if (vI < 0.01 || d > 1.0) discard;
         float core = exp(-d*d*14.0);
-        float cross = (exp(-abs(q.x)*38.0) * smoothstep(0.5, 0.0, abs(q.y)) + exp(-abs(q.y)*38.0) * smoothstep(0.5, 0.0, abs(q.x))) * 0.8;
+        float cross = (exp(-abs(q.x)*38.0) * (1.0 - smoothstep(0.0, 0.5, abs(q.y))) + exp(-abs(q.y)*38.0) * (1.0 - smoothstep(0.0, 0.5, abs(q.x)))) * 0.8;
         vec3 col = vK > 0.5 && vK < 1.5 ? vec3(1.0, 0.62, 0.16) : vK > 1.5 ? vec3(1.0, 0.8, 0.35) : mix(vec3(0.75, 0.82, 1.0), vec3(1.0, 0.95, 0.85), vH);
         gl_FragColor = vec4(col * (core * 2.2 + cross) * vI * uBright * (vK > 0.5 && vK < 1.5 ? 1.8 : 1.0), 1.0); }`,
     transparent: true, blending: THREE.AdditiveBlending, depthWrite: true, depthTest: true,
@@ -538,7 +552,7 @@ function glowSprite(THREE, { color, size, streak = 0, power = 2.2 }) {
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0); }',
     fragmentShader: `uniform vec3 uCol; uniform float uK, uStreak, uPow; varying vec2 vUv;
       void main(){ vec2 q = vUv - 0.5; float d = length(q)*2.0; float g = pow(max(1.0 - d, 0.0), uPow);
-        float st = uStreak * (exp(-abs(q.y)*60.0) * smoothstep(0.5, 0.0, abs(q.x)) + 0.5*exp(-abs(q.x)*60.0) * smoothstep(0.5, 0.0, abs(q.y)));
+        float st = uStreak * (exp(-abs(q.y)*60.0) * (1.0 - smoothstep(0.0, 0.5, abs(q.x))) + 0.5*exp(-abs(q.x)*60.0) * (1.0 - smoothstep(0.0, 0.5, abs(q.y))));
         gl_FragColor = vec4(uCol * (g + st) * uK, 1.0); }`,
     transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true,
   });
@@ -571,7 +585,7 @@ function buildHaze(THREE, U, { z, y, w, h, color, k, scale, speed }) {
     fragmentShader: `uniform float uT, uK, uS, uSp; uniform vec3 uCol; varying vec3 vW; varying vec2 vUv; ${GLSL_NOISE}
       void main(){ float n = fbm(vec2(vW.x * uS + uT * uSp, vW.y * uS * 1.4 - uT * uSp * 0.3));
         float dens = smoothstep(0.30, 0.85, n) * (0.25 + 0.75 * exp(-max(vW.y, 0.0) * 0.45));
-        float edge = smoothstep(0.0, 0.12, vUv.x) * smoothstep(1.0, 0.88, vUv.x) * smoothstep(0.0, 0.1, vUv.y) * smoothstep(1.0, 0.9, vUv.y);
+        float edge = smoothstep(0.0, 0.12, vUv.x) * (1.0 - smoothstep(0.88, 1.0, vUv.x)) * smoothstep(0.0, 0.1, vUv.y) * (1.0 - smoothstep(0.9, 1.0, vUv.y));
         gl_FragColor = vec4(uCol * dens * uK * edge, 1.0); }`,
     transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true,
   });
@@ -609,7 +623,7 @@ const FLOOR_SHADER = {
         acc += texture2D(tDiffuse, uv + o).rgb * w; ws += w;
       }
       vec3 refl = acc / ws;
-      vec3 base = vec3(0.004, 0.006, 0.016) + vec3(0.0, 0.004, 0.010) * smoothstep(12.0, 0.0, dist);
+      vec3 base = vec3(0.004, 0.006, 0.016) + vec3(0.0, 0.004, 0.010) * (1.0 - smoothstep(0.0, 12.0, dist));
       float fadeFar = 1.0 - smoothstep(14.0, 26.0, dist);
       gl_FragColor = vec4(base + refl * fres * uRefl * 0.85 * fadeFar, 1.0);
     }`,
@@ -638,12 +652,12 @@ function buildCyc(THREE) {
 // =============================================================================
 // THE CRYSTAL HEAD — a faceted loft of ellipses following a stylised, faceless side profile
 // =============================================================================
-const HEAD_ROWS = [ // [y, xBack, xFront, halfWidth] (unscaled meters; +x = facing direction)
-  [0.00, -0.62, 0.40, 0.95], [0.20, -0.62, 0.40, 0.95], [0.50, -0.58, 0.36, 0.90], [0.80, -0.50, 0.30, 0.75], [1.00, -0.40, 0.22, 0.40],
-  [1.20, -0.32, 0.20, 0.25], [1.38, -0.30, 0.22, 0.25], [1.46, -0.30, 0.26, 0.27], [1.54, -0.40, 0.46, 0.30], [1.66, -0.50, 0.55, 0.35],
-  [1.78, -0.58, 0.52, 0.38], [1.88, -0.62, 0.57, 0.40], [1.98, -0.66, 0.60, 0.43], [2.08, -0.70, 0.68, 0.45], [2.20, -0.74, 0.60, 0.48],
-  [2.32, -0.76, 0.56, 0.50], [2.45, -0.76, 0.55, 0.50], [2.58, -0.74, 0.54, 0.49], [2.72, -0.68, 0.50, 0.45], [2.85, -0.52, 0.40, 0.38],
-  [2.94, -0.30, 0.22, 0.25], [2.99, -0.08, 0.04, 0.06],
+const HEAD_ROWS = [ // [y, xBack, xFront, halfWidth] (unscaled meters; +x = facing direction). Stylised, faceless profile.
+  [0.00, -0.60, 0.42, 0.92], [0.22, -0.60, 0.42, 0.92], [0.52, -0.56, 0.38, 0.86], [0.80, -0.50, 0.32, 0.70], [1.00, -0.44, 0.27, 0.50],
+  [1.16, -0.38, 0.25, 0.38], [1.32, -0.36, 0.26, 0.33], [1.44, -0.38, 0.30, 0.31], [1.54, -0.46, 0.46, 0.33], [1.64, -0.54, 0.58, 0.36],
+  [1.74, -0.60, 0.53, 0.38], [1.83, -0.64, 0.60, 0.40], [1.92, -0.68, 0.58, 0.42], [2.02, -0.71, 0.74, 0.44], [2.12, -0.74, 0.62, 0.46],
+  [2.24, -0.76, 0.58, 0.49], [2.36, -0.78, 0.59, 0.50], [2.50, -0.78, 0.56, 0.50], [2.63, -0.75, 0.52, 0.48], [2.76, -0.68, 0.46, 0.44],
+  [2.88, -0.52, 0.36, 0.36], [2.97, -0.30, 0.20, 0.23], [3.02, -0.08, 0.04, 0.06],
 ];
 function buildHeadGeometry(THREE) {
   const N = 14, rows = HEAD_ROWS, pos = [], idx = [];
@@ -668,16 +682,16 @@ const HEAD_FRESNEL = {
   frag: `uniform float uT, uPulse, uBright; uniform vec3 uTeal, uViolet, uAmber; varying vec3 vW; varying vec3 vO;
     void main(){
       vec3 n = normalize(cross(dFdx(vW), dFdy(vW))); vec3 v = normalize(cameraPosition - vW);
-      float ndv = abs(dot(n, v)); float fres = pow(1.0 - ndv, 3.0);
+      float ndv = abs(dot(n, v)); float fres = pow(1.0 - ndv, 4.0);
       float facet = fract(sin(dot(floor(n * 5.0 + 0.5), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
       vec3 col = mix(uTeal, uViolet, smoothstep(-0.5, 0.7, vO.x + 0.25 * sin(vO.y * 2.5)));
-      float brain = exp(-length((vO - vec3(0.05, 2.35, 0.0)) * vec3(0.9, 0.85, 1.3)) * 1.5);
+      float brain = exp(-length((vO - vec3(0.20, 2.45, 0.0)) * vec3(1.2, 1.0, 1.6)) * 3.4);
       float stripes = 0.5 + 0.5 * sin(vO.y * 22.0 - uT * 6.0 + vO.x * 4.0);
       float low = smoothstep(1.2, 0.0, vO.y);
-      vec3 c = col * (0.015 + fres * 0.95) * (0.45 + 0.9 * facet);
+      vec3 c = col * (0.006 + fres * 1.1) * (0.35 + 1.0 * facet);
       c += col * stripes * fres * 0.35 * smoothstep(0.8, 2.3, vO.y);
-      c += mix(vec3(0.8, 0.7, 1.0), uAmber, 0.35) * brain * (0.10 + 0.32 * uPulse);
-      c += uTeal * low * 0.16 * (0.4 + facet);
+      c += mix(vec3(0.8, 0.7, 1.0), uAmber, 0.35) * brain * (0.05 + 0.16 * uPulse);
+      c += uTeal * low * 0.07 * (0.4 + facet);
       gl_FragColor = vec4(c * uBright, 1.0); }`,
 };
 
@@ -695,7 +709,7 @@ export default {
     const col = (h) => new THREE.Color(h);
     const U = {
       uT: { value: 0 }, uPx: { value: 1000 }, uBright: { value: 1 }, uFillBright: { value: 1 }, uGlitch: { value: 0 }, uSettle: { value: 0 },
-      uEmit: { value: new THREE.Vector3() }, uHead: { value: new THREE.Vector3() }, uDio: { value: new THREE.Vector3(DIO[0], DIO[1], DIO[2]) }, uBaton: { value: new THREE.Vector3(...BATON_C) },
+      uEmit: { value: new THREE.Vector3() }, uEmitB: { value: new THREE.Vector3() }, uHead: { value: new THREE.Vector3() }, uDio: { value: new THREE.Vector3(DIO[0], DIO[1], DIO[2]) }, uBaton: { value: new THREE.Vector3(...BATON_C) },
       uBeat: { value: new THREE.Vector4(0, 0.5, 1.0, 1.5) },
       uC0: { value: col('#6B5BFF').multiplyScalar(1.9) }, uC1: { value: col('#1FB5A6').multiplyScalar(1.9) }, uC2: { value: col('#FFB62E').multiplyScalar(1.5) }, uC3: { value: col('#7CC4FF').multiplyScalar(1.6) },
     };
@@ -712,7 +726,7 @@ export default {
     const glass = new THREE.Mesh(headGeo, new THREE.MeshPhysicalMaterial({ color: '#03101f', metalness: 0.0, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 2.4, transparent: true, opacity: 0.6, flatShading: true, depthWrite: false, side: THREE.FrontSide }));
     glass.renderOrder = 2; headGroup.add(glass);
     const hu = { uT: U.uT, uPulse: { value: 0 }, uBright: { value: 1 }, uTeal: { value: col('#1FB5A6').multiplyScalar(1.2) }, uViolet: { value: col('#6B5BFF').multiplyScalar(2.2) }, uAmber: { value: col('#FFB62E') } };
-    const rim = new THREE.Mesh(headGeo, new THREE.ShaderMaterial({ uniforms: hu, vertexShader: HEAD_FRESNEL.vert, fragmentShader: HEAD_FRESNEL.frag, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    const rim = new THREE.Mesh(headGeo, new THREE.ShaderMaterial({ uniforms: hu, vertexShader: HEAD_FRESNEL.vert, fragmentShader: HEAD_FRESNEL.frag, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.FrontSide }));
     rim.renderOrder = 3; headGroup.add(rim);
     const edges = new THREE.LineSegments(new THREE.EdgesGeometry(headGeo, 36), new THREE.LineBasicMaterial({ color: col('#27d6c4').multiplyScalar(1.6), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })); edges.renderOrder = 3; headGroup.add(edges);
     const proxy = new THREE.Mesh(headGeo, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, transparent: true })); proxy.renderOrder = 30; headGroup.add(proxy);
@@ -720,8 +734,9 @@ export default {
     const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.32, 1.38, 0.10, 56), new THREE.MeshStandardMaterial({ color: '#05080f', metalness: 0.6, roughness: 0.2, envMapIntensity: 1.2 })); plinth.position.y = 0.04; headGroup.add(plinth);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(1.30, 0.014, 8, 96), new THREE.MeshBasicMaterial({ color: col('#1FB5A6').multiplyScalar(3.2) })); ring.rotation.x = Math.PI / 2; ring.position.y = 0.095; headGroup.add(ring);
     scene.add(headGroup); headGroup.updateMatrixWorld(true);
-    const emit = headGroup.localToWorld(new THREE.Vector3(0.50, 2.46, 0)), headC = headGroup.localToWorld(new THREE.Vector3(0.0, 2.2, 0));
-    U.uEmit.value.copy(emit); U.uHead.value.copy(headC);
+    const emit = headGroup.localToWorld(new THREE.Vector3(0.57, 2.36, 0)), emitB = headGroup.localToWorld(new THREE.Vector3(0.44, 2.80, 0)), headC = headGroup.localToWorld(new THREE.Vector3(0.0, 2.2, 0));
+    U.uEmit.value.copy(emit); U.uEmitB.value.copy(emitB); U.uHead.value.copy(headC);
+    const emitMid = emit.clone().lerp(emitB, 0.5);
 
     // ---- ribbons: flowing river (thousands) + painted strokes
     const NF = 1200, M = 26;
@@ -730,7 +745,8 @@ export default {
     const data = buildDioramaData();
     const strokeGeo = buildStrokeGeometry(THREE, data.strokes, [emit.x, emit.y, emit.z]);
     const strokeCore = new THREE.Mesh(strokeGeo, ribbonMaterial(THREE, U, { flow: false, pass: 0, width: 0.0105 })), strokeHalo = new THREE.Mesh(strokeGeo, ribbonMaterial(THREE, U, { flow: false, pass: 1, width: 0.0105 }));
-    for (const [m, ro] of [[flowCore, 10], [strokeCore, 10], [flowHalo, 11], [strokeHalo, 11]]) { m.frustumCulled = false; m.renderOrder = ro; scene.add(m); }
+    const flowProxy = new THREE.Mesh(flowGeo, ribbonMaterial(THREE, U, { flow: true, pass: 2, width: 0.0085 })), strokeProxy = new THREE.Mesh(strokeGeo, ribbonMaterial(THREE, U, { flow: false, pass: 2, width: 0.0105 }));
+    for (const [m, ro] of [[flowCore, 10], [strokeCore, 10], [flowHalo, 11], [strokeHalo, 11], [flowProxy, 11.5], [strokeProxy, 11.5]]) { m.frustumCulled = false; m.renderOrder = ro; scene.add(m); }
 
     // ---- the painted diorama fills, sparkles
     const fills = buildFills(THREE, U, data); scene.add(fills);
@@ -748,7 +764,6 @@ export default {
     ]; beams.forEach((b) => scene.add(b));
     const hazes = [
       buildHaze(THREE, U, { z: -4.2, y: 2.4, w: 40, h: 8, color: '#5a46ff', k: 0.060, scale: 0.22, speed: 0.04 }),
-      buildHaze(THREE, U, { z: 1.8, y: 1.3, w: 18, h: 3.6, color: '#2fd0c0', k: 0.035, scale: 0.35, speed: -0.05 }),
     ]; hazes.forEach((h) => scene.add(h));
     const pools = [
       floorPool(THREE, { color: '#6B5BFF', r: 3.4, k: 0.55, pow: 2.2 }),
@@ -758,18 +773,18 @@ export default {
     pools[0].position.set(DIO[0], 0.004, DIO[2]); pools[1].position.set(HEAD_POS[0] + 0.2, 0.004, HEAD_POS[2]); pools[2].position.set(AMR[0], 0.004, AMR[2]); pools.forEach((p) => scene.add(p));
 
     // ---- emitter / brain glow
-    const emitGlow = glowSprite(THREE, { color: '#b9a8ff', size: 1.5, streak: 0.5, power: 2.6 }); emitGlow.position.copy(emit); scene.add(emitGlow);
+    const emitGlow = glowSprite(THREE, { color: '#b9a8ff', size: 1.5, streak: 0.5, power: 2.6 }); emitGlow.position.copy(emitMid); scene.add(emitGlow);
     const brainGlow = glowSprite(THREE, { color: '#7aa8ff', size: 1.9, power: 2.0 }); brainGlow.position.copy(headGroup.localToWorld(new THREE.Vector3(0.1, 2.3, -0.05))); scene.add(brainGlow);
 
     // ---- Amrita + baton
     const A = createAmrita(THREE); A.root.position.set(...AMR); scene.add(A.root); A.setProp(null);
     const baton = new THREE.Group();
     const wood = new THREE.MeshStandardMaterial({ color: '#16131c', roughness: 0.3, metalness: 0.5, envMapIntensity: 1.5 });
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.012, 0.66, 12), new THREE.MeshStandardMaterial({ color: '#fff3d6', roughness: 0.3, emissive: '#ffb62e', emissiveIntensity: 0.25 })); shaft.position.y = -0.33; baton.add(shaft);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.70, 12), new THREE.MeshStandardMaterial({ color: '#fff3d6', roughness: 0.3, emissive: '#ffcf80', emissiveIntensity: 0.9 })); shaft.position.y = -0.33; baton.add(shaft);
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.016, 0.16, 14), wood); handle.position.y = -0.62; baton.add(handle);
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.026, 14, 10), new THREE.MeshBasicMaterial({ color: col('#ffe2a8').multiplyScalar(4) })); baton.add(tip);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.034, 14, 10), new THREE.MeshBasicMaterial({ color: col('#ffe2a8').multiplyScalar(2.2) })); baton.add(tip);
     scene.add(baton);
-    const tipGlow = glowSprite(THREE, { color: '#ffc566', size: 0.55, streak: 0.6, power: 2.4 }); scene.add(tipGlow);
+    const tipGlow = glowSprite(THREE, { color: '#ffc566', size: 0.38, streak: 0.5, power: 2.6 }); scene.add(tipGlow);
     // baton light-trail (ribbon of past tip positions, recomputed per update: pure function of time)
     const TR = 30, trailPos = new Float32Array(TR * 2 * 3), trailCol = new Float32Array(TR * 2 * 3), trailIdx = [];
     for (let i = 0; i < TR - 1; i++) { const a = i * 2; trailIdx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
@@ -785,7 +800,7 @@ export default {
     const keyA = new THREE.PointLight('#ffb62e', 3, 9, 2); keyA.position.set(1.0, 1.7, 2.2); scene.add(keyA);
     const batonL = new THREE.PointLight('#ffc566', 0.8, 6, 2); scene.add(batonL);
 
-    const parts = { flow: [flowCore, flowHalo], strokes: [strokeCore, strokeHalo], fills, sparkles, moonHalo, castleHalo, motes, bokeh, beams, hazes, pools, emitGlow, brainGlow, glass, rim, edges, proxy, plinth, ring, floor, cyc: scene.children[0], amrita: A.root, baton, tipGlow, trail };
+    const parts = { flow: [flowCore, flowHalo, flowProxy], strokes: [strokeCore, strokeHalo, strokeProxy], fills, sparkles, moonHalo, castleHalo, motes, bokeh, beams, hazes, pools, emitGlow, brainGlow, glass, rim, edges, proxy, plinth, ring, floor, cyc: scene.children[0], amrita: A.root, baton, tipGlow, trail };
     return { scene, camera, parts, THREE, U, A, baton, tip, tipGlow, trail, trailPos, trailCol, TR, floor, headGroup, hu, emitGlow, brainGlow, moonHalo, castleHalo, pools, keyV, keyT, keyA, batonL, rimSpot, headRim, beams, hazes, motes, bokeh, emit, headC, shaft, handle, scratch: { v: new THREE.Vector3(), v2: new THREE.Vector3(), q: new THREE.Quaternion(), up: new THREE.Vector3(0, 1, 0), c: new THREE.Vector3() } };
   },
 
@@ -823,7 +838,7 @@ export default {
     // beat energy (for light + body language)
     const beatE = (tm) => { let e = 0; for (const b of [0, 0.5, 1.0, 1.5]) { const a = tm - b + (b === 0 ? 0.08 : 0); if (a > 0) e += Math.exp(-a * 5) * sm(0, 0.03, a); } return e; };
     const be = beatE(lt);
-    st.tipGlow.material.uniforms.uK.value = 0.35 + 0.55 * be;
+    st.tipGlow.material.uniforms.uK.value = 0.18 + 0.30 * be;
     st.batonL.intensity = 0.6 + 1.6 * be;
     // trail
     {
@@ -833,11 +848,11 @@ export default {
       for (let k = 0; k < TR; k++) {
         const a = pts[Math.max(0, k - 1)], b = pts[Math.min(TR - 1, k + 1)];
         tg.copy(a).sub(b).normalize(); cd.copy(cam).sub(pts[k]).normalize(); sd.crossVectors(tg, cd).normalize();
-        const f = 1 - k / (TR - 1), w = 0.020 * Math.pow(f, 0.8) * (0.5 + be);
+        const f = 1 - k / (TR - 1), w = 0.028 * Math.pow(f, 0.8) * (0.6 + be);
         for (let s2 = -1; s2 <= 1; s2 += 2) {
           const o = (k * 2 + (s2 > 0 ? 1 : 0)) * 3;
           trailPos[o] = pts[k].x + sd.x * w * s2; trailPos[o + 1] = pts[k].y + sd.y * w * s2; trailPos[o + 2] = pts[k].z + sd.z * w * s2;
-          const br = Math.pow(f, 1.6) * (1.0 + 2.2 * be);
+          const br = Math.pow(f, 1.4) * (1.6 + 2.6 * be);
           trailCol[o] = 1.0 * br; trailCol[o + 1] = 0.62 * br; trailCol[o + 2] = 0.2 * br;
         }
       }
@@ -868,7 +883,7 @@ export default {
 
     // ---- camera: slow low-angle orbit + dolly-in, handheld breath, stepped glitch jitter on the cut
     const az = lerp(-0.17, 0.10, ue), R = lerp(8.2, 6.9, ue), cy = lerp(0.42, 0.62, ue);
-    const F = scratch.c.set(0.30, 1.30 + 0.06 * ue, 0);
+    const F = scratch.c.set(0.30, 1.14 + 0.06 * ue, 0);
     camera.position.set(F.x + Math.sin(az) * R, cy, F.z + Math.cos(az) * R);
     camera.position.x += 0.012 * Math.sin(lt * 1.7) + glitch * (H(Math.floor(T.t * 60), 5) - 0.5) * 0.16;
     camera.position.y += 0.010 * Math.sin(lt * 2.3 + 1) + glitch * (H(Math.floor(T.t * 60), 6) - 0.5) * 0.05;

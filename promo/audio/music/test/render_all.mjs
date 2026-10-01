@@ -2,7 +2,7 @@
 // Renders the standard phrase (motif over Am then C) for each instrument -> test/<id>.wav (+ spectrogram png), prints stats.
 import path from 'node:path';
 import * as inst from '../instruments.mjs';
-import { OUT, phrase, stats, f, dsp, ff, sheet } from './lib.mjs';
+import { OUT, phrase, drumPhrase, stats, f, dsp, ff, sheet } from './lib.mjs';
 
 const args = process.argv.slice(2);
 const png = args.includes('--png');
@@ -14,7 +14,7 @@ const pngs = [];
 for (const id of todo) {
   const I = inst.INSTRUMENTS[id];
   const t0 = process.hrtime.bigint();
-  const notes = I.testNotes ? I.testNotes() : phrase(I);
+  const notes = I.testNotes ? I.testNotes() : I.kind === 'drum' && !['timpani','taiko'].includes(id) ? drumPhrase(id) : phrase(I);
   const buf = I.render(notes, { seconds: 6 });
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   const s = stats(buf);

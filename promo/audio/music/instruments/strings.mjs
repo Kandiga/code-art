@@ -5,7 +5,7 @@
 //   velocity-controlled low-pass (bowing pressure = brightness), bow noise, slow swell envelope; bus = body resonances
 //   + string-machine ensemble for the lush wide sheen.
 // =============================================================================
-import { dsp, SR, defineInstrument, clamp, reg, ns, cents, vibrato, mixInto, velAmp, addDamped, expEnv, releaseTail, fadeInArr, TAU } from './common.mjs';
+import { dsp, SR, defineInstrument, clamp, reg, ns, cents, pitchMod, mixInto, velAmp, addDamped, expEnv, releaseTail, fadeInArr, TAU } from './common.mjs';
 const { midiToHz, noise, osc, svf, biquad, biquadChain, mulberry32, seedOf, drift } = dsp;
 
 const ART = {
@@ -61,16 +61,11 @@ function stringsVoice(ev, ctx) {
   const lead = art.swell || art.a >= 0.1 ? 0.3 * longA : 0;
   const L = new Float32Array(n), R = new Float32Array(n);
   const fc0 = clamp(f0 * (6 + 15 * Math.pow(v, 1.2)), 1500, 7600) * art.brightK * (o.brightScale || 1) * (reg3 === 'low' ? 0.85 : 1);
-  const mono = new Float32Array(n);
   for (let k = 0; k < nV; k++) {
     const pos = nV === 1 ? 0 : (k / (nV - 1)) * 2 - 1;
     const det = pos * art.det * (o.detuneScale || 1) + (rng() - 0.5) * 3;
     const delay = Math.round(rng() * 0.022 * SR); // bow onset scatter
-    const vib = art.vibDepth > 0 ? vibrato(n, { rate: 4.9 + 1.3 * rng(), cents: art.vibDepth * (o.vibScale != null ? o.vibScale : 1) * (0.7 + 0.6 * rng()), delay: art.vibDelay * (0.6 + 0.8 * rng()), fade: 0.5, rng }) : null;
-    const dr = drift(n, 0.35 + 0.4 * rng(), 0.0009, Math.floor(rng() * 1e9)); // +-1.5 cent wander
-    const base = (f0 * cents(det)) ;
-    const fa = new Float32Array(n);
-    for (let i = 0; i < n; i++) fa[i] = base * (vib ? vib[i] : 1) * (1 + dr[i]);
+    const fa = pitchMod(n, f0, { rate: 4.9 + 1.3 * rng(), cents: art.vibDepth * (o.vibScale != null ? o.vibScale : 1) * (0.7 + 0.6 * rng()), delay: art.vibDelay * (0.6 + 0.8 * rng()), fade: 0.5, rng, detune: det, drift: 1.5 });
     const s = osc('saw', fa, n, { phase: rng() });
     let tr = null;
     if (art.trem) {
@@ -83,7 +78,7 @@ function stringsVoice(ev, ctx) {
     const g = 1 / Math.sqrt(nV);
     for (let i = 0, j = delay; j < n; i++, j++) {
       const q = s[i] * g * (tr ? tr[j] : 1);
-      L[j] += q * gl; R[j] += q * gr; mono[j] += q;
+      L[j] += q * gl; R[j] += q * gr;
     }
   }
   // envelope
@@ -114,7 +109,7 @@ function stringsVoice(ev, ctx) {
   for (let i = 0; i < n; i++) fcArr[i] = fc0 * (0.38 + 0.62 * env[i]);
   const fL = svf(L, 'lp', fcArr, 0.72, { update: 8 }), fR = svf(R, 'lp', fcArr, 0.72, { update: 8 });
   // bow noise: bright rosin hiss, strongest at the bow change
-  const nz = noise('pink', n, seedOf(ctx.i, 'bow', m), { rms: 1 });
+  const nz = noise('white', n, seedOf(ctx.i, 'bow', m), { rms: 1 });
   const nzf = biquad(biquad(nz, 'hp', 1800, 0.7), 'lp', 7500, 0.7);
   const bowLvl = 0.018 * (0.5 + v);
   const bump = expEnv(n, 0.06);

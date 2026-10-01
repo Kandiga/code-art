@@ -4,7 +4,7 @@
 //   -> constant formant banks (dsp.VOWELS tables: bass/tenor/alto/soprano), optional vowel morph (e.g. 'u>a')
 //   -> slow attack, slow release, wide ensemble bus.
 // =============================================================================
-import { dsp, SR, defineInstrument, clamp, reg, ns, cents, vibrato, velAmp, fadeInArr, TAU } from './common.mjs';
+import { dsp, SR, defineInstrument, clamp, reg, ns, cents, pitchMod, velAmp, fadeInArr, TAU } from './common.mjs';
 const { midiToHz, noise, osc, biquad, seedOf, drift, VOWELS, dbToLin } = dsp;
 
 function bank(x, voice, vowel, shift = 1, qk = 1) {
@@ -41,11 +41,7 @@ function choirVoice(ev, ctx) {
     const pos = nS === 1 ? 0 : (k / (nS - 1)) * 2 - 1;
     const det = (rng() - 0.5) * 2 * 11;
     const delay = Math.round(rng() * 0.03 * SR);
-    const vib = vibrato(n, { rate: 5.0 + 0.9 * rng(), cents: 17 * (o.vibScale != null ? o.vibScale : 1) * (0.7 + 0.6 * rng()), delay: 0.35 + 0.35 * rng(), fade: 0.6, rng });
-    const dr = drift(n, 0.6, 0.0016, Math.floor(rng() * 1e9));
-    const fa = new Float32Array(n);
-    const base = f0 * cents(det);
-    for (let i = 0; i < n; i++) fa[i] = base * vib[i] * (1 + dr[i]);
+    const fa = pitchMod(n, f0, { rate: 5.0 + 0.9 * rng(), cents: 17 * (o.vibScale != null ? o.vibScale : 1) * (0.7 + 0.6 * rng()), delay: 0.35 + 0.35 * rng(), fade: 0.6, rng, detune: det, drift: 2.6 });
     const s = osc('saw', fa, n, { phase: rng() });
     const g = 1 / Math.sqrt(nS);
     const side = pos < 0 ? srcL : srcR;

@@ -170,7 +170,7 @@ export function makeRings(THREE, rings) {
       const a = (t - r.t) / r.dur;
       if (a < 0 || a > 1) { m.visible = false; continue; }
       const e = 1 - (1 - a) ** 3, rad = lerp(r.r0, r.r1, e), w = (r.width ?? 0.08) * (1 - 0.6 * a);
-      m.visible = true; m.quaternion.copy(camera.quaternion); m.scale.set(rad, rad, 1); m.material.opacity = (1 - a) ** 1.6;
+      m.visible = true; m.quaternion.copy(camera.quaternion); m.scale.set(rad, rad, 1); m.material.opacity = (1 - a) ** 2.4;
     }
   };
   return grp;
@@ -229,11 +229,11 @@ const WSCALE = [0.8, 1, 1, 1, 0.92, 0.8, 0.8, 1.12];   // typographic hierarchy:
 const WHOT = [0.55, 1.0, 1.0, 1.0, 0.85, 0.55, 0.55, 1.25];
 const LINES = [[0, 1, 2, 3], [4, 5, 6, 7]];
 const KEYS = Array.from({ length: 8 }, (_, k) => 0.125 * k);   // lt of each typewriter_key (cues.SFX: 26.0 + 0.125k)
-const BELL = 1.0, FOLD0 = 1.28, SNAP = 1.5;                    // lt of bell (27.0), page_fold (27.25 +), page_snap (27.5)
-const AM = [1.75, 1.0, 0];                                    // Amrita's centre
-const EM = 0.255;                                               // em size of the typed words (m)
-const ASM = [-0.55, 1.5, 1.0];                               // assembly point of the pages
-const REST = [0.2, 1.3, 0.95];                               // booklet resting place, beside her
+const BELL = 1.0, FOLD0 = 1.25, SNAP = 1.5;                    // lt of bell (27.0), page_fold (27.25 +), page_snap (27.5)
+const AM = [1.75, 0.95, 0];                                    // Amrita's centre
+const EM = 0.235;                                               // em size of the typed words (m)
+const ASM = [-0.55, 1.45, 0.8];                               // assembly point of the pages
+const REST = [0.45, 1.25, 0.45];                               // booklet resting place, beside her
 
 // ---- paper textures ----------------------------------------------------------------------------
 function pageTexture(THREE, S, seed) {
@@ -318,19 +318,20 @@ export default {
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
     A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
-    const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(-0.8, 0.28, 0.4); stylus.group.rotation.z = 0.8;
+    const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(-0.7, -0.45, 0.6); stylus.group.rotation.z = 0.6;
     const tipHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTexture(THREE, S), color: new THREE.Color(1.0, 0.7, 0.3), transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); tipHalo.scale.set(0.5, 0.5, 1); tipHalo.renderOrder = 4; stylus.inner.add(tipHalo); tipHalo.position.copy(stylus.tipPos);
 
     // ---- set dressing (this set-up: warm "writer's room" — ghost light, string-lights, a distant director's chair)
     stage.chair.position.set(-4.6, 0, -2.4); stage.chair.rotation.y = 0.7;
     const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshBasicMaterial({ fog: false }), 80);
     { const r = mkRng(5), m = new THREE.Matrix4(), c = new THREE.Color(); let i = 0;
-      for (const [zz, yy, sag, n] of [[-6.2, 5.9, 1.9, 26], [-8.0, 5.1, 1.5, 20]]) for (let j = 0; j < n; j++, i++) {
-        const u = j / (n - 1), x = lerp(-9, 9, u), y = yy - sag * (1 - (2 * u - 1) ** 2) + r() * 0.06 - 0.1;
-        m.makeScale(0.06 + r() * 0.03, 0.06 + r() * 0.03, 0.06); m.setPosition(x, y, zz + r() * 0.2); bulbs.setMatrixAt(i, m);
-        const pick = r(); c.set(pick < 0.62 ? '#ffb347' : pick < 0.82 ? '#fff0c8' : pick < 0.93 ? '#ff7a4a' : '#6fd9ff').multiplyScalar(0.9 + r() * 1.0); bulbs.setColorAt(i, c);
-      }
-      for (let j = 0; j < 14; j++, i++) { const x = lerp(0.6, 7.5, r()), y = 0.12 + r() * 0.5, zz = -5 - r() * 3; m.makeScale(0.07, 0.07, 0.07); m.setPosition(x, y, zz); bulbs.setMatrixAt(i, m); c.set(r() < 0.7 ? '#ff9a3c' : '#ffe0a0').multiplyScalar(0.8 + r() * 0.8); bulbs.setColorAt(i, c); }
+      for (let j = 0; j < 24; j++, i++) { // string lights along the very top of the frame
+        const u = j / 23, x = lerp(-9, 9, u), y = 6.5 - 1.9 * (1 - (2 * u - 1) ** 2) + r() * 0.06;
+        m.makeScale(0.06 + r() * 0.03, 0.06 + r() * 0.03, 0.06); m.setPosition(x, y, -6.2 + r() * 0.2); bulbs.setMatrixAt(i, m);
+        const pick = r(); c.set(pick < 0.62 ? '#ffb347' : pick < 0.82 ? '#fff0c8' : pick < 0.93 ? '#ff7a4a' : '#6fd9ff').multiplyScalar(0.7 + r() * 0.8); bulbs.setColorAt(i, c); }
+      for (let j = 0; j < 14; j++, i++) { // practicals behind Amrita: bokeh that backlights her, clear of the words
+        const x = lerp(1.2, 6.5, r()), y = 0.9 + r() * 3.2, z = -6 - r() * 3; m.makeScale(0.07, 0.07, 0.07); m.setPosition(x, y, z); bulbs.setMatrixAt(i, m);
+        c.set(r() < 0.65 ? '#ffb347' : r() < 0.5 ? '#fff0c8' : '#8fd6ff').multiplyScalar(0.8 + r() * 1.1); bulbs.setColorAt(i, c); }
       bulbs.count = i; }
     scene.add(bulbs);
     const ghost = new THREE.Group(); ghost.position.set(-3.6, 0, -2.6); scene.add(ghost); // ghost light: tall stand + one bare bulb
@@ -357,7 +358,7 @@ export default {
     const dustB = makeDust(THREE, { count: 120, center: [0, 2.0, 0], size: [10, 5, 8], color: '#bcd8ff', psize: 0.016, intensity: 0.5, seed: 4 }); scene.add(dustB);
 
     // ---- the eight words
-    const R_ARC = 5.0, CX = [-0.6, -0.5], LY = [1.9, 1.54], Z0 = 0.1;
+    const R_ARC = 5.0, CX = [-0.3, -0.2], LY = [1.72, 1.38], Z0 = 0.1;
     const words = [];
     LINES.forEach((line, li) => {
       const ws = line.map((k) => wordGeometry(THREE, WORDS[k], { size: EM * WSCALE[k], depth: 0.045 * WSCALE[k], bevel: 0.005 }));
@@ -387,10 +388,10 @@ export default {
       const p = [w.base.x, w.base.y - 0.04, w.base.z + 0.08];
       bursts.push({ t: T0 + KEYS[k], pos: p, n: 18, speed: [0.5, 2.0], life: [0.3, 0.75], dir: [0, 0.7, 0.5], spread: 0.85, size: [0.012, 0.03], color: [2.6, 1.6, 0.55], seed: k + 1 });
       bursts.push({ t: T0 + BELL, pos: [w.base.x, w.base.y + 0.14, w.base.z], n: 14, speed: [0.4, 1.8], life: [0.5, 1.0], dir: [0, 1, 0.3], spread: 0.7, size: [0.014, 0.034], color: [2.6, 1.9, 0.8], seed: 40 + k });
-      bursts.push({ t: T0 + 1.04 + 0.012 * k, pos: [w.base.x, w.base.y + 0.14, w.base.z], n: 10, speed: [0.3, 1.2], life: [0.35, 0.7], dir: [0, 0.4, 1], spread: 0.9, size: [0.012, 0.026], color: [2.2, 1.7, 0.9], seed: 80 + k });
+      bursts.push({ t: T0 + 1.03 + 0.01 * k, pos: [w.base.x, w.base.y + 0.14, w.base.z], n: 10, speed: [0.3, 1.2], life: [0.35, 0.7], dir: [0, 0.4, 1], spread: 0.9, size: [0.012, 0.026], color: [2.2, 1.7, 0.9], seed: 80 + k });
       rings.push({ t: T0 + KEYS[k], pos: [w.base.x, w.base.y, w.base.z - 0.02], r0: 0.04, r1: 0.34 * WSCALE[k] + 0.12, dur: 0.2, color: [1.2, 0.7, 0.25] });
     });
-    rings.push({ t: T0 + BELL, pos: [-0.9, 1.75, 0.4], r0: 0.2, r1: 2.0, dur: 0.45, color: [1.0, 0.75, 0.4] });
+    rings.push({ t: T0 + BELL, pos: [-0.9, 1.75, 0.4], r0: 0.2, r1: 1.9, dur: 0.3, color: [1.0, 0.75, 0.4], width: 0.05 });
     const ASMV = new THREE.Vector3(...ASM);
     bursts.push({ t: T0 + SNAP, pos: ASM, n: 90, speed: [0.8, 4.2], life: [0.5, 1.2], dir: [0, 0.3, 1], spread: 1, size: [0.014, 0.04], color: [3.0, 2.2, 1.0], seed: 200 });
     rings.push({ t: T0 + SNAP, pos: ASM, r0: 0.1, r1: 1.5, dur: 0.38, color: [1.4, 1.0, 0.5] }, { t: T0 + SNAP + 0.04, pos: ASM, r0: 0.05, r1: 0.9, dur: 0.3, color: [1.0, 1.0, 1.0] });
@@ -420,9 +421,9 @@ export default {
 
     // ---------------- camera: low-angle 50 mm, slow drift in, snap punch
     const cu = smooth(lt / 2);
-    camera.position.set(lerp(-0.3, 0.15, cu) + 0.012 * noise1(t * 0.8, 1) + imp * 0.02 * noise1(t * 53, 7), lerp(0.2, 0.4, cu) + 0.008 * noise1(t * 0.7, 2) + imp * 0.014 * noise1(t * 47, 9), lerp(7.2, 6.5, cu));
+    camera.position.set(lerp(-0.2, 0.25, cu) + 0.012 * noise1(t * 0.8, 1) + imp * 0.02 * noise1(t * 53, 7), lerp(0.2, 0.4, cu) + 0.008 * noise1(t * 0.7, 2) + imp * 0.014 * noise1(t * 47, 9), lerp(6.7, 5.9, cu));
     camera.fov = lensFov(45) * (1 - 0.035 * snapP);
-    camera.lookAt(tmp.v.set(lerp(0.45, 0.6, cu), lerp(1.2, 1.25, cu), 0));
+    camera.lookAt(tmp.v.set(lerp(0.6, 0.75, cu), lerp(1.15, 1.2, cu), 0));
     camera.updateProjectionMatrix();
 
     // ---------------- Amrita: types with the words, startles at the bell, tracks the pages, beams at the snap
@@ -438,14 +439,14 @@ export default {
 
     // stylus taps with each key (tip flash), then idles; tracks to the pages
     { const tapAge = lt < 1.0 ? kAge : 9, tap = Math.exp(-tapAge / 0.045), idle = Math.sin(t * 2.6) * 0.02;
-      st.stylus.group.position.set(-0.8, 0.3 + idle - 0.07 * tap, 0.4); st.stylus.group.rotation.z = 0.8 - 0.1 * tap + 0.25 * smooth(seg(lt, 1.0, 1.3)) * (1 - smooth(seg(lt, 1.5, 1.8)));
+      st.stylus.group.position.set(-0.7, -0.45 + idle - 0.07 * tap, 0.6); st.stylus.group.rotation.z = 0.6 - 0.1 * tap + 0.25 * smooth(seg(lt, 1.0, 1.3)) * (1 - smooth(seg(lt, 1.5, 1.8)));
       st.stylus.tipM.color.setRGB(3.2 + 8 * tap, 2.3 + 5 * tap, 1.2 + 2 * tap); st.tipHalo.material.opacity = 0.35 + 0.65 * tap; st.tipHalo.scale.setScalar(0.4 + 0.5 * tap); }
 
     // ---------------- the eight words
     for (let k = 0; k < 8; k++) {
-      const w = words[k], a = lt - KEYS[k], cv = smooth(seg(lt, 1.03 + 0.012 * k, 1.14 + 0.012 * k));
+      const w = words[k], a = lt - KEYS[k], cv = smooth(seg(lt, 1.02 + 0.01 * k, 1.12 + 0.01 * k));
       const alive = a >= 0 && cv < 0.999;
-      w.mesh.visible = alive; w.halo.visible = a >= -0.01 && cv < 0.999;
+      w.mesh.visible = alive; w.halo.visible = alive;
       if (alive) {
         const pop = spring(a, 5.5, 0.5), slam = 1 - smooth(a / 0.1), lift = 0.15 * outBack(seg(lt, BELL, BELL + 0.12), 2.0), tick = (hash(k, 3) - 0.5) * 0.06 * Math.exp(-a / 0.1);
         w.mesh.position.set(w.base.x, w.base.y + lift, w.base.z + 0.34 * slam); w.mesh.rotation.set(0, w.yaw, tick);
@@ -471,15 +472,15 @@ export default {
       const sh = book.sheets[k], wk = words[k], t0 = 1.04 + 0.006 * k;
       sh.g.visible = lt >= t0;
       if (!sh.g.visible) continue;
-      const fs = 1.03 + 0.012 * k, u = smoother(seg(lt, fs, fs + 0.16)), sg = k % 2 ? 1 : -1;
+      const fs = 1.02 + 0.01 * k, u = smoother(seg(lt, fs, fs + 0.15)), sg = k % 2 ? 1 : -1;
       const p0x = wk.base.x - ASM[0], p0y = wk.base.y + 0.15 - ASM[1], p0z = wk.base.z - ASM[2], p3x = -W2 / 2, p3y = 0, p3z = sh.zk;
-      const p1x = p0x + sg * 0.25, p1y = p0y + 0.45, p1z = p0z + 0.35, p2x = p3x - sg * 0.5, p2y = p3y + 0.2, p2z = p3z + 0.7;
+      const p1x = p0x + sg * 0.25, p1y = p0y + 0.4, p1z = p0z + 0.12, p2x = p3x - sg * 0.4, p2y = p3y + 0.25, p2z = p3z + 0.25;
       const v = 1 - u, b0 = v * v * v, b1 = 3 * v * v * u, b2 = 3 * v * u * u, b3 = u * u * u;
       sh.g.position.set(b0 * p0x + b1 * p1x + b2 * p2x + b3 * p3x, b0 * p0y + b1 * p1y + b2 * p2y + b3 * p3y, b0 * p0z + b1 * p1z + b2 * p2z + b3 * p3z);
-      sh.g.rotation.set(-0.7 * Math.sin(k * 1.9 + 1) * v * v, wk.yaw * v, sg * 1.0 * v * v);
+      sh.g.rotation.set(-0.5 * Math.sin(k * 1.9 + 1) * v * v, wk.yaw * v, sg * 0.8 * v * v);
       const sx0 = (wk.width / (2 * W2)) * 0.96, sy0 = 0.07 / H;
-      const msz = lerp(0.7, 1, smooth(seg(u, 0.6, 1)));
-      sh.g.scale.set(lerp(sx0, 1, smooth(seg(u, 0, 0.6))) * msz, lerp(sy0, 1, smooth(seg(u, 0.05, 0.75))) * msz, 1);
+      const msz = lerp(0.36, 1, smooth(seg(u, 0.62, 1.0))) * (1 + 0.07 * Math.exp(-Math.max(0, lt - (fs + 0.15)) / 0.05) * Math.cos(Math.max(0, lt - (fs + 0.15)) * 40));
+      sh.g.scale.set(lerp(sx0, 1, smooth(seg(u, 0, 0.35))) * msz, lerp(sy0, 1, smooth(seg(u, 0.05, 0.45))) * msz, 1);
       sh.flap.rotation.x = Math.PI * smooth(seg(u, 0.35, 0.95));
       const tf = FOLD0 + (K - 1 - k) * 0.009; sh.hinge.rotation.y = Math.PI * smoother(seg(lt, tf, tf + 0.11));
     }
@@ -487,10 +488,10 @@ export default {
     book.matL.emissiveIntensity = book.matR.emissiveIntensity = book.flapMat.emissiveIntensity = pe;
     book.coverMat.emissiveIntensity = 0.12 + 0.9 * snapP;
     // boards slam in, spine/brads/tabs snap on at 27.5
-    const ub = seg(lt, 1.33, SNAP), eb = ub ** 2.4, ib = 1 - eb;
-    book.front.visible = book.back.visible = lt >= 1.33;
-    book.front.position.set(0.42 * ib, 0.5 * ib, 0.0436 + 0.95 * ib); book.front.rotation.set(0.5 * ib, 0.3 * ib, 0.5 * ib);
-    book.back.position.set(-0.38 * ib, -0.45 * ib, -0.0436 - 0.7 * ib); book.back.rotation.set(-0.3 * ib, 0, -0.4 * ib);
+    const ub = seg(lt, 1.36, SNAP), eb = ub ** 2.2, ib = 1 - eb;
+    book.front.visible = book.back.visible = lt >= 1.36;
+    book.front.position.set(0.1 * ib, 0.08 * ib, 0.0436 + 0.4 * ib); book.front.rotation.set(0.18 * ib, 0.12 * ib, 0.22 * ib); book.front.scale.setScalar(lerp(0.9, 1, eb));
+    book.back.position.set(-0.08 * ib, -0.06 * ib, -0.0436 - 0.32 * ib); book.back.rotation.set(-0.14 * ib, 0, -0.2 * ib); book.back.scale.setScalar(lerp(0.9, 1, eb));
     book.spine.visible = lt >= SNAP; book.spine.scale.set(1, 1, Math.max(0.01, spring(lt - SNAP, 6, 0.5)));
     book.brads.forEach((m, j) => { const s = spring(lt - (SNAP + 0.03 * j), 7, 0.4); m.visible = lt >= SNAP + 0.03 * j; m.scale.setScalar(Math.max(0.01, s)); });
     book.tabs.forEach((m, i) => { const s = spring(lt - (SNAP + 0.05 + 0.045 * i), 6, 0.45); m.visible = lt >= SNAP + 0.05 + 0.045 * i; m.position.x = W2 / 2 - 0.03 + 0.075 * s; });
@@ -515,9 +516,10 @@ export default {
     st.ringsG.userData.update(t, camera);
 
     // ---------------- DOF: focus rides from Amrita to the folding pages and back to Amrita + booklet
-    const f = smooth(seg(lt, 1.05, 1.25)) * (1 - smooth(seg(lt, 1.52, 1.85)));
-    const fx = lerp(AM[0], ASM[0], f), fy = lerp(AM[1], ASM[1], f), fz = lerp(AM[2], ASM[2], f);
+    const f = smooth(seg(lt, 0.97, 1.12)), f2 = smooth(seg(lt, 1.52, 1.85));
+    const mx = lerp(AM[0], REST[0], 0.5), my = lerp(AM[1], REST[1], 0.5), mz = lerp(AM[2], REST[2], 0.5);
+    const fx = lerp(lerp(AM[0], ASM[0], f), mx, f2), fy = lerp(lerp(AM[1], ASM[1], f), my, f2), fz = lerp(lerp(AM[2], ASM[2], f), mz, f2);
     if (D.noDof) return { dof: { enabled: false }, bloom: { strength: D.noBloom ? 0 : 0.34, radius: 0.5, threshold: 1.15 } };
-    return { dof: { focus: camera.position.distanceTo(tmp.v.set(fx, fy, fz)), strength: 0.9, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.22 * imp + 0.45 * snapP, radius: 0.5, threshold: 1.15 } };
+    return { dof: { focus: camera.position.distanceTo(tmp.v.set(fx, fy, fz)), strength: 0.65, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.22 * imp + 0.45 * snapP, radius: 0.5, threshold: 1.15 } };
   },
 };

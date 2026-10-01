@@ -3,7 +3,7 @@
 // Brass: detuned saw stack -> low-pass whose cutoff TRACKS the amplitude envelope and velocity (brightness follows
 // loudness) -> envelope -> soft saturation ("blat", also follows loudness) -> bell/formant EQ; lip-scoop, late vibrato.
 // =============================================================================
-import { dsp, SR, cues, defineInstrument, clamp, reg, ns, cents, vibrato, velAmp, expEnv, fadeInArr, releaseTail, TAU } from './common.mjs';
+import { dsp, SR, cues, defineInstrument, clamp, reg, ns, cents, pitchMod, velAmp, expEnv, fadeInArr, releaseTail, TAU } from './common.mjs';
 import { harpGliss } from './keys.mjs';
 const { midiToHz, noise, osc, svf, biquad, biquadChain, seedOf, drift, fastTanh } = dsp;
 
@@ -11,9 +11,9 @@ const { midiToHz, noise, osc, svf, biquad, biquadChain, seedOf, drift, fastTanh 
 // brass
 // ---------------------------------------------------------------------------------------------------------------
 const BRASS = {
-  trumpets: { voices: 3, det: 6, kLo: 3.2, kHi: 30, q: 1.0, scoop: 32, scoopTau: 0.05, vib: 5.5, vibDelay: 0.45, a: 0.035, rel: 0.13, acc: 0.4, drive: 1.3, sub: 0, eq: [{ type: 'peak', f: 1250, q: 1.1, g: 3.5 }, { type: 'peak', f: 3000, q: 1.2, g: 2.5 }, { type: 'lp', f: 9500, q: 0.6 }, { type: 'hp', f: 140, q: 0.7 }], noise: 0.05, gain: 0.34 },
-  horns: { voices: 4, det: 8, kLo: 2.6, kHi: 16, q: 0.9, scoop: 22, scoopTau: 0.06, vib: 3, vibDelay: 0.5, a: 0.075, rel: 0.24, acc: 0.3, drive: 1.0, sub: 0.1, eq: [{ type: 'peak', f: 450, q: 1.0, g: 3 }, { type: 'peak', f: 1000, q: 1.0, g: 2 }, { type: 'lp', f: 6200, q: 0.6 }, { type: 'hp', f: 90, q: 0.7 }], noise: 0.04, gain: 0.34 },
-  brass_low: { voices: 4, det: 9, kLo: 2.3, kHi: 11, q: 1.0, scoop: 28, scoopTau: 0.07, vib: 0, vibDelay: 1, a: 0.06, rel: 0.32, acc: 0.55, drive: 1.9, sub: 0.35, eq: [{ type: 'peak', f: 280, q: 0.9, g: 3 }, { type: 'peak', f: 650, q: 1.0, g: 3 }, { type: 'lp', f: 4500, q: 0.6 }, { type: 'hp', f: 38, q: 0.7 }], noise: 0.035, gain: 0.36 },
+  trumpets: { voices: 3, det: 6, kLo: 3.2, kHi: 30, q: 1.0, scoop: 32, scoopTau: 0.05, vib: 5.5, vibDelay: 0.45, a: 0.035, rel: 0.13, acc: 0.4, drive: 1.3, sub: 0, eq: [{ type: 'peak', f: 1250, q: 1.1, g: 3.5 }, { type: 'peak', f: 3000, q: 1.2, g: 2.5 }, { type: 'lp', f: 9500, q: 0.6 }, { type: 'hp', f: 140, q: 0.7 }], noise: 0.05, tilt: [0.5, 9], gain: 0.34 },
+  horns: { voices: 4, det: 8, kLo: 2.6, kHi: 16, q: 0.9, scoop: 22, scoopTau: 0.06, vib: 3, vibDelay: 0.5, a: 0.075, rel: 0.24, acc: 0.3, drive: 1.0, sub: 0.1, eq: [{ type: 'peak', f: 450, q: 1.0, g: 3 }, { type: 'peak', f: 1000, q: 1.0, g: 2 }, { type: 'lp', f: 6200, q: 0.6 }, { type: 'hp', f: 90, q: 0.7 }], noise: 0.04, tilt: [-1, 5], gain: 0.34 },
+  brass_low: { voices: 4, det: 9, kLo: 2.3, kHi: 11, q: 1.0, scoop: 28, scoopTau: 0.07, vib: 0, vibDelay: 1, a: 0.06, rel: 0.32, acc: 0.55, drive: 1.9, sub: 0.35, eq: [{ type: 'peak', f: 280, q: 0.9, g: 3 }, { type: 'peak', f: 650, q: 1.0, g: 3 }, { type: 'lp', f: 4500, q: 0.6 }, { type: 'hp', f: 38, q: 0.7 }], noise: 0.035, tilt: [-1, 5.5], gain: 0.36 },
 };
 
 function brassVoice(ev, ctx, P) {
@@ -49,11 +49,7 @@ function brassVoice(ev, ctx, P) {
   for (let k = 0; k < P.voices; k++) {
     const pos = P.voices === 1 ? 0 : (k / (P.voices - 1)) * 2 - 1;
     const det = pos * P.det + (rng() - 0.5) * 2;
-    const vib = P.vib > 0 ? vibrato(n, { rate: 5.0 + 0.9 * rng(), cents: P.vib * (o.vibScale != null ? o.vibScale : 1), delay: P.vibDelay * (0.8 + 0.4 * rng()), fade: 0.5, rng }) : null;
-    const fa = new Float32Array(n);
-    const base = f0 * cents(det);
-    const tauS = P.scoopTau * SR;
-    for (let i = 0; i < n; i++) fa[i] = base * (vib ? vib[i] : 1) * cents(-sc * Math.exp(-i / tauS));
+    const fa = pitchMod(n, f0, { rate: 5.0 + 0.9 * rng(), cents: P.vib * (o.vibScale != null ? o.vibScale : 1), delay: P.vibDelay * (0.8 + 0.4 * rng()), fade: 0.5, rng, detune: det, drift: 1.2, scoop: sc, scoopTau: P.scoopTau });
     const s = osc('saw', fa, n, { phase: rng() });
     const [gl, gr] = [Math.cos(((pos * 0.6 + 1) * Math.PI) / 4) * Math.SQRT2, Math.sin(((pos * 0.6 + 1) * Math.PI) / 4) * Math.SQRT2];
     const g = 1 / Math.sqrt(P.voices);
@@ -77,7 +73,7 @@ function brassVoice(ev, ctx, P) {
   const fL = svf(L, 'lp', fcArr, P.q, { update: 8 }), fR = svf(R, 'lp', fcArr, P.q, { update: 8 });
   const dr = P.drive * (o.driveScale != null ? o.driveScale : 1);
   const norm = 1 / Math.tanh(dr * 1.0);
-  const nz = noise('pink', n, seedOf(ctx.i, 'brn', m), { rms: 1 });
+  const nz = noise('white', n, seedOf(ctx.i, 'brn', m), { rms: 1 });
   const nzf = biquad(biquad(nz, 'bp', 1900, 0.7), 'hp', 800, 0.7);
   const bump = expEnv(n, 0.045);
   for (let i = 0; i < n; i++) {
@@ -88,7 +84,8 @@ function brassVoice(ev, ctx, P) {
     fR[i] = fastTanh((fR[i] * e + nzv * 0.9) * d * 0.5) / fastTanh(d * 0.5 * 0.7) * 0.7;
   }
   void norm;
-  const eqL = biquadChain(fL, P.eq), eqR = biquadChain(fR, P.eq);
+  const tilt = (P.tilt[0] + (P.tilt[1] - P.tilt[0]) * v) * (o.brightScale != null ? o.brightScale : 1);
+  const eqL = biquadChain(biquad(fL, 'highshelf', 1400, 0.7, tilt), P.eq), eqR = biquadChain(biquad(fR, 'highshelf', 1400, 0.7, tilt), P.eq);
   const amp = P.gain * velAmp(v, 1.0);
   for (let i = 0; i < n; i++) { eqL[i] *= amp; eqR[i] *= amp; }
   fadeInArr(eqL, 10); fadeInArr(eqR, 10);
@@ -129,9 +126,7 @@ function windVoice(ev, ctx, P) {
   const lead = !fast && a > 0.05 ? 0.25 * a : 0;
   const aN = Math.max(2, ns(a));
   const vibOn = !fast && ev.dur > 0.5;
-  const vib = vibOn ? vibrato(n, { rate: 5.1 + 0.6 * rng(), cents: P.vib * (o.vibScale != null ? o.vibScale : 1), delay: 0.28 + 0.15 * rng(), fade: 0.5, rng }) : null;
-  const dr = drift(n, 0.5, 0.0012, Math.floor(rng() * 1e9));
-  const tauC = 0.04 * SR;
+  const fa = pitchMod(n, f0, { rate: 5.1 + 0.6 * rng(), cents: vibOn ? P.vib * (o.vibScale != null ? o.vibScale : 1) : 0, delay: 0.28 + 0.15 * rng(), fade: 0.5, rng, drift: 2, scoop: -P.chiffCents, scoopTau: 0.04 });
   const h = P.harm(m, v);
   const out = new Float32Array(n);
   let ph = rng();
@@ -143,8 +138,7 @@ function windVoice(ev, ctx, P) {
   }
   for (let i = bodyN; i < n; i++) env[i] *= 0.5 + 0.5 * Math.cos((Math.PI * (i - bodyN)) / Math.max(1, n - bodyN));
   for (let i = 0; i < n; i++) {
-    const f = f0 * (vib ? vib[i] : 1) * (1 + dr[i]) * cents(P.chiffCents * Math.exp(-i / tauC));
-    ph += f / SR;
+    ph += fa[i] / SR;
     if (ph >= 1) ph -= 1;
     const w = TAU * ph;
     let s = Math.sin(w);

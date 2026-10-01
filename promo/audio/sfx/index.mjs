@@ -13,7 +13,7 @@
 // RECIPE CONTRACT (recipes_a.mjs / recipes_b.mjs export `recipes` = { id: fn }):
 //   fn(ev, ctx) where ev = the cue event ({t,id,g?,pan?,dur?,...params}) and
 //     ctx = { ev, id, t, n (occurrence index of this id in the cue list), rng(label) -> seeded mulberry32,
-//             cues, dsp }
+//             seed(label) -> int, burst(win=0.6) -> # of earlier same-id events within win s, cues, dsp }
 //   returns a stereo Buf (dsp.Buf) that starts AT the event time, or an object:
 //     { buf,                 // stereo Buf
 //       offsetSec = 0,       // pre-roll: the event's nominal time t is `offsetSec` seconds INTO buf
@@ -43,7 +43,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const SPLIT = 26.0;
 
 let recipesB = {};
-let bFile = path.join(HERE, 'recipes_b.mjs');
+let bFile = process.env.SFX_RECIPES_B ? path.resolve(process.env.SFX_RECIPES_B) : path.join(HERE, 'recipes_b.mjs'); // env override: testing only
 export let recipesBLoaded = false;
 if (fs.existsSync(bFile)) {
   try {
@@ -71,6 +71,9 @@ function makeCtx(ev, n, cuesMod) {
     ev, id: ev.id, t: ev.t, n,
     rng: (label = '') => mulberry32(seedOf('sfx', ev.id, ev.t, n, label)),
     seed: (label = '') => seedOf('sfx', ev.id, ev.t, n, label),
+    // number of EARLIER events of the same id within `win` seconds (0 for the first of a burst): lets a recipe vary
+    // pitch / timbre across a rapid sequence (laser volleys, heart pops) regardless of other scenes' extra cues
+    burst: (win = 0.6) => cuesMod.SFX.filter((e) => e.id === ev.id && (e.t < ev.t || (e.t === ev.t && e !== ev && cuesMod.SFX.indexOf(e) < cuesMod.SFX.indexOf(ev))) && ev.t - e.t <= win).length,
     cues: cuesMod, dsp,
   };
 }
@@ -140,16 +143,17 @@ export function renderSfx(cuesMod = defaultCues, opts = {}) {
     const r = renderEvent(ev, n, cuesMod);
     if (r.fallback) {
       stats.fallback++;
-      if (!unknown.has(ev.id)) {
-        unknown.add(ev.id);
-        console.warn(`\n*** [sfx] WARNING: NO RECIPE for id "${ev.id}" (t=${ev.t}) - using a soft fallback tick. Add it to recipes_a.mjs / recipes_b.mjs. ***\n`);
-      }
+      unknown.add(ev.id);
     }
     const lin = dbToLin(ev.g || 0);
     const t0 = ev.t - (r.offsetSec || 0);
     placeBuf(dry, r.buf, t0, lin, ev.pan || 0);
     if (r.send > -90) placeBuf(bus, r.buf, t0, lin * dbToLin(r.send), ev.pan || 0);
     stats.events++;
+  }
+
+  if (unknown.size && !opts.quiet) {
+    console.warn(`\n*** [sfx] WARNING: NO RECIPE for ${unknown.size} id(s): ${[...unknown].join(', ')} - rendered as soft fallback ticks. Add them to recipes_a.mjs / recipes_b.mjs. ***\n`);
   }
 
   // ---- shared gentle 'room' (short, dark-ish, low-cut so it never muddies the sub) ----

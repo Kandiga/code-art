@@ -13,21 +13,21 @@ import { clamp, lerp, smooth, smoother, outCubic, outBack, inOutCubic, spring } 
 const TAU = Math.PI * 2;
 export const EYE = { x: 960, y: 470, r: 120 };
 const OPEN = { x0: 365, x1: 1555, y0: 178, floorY: 852, y1: 962 }; // the stage opening inside the proscenium
-const INK = '#221d27';
-const GOLD = '#E2B650', GOLD_L = '#F8E3A2', GOLD_D = '#946416';
-const VEL = '#B02C3E', VEL_L = '#E8667A', VEL_D = '#6E1A2C';
+export const INK = '#221d27';
+export const GOLD = '#E2B650', GOLD_L = '#F8E3A2', GOLD_D = '#946416';
+export const VEL = '#B02C3E', VEL_L = '#E8667A', VEL_D = '#6E1A2C';
 const CREAM = '#FFF0C8', OCHRE = '#C99A3E';
 const AMR = { x: 960, y: 794, size: 150 }; // Amrita pops in centre-stage, below the moon's eye
 const POOF = { x: 960, y: 806 };
 
 // ---------- small helpers --------------------------------------------------------------------------------------
-const path = (ctx, pts, close = true) => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); if (close) ctx.closePath(); };
+export const path = (ctx, pts, close = true) => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); if (close) ctx.closePath(); };
 const g = (x, mu, sg) => Math.exp(-0.5 * ((x - mu) / sg) ** 2);
 const rot2 = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
 
 // layer cache: static layers are re-drawn once per 12 fps boil step (not per 30 fps frame)
 const _cache = new Map();
-function cached(S, key, draw) {
+export function cached(S, key, draw) {
   const k = key + '@' + S.scale;
   let c = _cache.get(k);
   if (!c) {
@@ -37,10 +37,10 @@ function cached(S, key, draw) {
   }
   return c;
 }
-const blit = (ctx, c) => ctx.drawImage(c, 0, 0, 1920, 1080);
+export const blit = (ctx, c) => ctx.drawImage(c, 0, 0, 1920, 1080);
 
 // quick pencil hatch of a bbox (caller sets the clip). dashes + seeded jitter, boils with `boil`.
-function hatchBox(ctx, bx, { angle = -0.8, gap = 8, color = '#000', width = 1.2, alpha = 0.5, seed = 1, boil = 0, jit = 1.4, comp = 'multiply', dash = 60, keep = 0.85 } = {}) {
+export function hatchBox(ctx, bx, { angle = -0.8, gap = 8, color = '#000', width = 1.2, alpha = 0.5, seed = 1, boil = 0, jit = 1.4, comp = 'multiply', dash = 60, keep = 0.85 } = {}) {
   const cx = bx.x + bx.w / 2, cy = bx.y + bx.h / 2, R = Math.hypot(bx.w, bx.h) / 2;
   const c = Math.cos(angle), s = Math.sin(angle), nx = -s, ny = c, n = Math.ceil((2 * R) / gap);
   ctx.save(); ctx.globalCompositeOperation = comp; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
@@ -62,10 +62,10 @@ function hatchBox(ctx, bx, { angle = -0.8, gap = 8, color = '#000', width = 1.2,
   }
   ctx.restore();
 }
-const bbox = (pts) => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [x, y] of pts) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; } return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; };
+export const bbox = (pts) => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [x, y] of pts) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; } return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; };
 
 // flat opaque pigment (offset + wobble) + optional pencil hatch + doubled ink outline
-function solid(ctx, P, pts, { fill, hatch, ink = INK, w = 3, boil, seed, off = [3, 2], amp = 1.4, alpha = 1, closed = true, hatchOpt = {} } = {}) {
+export function solid(ctx, P, pts, { fill, hatch, ink = INK, w = 3, boil, seed, off = [3, 2], amp = 1.4, alpha = 1, closed = true, hatchOpt = {} } = {}) {
   if (fill) P.fill(ctx, pts, { color: fill, comp: 'source-over', offset: off, boil, seed, amp, alpha });
   if (hatch) {
     ctx.save(); path(ctx, pts); ctx.clip();
@@ -296,17 +296,17 @@ function drawBack(gx, S, B) {
   P.ink(gx, [[O.x0, O.floorY], [O.x1, O.floorY]], { closed: false, color: INK, width: 3.4, boil: B, seed: 69, amp: 1.2 });
 }
 
-function spark4(ctx, x, y, s) {
+export function spark4(ctx, x, y, s) {
   ctx.beginPath(); ctx.moveTo(x, y - s);
   ctx.quadraticCurveTo(x + s * 0.12, y - s * 0.12, x + s, y); ctx.quadraticCurveTo(x + s * 0.12, y + s * 0.12, x, y + s);
   ctx.quadraticCurveTo(x - s * 0.12, y + s * 0.12, x - s, y); ctx.quadraticCurveTo(x - s * 0.12, y - s * 0.12, x, y - s); ctx.closePath();
 }
-function star5(cx, cy, R, r, rot = 0, n = 5) {
+export function star5(cx, cy, R, r, rot = 0, n = 5) {
   const pts = []; for (let i = 0; i < n * 2; i++) { const a = rot - Math.PI / 2 + (i / (n * 2)) * TAU, rr = i % 2 ? r : R; pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); } return pts;
 }
 
 // velvet drape between xo (outer, fixed) and edge(y) (inner, moves). rows of vertical folds, gold braid on the leading edge.
-function drape(ctx, P, { xo, edge, y0, y1, folds = 8, seed, boil, lightBias = 0, braid = true, hem = true }) {
+export function drape(ctx, P, { xo, edge, y0, y1, folds = 8, seed, boil, lightBias = 0, braid = true, hem = true }) {
   const ys = []; for (let i = 0; i <= 12; i++) ys.push(lerp(y0, y1, i / 12));
   const xe = ys.map(edge);
   const fx = (j, i) => lerp(xo, xe[i], j / folds) + Math.sin(ys[i] * 0.012 + j * 1.3) * 3 * Math.min(1, Math.abs(xe[i] - xo) / 80);

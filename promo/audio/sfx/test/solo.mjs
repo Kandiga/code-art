@@ -15,7 +15,8 @@ import * as cues from '../../../shared/cues.js';
 import { renderEvent, recipesA, recipesB } from '../index.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const args = process.argv.slice(2);
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const args = isMain ? process.argv.slice(2) : [];
 const flags = new Set(args.filter((a) => a.startsWith('--')));
 let ids = args.filter((a) => !a.startsWith('--'));
 if (!ids.length) ids = Object.keys(flags.has('--all') ? { ...recipesA, ...recipesB } : recipesA);
@@ -42,6 +43,14 @@ export function analyse(buf) {
   for (let i = 0; i < Math.min(n, 2); i++) headPk = Math.max(headPk, Math.abs(buf.L[i]), Math.abs(buf.R[i]));
   // spectral centroid over the loud part (FFT of up to 32768 samples around the peak)
   const dc = meter.dcOffset(buf);
+  // loudest 300 ms K-weighted level (perceptual loudness proxy, dB re full scale) and side/mid energy ratio
+  const kw = meter.kWeight(Float32Array.from(buf.L, (v, i) => 0.5 * (v + buf.R[i])));
+  const W = Math.round(0.3 * SR);
+  let acc = 0, best = 0;
+  for (let i = 0; i < n; i++) { acc += kw[i] * kw[i]; if (i >= W) acc -= kw[i - W] * kw[i - W]; if (i >= W - 1 && acc > best) best = acc; }
+  if (n < W) best = acc;
+  let em = 0, es = 0;
+  for (let i = 0; i < n; i++) { const m = 0.5 * (buf.L[i] + buf.R[i]), sd = 0.5 * (buf.L[i] - buf.R[i]); em += m * m; es += sd * sd; }
   const db = (v) => (v > 1e-12 ? 20 * Math.log10(v) : -240);
   // centroid
   let pkAt = 0, pv = 0;
@@ -53,11 +62,12 @@ export function analyse(buf) {
   let num = 0, den = 0;
   for (let b = 1; b < mag.length; b++) { const p = mag[b] * mag[b]; num += p * (b * SR / N); den += p; }
   return {
-    len: n / SR, peakDb: db(pk), tpDb: tp.db, rmsDb: db(Math.sqrt(s / Math.max(1, k))), leadMs: first < 0 ? NaN : (first / SR) * 1000,
+    lk300: 10 * Math.log10(best / W + 1e-30), sm: 10 * Math.log10((es + 1e-30) / (em + 1e-30)), len: n / SR, peakDb: db(pk), tpDb: tp.db, rmsDb: db(Math.sqrt(s / Math.max(1, k))), leadMs: first < 0 ? NaN : (first / SR) * 1000,
     tailDb: db(tailPk), headDb: db(headPk), dcL: dc.L, dcR: dc.R, corr, centroid: den > 0 ? num / den : 0, activeSec: first < 0 ? 0 : (last - first) / SR,
   };
 }
 
+async function main() {
 const rows = [];
 ensure(path.join(TMP, 'sfx'));
 const counts = new Map();
@@ -83,12 +93,14 @@ for (const id of ids) {
   if (!flags.has('--nopng')) spectrogramPng(file, path.join(TMP, 'sfx', id + '.png'), { w: 900, h: 340, legend: true, fscale: 'log', drange: 90 });
 }
 const f = (v, d = 1) => (Number.isFinite(v) ? v.toFixed(d) : '-inf');
-console.log('id'.padEnd(20) + 'len  peak  tp   rms   lead  head  tail   dcL     corr  cent   ms   g');
+console.log('id'.padEnd(20) + 'len  peak  tp   rms   Lk300 S/M  lead  head  tail   dcL     corr  cent   ms   g');
 for (const a of rows) {
   const warn = [];
   if (a.peakDb > -2.9) warn.push('PEAK>-3');
-  if (a.tailDb > -66) warn.push('TAIL');
+  if (a.tailDb > -44) warn.push('TAIL');
   if (a.headDb > -50 && a.pre === 0) warn.push('HEAD');
   if (Math.abs(a.dcL) > 5e-4) warn.push('DC');
-  console.log(a.id.padEnd(20) + [f(a.len, 2).padStart(4), f(a.peakDb).padStart(5), f(a.tpDb).padStart(5), f(a.rmsDb).padStart(5), f(a.leadMs, 0).padStart(5), f(a.headDb, 0).padStart(5), f(a.tailDb, 0).padStart(5), (a.dcL * 1e4).toFixed(1).padStart(5) + 'e-4', f(a.corr, 2).padStart(5), f(a.centroid, 0).padStart(5), String(a.ms).padStart(5), f(a.g, 0).padStart(3)].join(' ') + (warn.length ? '  <-- ' + warn.join(',') : ''));
+  console.log(a.id.padEnd(20) + [f(a.len, 2).padStart(4), f(a.peakDb).padStart(5), f(a.tpDb).padStart(5), f(a.rmsDb).padStart(5), f(a.lk300).padStart(5), f(a.sm, 0).padStart(4), f(a.leadMs, 0).padStart(5), f(a.headDb, 0).padStart(5), f(a.tailDb, 0).padStart(5), (a.dcL * 1e4).toFixed(1).padStart(5) + 'e-4', f(a.corr, 2).padStart(5), f(a.centroid, 0).padStart(5), String(a.ms).padStart(5), f(a.g, 0).padStart(3)].join(' ') + (warn.length ? '  <-- ' + warn.join(',') : ''));
 }
+}
+if (isMain) main();
