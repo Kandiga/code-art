@@ -23,8 +23,9 @@ const font = (px, w = 600) => `${w} ${px}px Inter, sans-serif`;
 const label = (g, txt, x, y, o = {}) => { g.save(); g.font = font(o.size || 22, o.w || 700); g.fillStyle = o.color || '#EDE7D8'; g.textAlign = o.align || 'left'; g.fillText(txt, x, y); g.restore(); };
 function Tat(t) { const T = cues.makeT(t); return T; }
 // bg: 'paper' | 'bars' | 'mid' | 'future'
+const scratch = mk(1920, 1080);
 function frameAt(t, mode, bg = 'paper') {
-  const c = mk(1920, 1080), g = c.getContext('2d');
+  const c = scratch, g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, 1920, 1080);
   if (bg === 'paper') { P.paper(g, S, { seed: 3 }); }
   else if (bg === 'mid') { const gr = g.createLinearGradient(0, 0, 1920, 1080); gr.addColorStop(0, '#8a7f6a'); gr.addColorStop(1, '#4f4a44'); g.fillStyle = gr; g.fillRect(0, 0, 1920, 1080); }
   else if (bg === 'future') { const gr = g.createLinearGradient(0, 0, 0, 1080); gr.addColorStop(0, '#2a1a4a'); gr.addColorStop(1, '#0d0a18'); g.fillStyle = gr; g.fillRect(0, 0, 1920, 1080); g.fillStyle = '#000'; g.fillRect(0, 0, 1920, 138.5); g.fillRect(0, 941.5, 1920, 138.5); }
@@ -84,6 +85,13 @@ if (which === 'bg') {
 if (which === 'strip') {
   const ts = [4.5, 6.5, 8.5, 10.5, 12.5, 14.5, 16.5, 18.5, 20.5, 21.9];
   add(ts.length * 130 + 40, (g, y0) => { label(g, 'STRIP at 1:1 (paper over mid-tone), each era hold', 20, y0 + 30, { size: 26, w: 800 }); ts.forEach((t, i) => { const f = frameAt(t, 'paper', 'mid'); g.drawImage(f, 0, 940, 1920, 120, 0, y0 + 44 + i * 130, 1920, 120); label(g, 't=' + t, 1840, y0 + 44 + i * 130 + 20, { size: 18 }); }); });
+}
+if (which === 'perf') {
+  const c = mk(1920, 1080), g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0);
+  const run = (name, ts, mode) => { const t0 = performance.now(); ts.forEach((t) => { g.clearRect(0, 0, 1920, 1080); hud.draw(g, cues.makeT(t), S, mode); }); const ms = (performance.now() - t0) / ts.length; console.log(`PERF ${name}: ${ms.toFixed(2)} ms/draw (n=${ts.length})`); };
+  run('paper hold', range(4.1, 5.4, 0.026), 'paper'); run('paper roll', range(5.5, 6.0, 0.0333), 'paper'); run('paper NOW', range(21.5, 21.99, 0.0333), 'paper');
+  run('digital hold', range(42.5, 43.9, 0.03), 'digital'); run('digital jump', range(42.0, 42.4, 0.0333), 'digital');
+  add(10, () => {});
 }
 let H = 20; out.forEach((s) => { H += s.h; });
 const cv = mk(W, H); document.body.appendChild(cv);

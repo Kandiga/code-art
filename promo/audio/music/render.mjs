@@ -5,7 +5,7 @@
 //   1. a 60 s Buf (48 kHz stereo float32)
 //   2. renderScoreA(buf, ctx)   (audio/music/score_a.mjs, t < 26 - if the file exists)
 //   3. renderScoreB(buf, ctx)   (audio/music/score_b.mjs, t >= 26)
-//   4. gentle master bus: glue compressor (1.6:1) + safety true-peak limiter, peak <= -2 dBFS (masterBus in score_b.mjs)
+//   4. gentle master bus: glue compressor (1.5:1) + safety true-peak limiter, peak <= -2 dBFS (masterBus in score_b.mjs)
 //   5. contract guards: the film's held breath 22.0-22.5 is digital silence, last sample of the stem is ~0
 //   6. writes the 32-bit float WAV, exactly 60.000 s = 2 880 000 samples
 //
@@ -21,7 +21,8 @@ import { stemPath, ensure, STEMS } from '../lib/paths.mjs';
 import { renderScoreB, masterBus } from './score_b.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-export const SILENCE = { t0: cues.SECTIONS.find((s) => s.id === 'turn').t0, t1: cues.MUSIC.sections.find((s) => s.id === 'turn').t0 + cues.BEAT }; // 22.0 .. 22.5
+const SIL = cues.MUSIC.sections.find((s) => s.id === 'silence');
+export const SILENCE = { t0: SIL.t0, t1: SIL.t1 }; // 22.0 .. 22.5: the film's held breath (digital silence)
 
 /** zero the half-open window [t0,t1) (with a 2 ms fade into it) and report what was there */
 function silenceWindow(buf, t0, t1) {
@@ -66,6 +67,7 @@ export async function renderMusic(opts = {}) {
   const file = stemPath('music');
   dsp.writeWav(file, out);
   const m = meter.measure(out);
+  log(`[music] master: glue max GR ${out.masterStats.glueMaxGrDb.toFixed(2)} dB, limiter max GR ${out.masterStats.limiterMaxGrDb.toFixed(2)} dB`);
   log(`[music] ${path.relative(process.cwd(), file)}  ${out.seconds.toFixed(3)} s  A:${haveA ? 'yes' : 'no'}  peak ${m.samplePeakDb.toFixed(2)} dBFS  true peak ${m.truePeakDb.toFixed(2)} dBTP  integrated ${m.integrated.toFixed(1)} LUFS  (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
   return file;
 }

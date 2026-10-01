@@ -609,7 +609,7 @@ function floorPool(THREE, { color, r, k, pow = 2 }) {
 // ---- floor (planar reflection, fresnel, anisotropic glossy blur) ---------------------------------------------------------------
 const FLOOR_SHADER = {
   name: 'NeuralFloor',
-  uniforms: { color: { value: null }, tDiffuse: { value: null }, textureMatrix: { value: null }, uCam: { value: null }, uT: { value: 0 }, uTexel: { value: null }, uRefl: { value: 1 } },
+  uniforms: { color: { value: null }, tDiffuse: { value: null }, textureMatrix: { value: null }, uCam: { value: null }, uT: { value: 0 }, uTexel: { value: null }, uRefl: { value: 1.35 } },
   vertexShader: 'uniform mat4 textureMatrix; varying vec4 vUv; varying vec3 vW; void main(){ vUv = textureMatrix * vec4(position, 1.0); vec4 wp = modelMatrix * vec4(position, 1.0); vW = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }',
   fragmentShader: `uniform vec3 color; uniform sampler2D tDiffuse; uniform vec3 uCam; uniform float uT, uRefl; uniform vec2 uTexel; varying vec4 vUv; varying vec3 vW; ${GLSL_NOISE}
     void main(){
@@ -695,6 +695,8 @@ const HEAD_FRESNEL = {
       c += col * stripes * fres * 0.35 * smoothstep(0.8, 2.3, vO.y);
       c += mix(vec3(0.8, 0.7, 1.0), uAmber, 0.35) * brain * (0.05 + 0.16 * uPulse);
       c += uTeal * low * 0.07 * (0.4 + facet);
+      float tw = step(0.90, fract(facet * 7.31 + floor(uT * 5.0) * 0.173));                   // gem facets twinkle
+      c += mix(uTeal, vec3(1.0), 0.45) * tw * (0.20 + 0.35 * fres + 0.25 * uPulse);
       gl_FragColor = vec4(c * uBright, 1.0); }`,
 };
 
@@ -805,7 +807,7 @@ export default {
     const batonL = new THREE.PointLight('#ffc566', 0.8, 6, 2); scene.add(batonL);
 
     const parts = { flow: [flowCore, flowHalo, flowProxy], strokes: [strokeCore, strokeHalo, strokeProxy], fills, sparkles, moonHalo, castleHalo, motes, bokeh, beams, hazes, pools, emitGlow, brainGlow, glass, rim, edges, proxy, plinth, ring, floor, cyc: scene.children[0], amrita: A.root, baton, tipGlow, trail };
-    refl.lite = [flowHalo, flowProxy, strokeHalo, strokeProxy, moonHalo, castleHalo, emitGlow, brainGlow, motes, bokeh, hazes[0], rim, edges, proxy, tipGlow];
+    refl.lite = [flowHalo, flowProxy, strokeProxy, brainGlow, motes, bokeh, hazes[0], rim, edges, proxy];
     const reflOrig = floor.onBeforeRender;
     floor.onBeforeRender = function (r, sc, cam) {
       if (Math.abs(refl.lastT - refl.reflT) < 0.02) return;       // same frame: reuse the reflection rendered for its first sub-frame (deterministic per frame)
@@ -879,8 +881,8 @@ export default {
     A.root.position.set(AMR[0], AMR[1] + 0.02 * Math.sin(lt * 2.1), AMR[2]); A.root.scale.setScalar(1.1);
     A.pose({ squash: clamp(squash, -0.2, 0.2), yaw: -0.42 + 0.05 * Math.sin(lt * 1.3), roll: 0.06 * (tipP.x - BATON_C[0]) * -1, bob });
     const happy = lt < 0.5 ? 1 : 0, det = sm(0.5, 0.65, lt) * (1 - sm(1.46, 1.52, lt)), awe = sm(1.47, 1.56, lt);
-    const blink = A.blinkAt({ t: T.t });
-    A.eyes({ open: 1 - 0.92 * blink * (1 - awe), squint: 0, happy, determined: happy ? 0 : det, surprised: awe, sleepy: 0, lookX: lerp(-0.9, -0.5, sm(0, 1.4, lt)) , lookY: lerp(0.15, 0.5, awe) });
+    const blink = A.blinkAt({ t: T.t + 0.5 });   // phase-shifted so the natural blink lands under the 'happy' arcs, never on the key beats
+    A.eyes({ open: 1 - 0.92 * blink * (1 - awe), squint: 0, happy, determined: happy ? 0 : 0.7 * det, surprised: awe, sleepy: 0, lookX: lerp(-0.9, -0.5, sm(0, 1.4, lt)) , lookY: lerp(0.15, 0.5, awe) });
     st.A = A;
 
     // ---- lights breathe with the painting

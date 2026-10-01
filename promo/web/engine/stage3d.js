@@ -4,7 +4,7 @@
 //   createStage(THREE, env, opts) -> { group, floor, cyc, chair, lights:{key,fill,rim,amb}, floorMat, cycMat, ...v1 }
 //     env  = { THREE?, S?, renderer? }  (renderer is only used to bake a tiny studio PMREM for the props; S.renderer works too)
 //     opts = { size:44, look:'neutral', truss:true, fixtures:true, chair:true, table:true, cases:true, cables:true, grips:true,
-//              tubes:true, marks:true, fog:true, mist:true, reflections:true, bindLights:false, env:true, seed:7 }
+//              tubes:true, marks:true, fog:true, mist:true, reflections:true, reflectTable:false, bindLights:false, env:true, layout:'periphery', seed:7 }
 //
 // WHAT YOU GET (all deterministic, nothing random, no per-frame allocation, ~28 draw calls, 1 shadow-casting light (key)):
 //   cyc          curved cyclorama: wall at z=-9 that sweeps (r=2.2 cove) into the floor, round corners at |x|>13. Dark, with an
@@ -21,21 +21,26 @@
 //
 // ---- API additions (v0 names unchanged) -------------------------------------------------------------------------------------
 //   stage.update(t | T)            OPTIONAL per-frame call (pure fn of t): animates mist / fog wisps. Without it the haze is static.
-//   stage.setLook('noir'|'warm'|'teal-orange'|'neutral', {intensity})   cyc wash + haze + fixture/tube colours + (opts.lights) light colours
-//   stage.setHaze(k)               0..2 ground haze + mist amount (1 = default)
-//   stage.setGlow(k)               master multiplier of every fixture lens / tube / halo
-//   stage.rig                      { fixtures[], get(sel), set(sel,{color,intensity,on}), beams(opts) }  sel = index|id|group('front'|'back'|'top'|'side')|'all'|fn
-//   stage.tubes                    { set(i,{color,intensity}), count }
-//   stage.reflect(obj3d, {strength,fade,filter}) -> handle   mirrored clone of ANY object under the floor (Amrita, props, crowd).
+//   stage.setLook('noir'|'warm'|'teal-orange'|'neutral', {intensity, lights})   cyc wash + haze + fixture/tube colours (+ key/fill/rim/amb colours unless lights:false)
+//   stage.blendLook(a, b, k)       interpolate two looks (names or objects) 0..1 — the COLOR job's flat -> graded transformation
+//   stage.setHaze(k)               0..2 ground haze + mist amount (1 = default)      stage.setGlow(k)  master multiplier of every lens / tube / halo
+//   stage.rig                      { fixtures[], get(sel), set(sel,{color,intensity,on}), beams(opts) }  sel = index|id|group('front'|'back'|'top'|'side')|'par'|'panel'|'all'|fn
+//                                  rig.beams({sel,max,angle,intensity,noise,color}) -> { group, beams[], update(t) } fx3d volumetric beams from fixture lenses to the floor
+//   stage.tubes                    { items[], set(i,{color,intensity}), setAll(), count }   6 LED tubes + the table-lamp bulb (emissive, reflected in the floor)
+//   stage.reflect(obj3d, {strength,fade,filter}) -> handle   mirrored clone of ANY object under the glossy floor (Amrita, props, crowd, instanced meshes)
 //   stage.bindLights(true)         visible fixtures follow lights.key / lights.rim (position, aim, colour, intensity) every render
-//   stage.clapper.setOpen(0..1)    clapperboard arm      stage.table / stage.cases / stage.truss / stage.grips / stage.marks (Groups)
-//   stage.envMap                   baked studio PMREM texture (or null)       stage.stats  { meshes, tris }
-//   module exports:  rigThreePoint(stage,{target,key,fill,rim})   spotPool(stage,{x,z,radius,color,intensity,...})
-//                    setLook(stage,name,opts)   LOOKS   makeStudioEnv(THREE,renderer)   pxScale(renderer,camera)
-// Units: lights are physical (candela). key = SpotLight (the ONLY shadow caster), fill = PointLight, rim = SpotLight, amb = AmbientLight.
+//   stage.layout('periphery'|'showcase')   'periphery' (default): table + cases parked at the edges so they never collide with a scene's blocking.
+//   stage.clapper.setOpen(0..1)    clapperboard arm      stage.table / casesLeft / casesRight / cases / truss / grips / cables / marks (Groups; move/hide freely)
+//   stage.marksList [{x,z,color}]  the five coloured spike marks on the floor (z≈2..2.4)      stage.envMap  baked studio PMREM (or null)
+//   stage.floor / cyc / chair / lights / floorMat / cycMat are exactly the v0 handles (floorMat is a MeshPhysicalMaterial, transparent+premultiplied: leave it that way).
+//   module exports:  rigThreePoint(stage,{target,key,fill,rim})   spotPool(stage,{x,z,radius,color,intensity,...})   setLook(stage,name,opts)   blendLooks(T,a,b,k)
+//                    reflect(stage,obj,opts)   LOOKS   makeStudioEnv(THREE,renderer)   pxScale(renderer,camera)   noiseTexture(T)   radialTexture(T)
+// Lights are physical (candela): key = SpotLight (the ONLY shadow caster), fill = PointLight, rim = SpotLight, amb = AmbientLight. Scenes keep driving them exactly as in v0.
+// Rendering contract: scene.background should be dark (the floor blends over it); keep floorMat.transparent=true. Per sub-frame cost: ~30 draw calls.
 // =============================================================================
 import { hash } from './rng.js';
-import { createBeam } from './fx3d.js';
+import { createBeam, pxScale } from './fx3d.js';
+export { pxScale };
 
 const TAU = Math.PI * 2, DEG = Math.PI / 180;
 const clamp = (x, a = 0, b = 1) => (x < a ? a : x > b ? b : x);
@@ -45,7 +50,7 @@ const lerp = (a, b, t) => a + (b - a) * t;
 export const LOOKS = {
   neutral: {
     key: ['#ffe6c4', 1.0], fill: ['#8fb0ff', 1.0], rim: ['#bfe2ff', 1.0], amb: ['#2a2f4a', 0.5],
-    washL: ['#2b3f86', 0.55], washR: ['#4a2f90', 0.5], pool: ['#3f5aa8', 0.5], glow: 1.0,
+    washL: ['#34446e', 0.3], washR: ['#46386c', 0.27], pool: ['#566a9e', 0.22], glow: 1.0,
     haze: ['#6f86b8', 0.5], hazeD: 0.05, lens: ['#ffd9a0', '#bfe2ff', '#ffb62e'], tubes: ['#7cc4ff', '#6b5bff'], floor: '#0d0d12', bg: '#04050a',
   },
   noir: {
@@ -91,7 +96,7 @@ vec3 stageHaze(vec3 col, vec3 P){
 }`;
 
 const FLOOR_VERT = /* glsl */`#include <project_vertex>\nvFloorW = (modelMatrix * vec4(transformed, 1.0)).xyz;`;
-const NLINE = 14;
+const NLINE = 8;
 const FLOOR_FRAG = /* glsl */`
 {
   vec3 Vv = normalize(vFloorW - cameraPosition);
@@ -112,7 +117,7 @@ const FLOOR_FRAG = /* glsl */`
     refl += uLC[i] * lobe * min(1.0, 0.045 / sig);
   }
   float brk = 0.8 + 0.36 * texture2D(uNoise, vFloorW.xz * vec2(0.9, 0.14)).g;
-  outgoingLight += refl * Fr * brk * uReflK2;
+  outgoingLight += refl * min(Fr, 0.6) * brk * uReflK2;
   outgoingLight = stageHaze(outgoingLight, vFloorW);
   outgoingLight *= smoothstep(uFloorR, uFloorR * 0.6, length(vFloorW.xz));
   diffuseColor.a = 1.0 - clamp(Fr * uReflK * brk, 0.0, 0.85);
@@ -165,8 +170,8 @@ function floorTexture(T) {
       const u = x / N, v = y / N, i = y * N + x, o = i * 4;
       const big = pfbm(u * 5, v * 5, 5, 41, 4), fine = hash(x, y, 77);
       const sc = scuff[i];
-      d[o] = clamp(0.5 + 0.22 * (big - 0.5) + 0.12 * (fine - 0.5) - 0.34 * sc) * 255;
-      d[o + 1] = clamp(0.5 + 0.34 * (big - 0.5) + 0.4 * sc + 0.07 * fine) * 255;
+      d[o] = clamp(0.5 + 0.2 * (big - 0.5) + 0.1 * (fine - 0.5) - 0.18 * sc) * 255;
+      d[o + 1] = clamp(0.5 + 0.3 * (big - 0.5) + 0.22 * sc + 0.06 * fine) * 255;
       d[o + 2] = clamp(0.92 - 0.16 * sc - 0.08 * big) * 255; d[o + 3] = 255;
     }
     const t = dataTex(T, d, N, N); t.repeat.set(5.5, 5.5); return t;
@@ -197,14 +202,6 @@ function barsTexture(T) {
     return dataTex(T, d, W, H, { repeat: false, mip: false, aniso: 1 });
   });
 }
-
-/** px per world-unit at distance 1 for the current render target / camera (use for gl_PointSize). */
-export function pxScale(renderer, camera) {
-  const rt = renderer.getRenderTarget(); let h = rt ? rt.height : 0;
-  if (!h) { const s = renderer.getDrawingBufferSize ? renderer.getDrawingBufferSize(_v2) : _v2.set(0, 1080); h = s.y; }
-  return 0.5 * h * camera.projectionMatrix.elements[5];
-}
-const _v2 = { x: 0, y: 0, set(a, b) { this.x = a; this.y = b; return this; } };
 
 /** Tiny studio HDR env (softboxes in a dark room) baked to PMREM. Returns a Texture or null. */
 export function makeStudioEnv(T, renderer) {
@@ -305,7 +302,7 @@ export function createStage(THREE, env = {}, opts = {}) {
   const floorU = {
     uLA: { value: Array.from({ length: NLINE }, () => new T.Vector3(0, -50, 0)) }, uLB: { value: Array.from({ length: NLINE }, () => new T.Vector3(0, -50, 0)) },
     uLC: { value: Array.from({ length: NLINE }, () => new T.Vector3()) }, uLR: { value: new Array(NLINE).fill(0.05) },
-    uReflK: { value: 0.0 }, uReflK2: { value: 1.0 }, uCycRefl: { value: 0.9 }, uFloorR: { value: size * 0.46 },
+    uReflK: { value: 0.0 }, uReflK2: { value: 1.0 }, uCycRefl: { value: 0.4 }, uFloorR: { value: size * 0.46 },
   };
   const st = { time: 0, hazeK: 1, glowK: 1, look: null, lookName: O.look, dirty: true, mirrors: [], bound: [], reflOn: O.reflections, reflU: { uKeyDir: { value: V3(0.3, 0.8, 0.5).normalize() }, uKeyCol: { value: C('#ffe2b0') } } };
 
@@ -313,7 +310,7 @@ export function createStage(THREE, env = {}, opts = {}) {
   const phys = (p) => { const m = new T.MeshPhysicalMaterial(p); if (envMap) m.envMap = envMap; return m; };
   const std = (p) => { const m = new T.MeshStandardMaterial(p); if (envMap) m.envMap = envMap; return m; };
   const floorTex = floorTexture(T);
-  const floorMat = new T.MeshPhysicalMaterial({ color: '#0d0d12', roughness: 0.36, metalness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.32, roughnessMap: floorTex, bumpMap: floorTex, bumpScale: 1.2 });
+  const floorMat = new T.MeshPhysicalMaterial({ color: '#0d0d12', roughness: 0.36, metalness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.32, roughnessMap: floorTex, bumpMap: floorTex, bumpScale: 0.5 });
   floorMat.transparent = true; floorMat.depthWrite = true; floorMat.blending = T.CustomBlending; floorMat.blendSrc = T.OneFactor; floorMat.blendDst = T.OneMinusSrcAlphaFactor; floorMat.blendSrcAlpha = T.OneFactor; floorMat.blendDstAlpha = T.OneMinusSrcAlphaFactor;
   floorMat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, stageU, cycU, floorU);
@@ -332,14 +329,14 @@ export function createStage(THREE, env = {}, opts = {}) {
   };
   cycMat.customProgramCacheKey = () => 'stage3d-cyc-v1';
 
-  const metalDark = std({ color: '#ffffff', vertexColors: true, metalness: 0.85, roughness: 0.4, envMapIntensity: 0.9 });
-  const metalAlu = std({ color: '#c3c6d2', metalness: 1, roughness: 0.32, envMapIntensity: 1 });
+  const metalDark = std({ color: '#ffffff', vertexColors: true, metalness: 0.7, roughness: 0.36, envMapIntensity: 2.2 });
+  const metalAlu = std({ color: '#9fa2ae', metalness: 1, roughness: 0.36, envMapIntensity: 0.6 });
   const rubber = std({ color: '#0e0e11', roughness: 0.46, metalness: 0, envMapIntensity: 0.7 });
   const caseMat = std({ color: '#ffffff', vertexColors: true, roughness: 0.52, metalness: 0.12, envMapIntensity: 0.7 });
   const woodMat = phys({ color: '#ffffff', vertexColors: true, roughness: 0.42, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.4, envMapIntensity: 0.8 });
   const brassMat = std({ color: '#d9a548', metalness: 1, roughness: 0.27, envMapIntensity: 1.1 });
   const weave = weaveTexture(T);
-  const canvasMat = phys({ color: '#ffffff', vertexColors: true, roughness: 0.9, metalness: 0, map: weave, bumpMap: weave, bumpScale: 0.6, side: T.DoubleSide, sheen: 0.8, sheenRoughness: 0.55, sheenColor: C('#fff1d0'), envMapIntensity: 0.5 });
+  const canvasMat = phys({ color: '#ffffff', vertexColors: true, roughness: 0.9, metalness: 0, map: weave, bumpMap: weave, bumpScale: 0.2, side: T.DoubleSide, sheen: 0.5, sheenRoughness: 0.6, sheenColor: C('#fff1d0'), envMapIntensity: 0.5 });
   const tapeMat = new T.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.62, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 
   // ------------------------------------------------------------ floor + cyc
@@ -376,7 +373,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     const w = o.w ?? 0.3, h = o.h ?? 0.3, pitch = o.pitch ?? 0.3, A = V3(...a), Bv = V3(...b), dir = Bv.clone().sub(A), len = dir.length(); dir.normalize();
     const upH = Math.abs(dir.y) > 0.95 ? V3(1, 0, 0) : V3(0, 1, 0), side = new T.Vector3().crossVectors(dir, upH).normalize(), upv = new T.Vector3().crossVectors(side, dir).normalize();
     const P = (s, i, j) => A.clone().addScaledVector(dir, s).addScaledVector(side, (i * w) / 2).addScaledVector(upv, (j * h) / 2);
-    const chord = C('#2a2a32'), lat = C('#1c1c22');
+    const chord = C('#6a6a78'), lat = C('#4a4a56');
     for (const i of [-1, 1]) for (const j of [-1, 1]) kit.seg(B, P(0, i, j), P(len, i, j), 0.022, chord, 'cyl8');
     const n = Math.max(1, Math.round(len / pitch)), dl = len / n, faces = [[[-1, 1], [1, 1]], [[-1, -1], [1, -1]], [[-1, -1], [-1, 1]], [[1, -1], [1, 1]]];
     for (let k = 0; k < n; k++) for (const f of faces) { const s0 = k * dl, s1 = (k + 1) * dl, fl = (k + (f[0][0] === f[1][0] ? 1 : 0)) & 1; const c0 = fl ? f[1] : f[0], c1 = fl ? f[0] : f[1]; kit.seg(B, P(s0, c0[0], c0[1]), P(s1, c1[0], c1[1]), 0.009, lat, 'cyl6'); }
@@ -455,7 +452,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     haloGeo = new T.BufferGeometry(); const n = fixtures.length;
     haloGeo.setAttribute('position', new T.Float32BufferAttribute(fixtures.flatMap((f) => [f.lensPos.x, f.lensPos.y, f.lensPos.z]), 3));
     haloGeo.setAttribute('aCol', new T.BufferAttribute(new Float32Array(n * 3), 3)); haloGeo.setAttribute('aAim', new T.Float32BufferAttribute(fixtures.flatMap((f) => [f.dir.x, f.dir.y, f.dir.z]), 3));
-    haloGeo.setAttribute('aSize', new T.Float32BufferAttribute(fixtures.map((f) => (f.type === 'panel' ? 1.5 : f.type === 'par' ? 0.7 : 0.9)), 1));
+    haloGeo.setAttribute('aSize', new T.Float32BufferAttribute(fixtures.map((f) => (f.type === 'panel' ? 1.1 : f.type === 'par' ? 0.45 : 0.55)), 1));
     const hm = new T.ShaderMaterial({
       uniforms: { uPx: { value: 1000 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false, fog: false,
       vertexShader: `attribute vec3 aCol, aAim; attribute float aSize; uniform float uPx; varying vec3 vC;
@@ -484,7 +481,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     const mkCluster = (parent, list) => {
       const caseB = new GeoBuilder(T), alu = new GeoBuilder(T);
       const addCase = (x, y, z, w, h, d, ry, tone = 1, wheels = false) => {
-        const M = kit.compose(x, y + h / 2 + (wheels ? 0.08 : 0), z, 0, ry, 0), W = new T.Matrix4(), body = C('#1b1b21').multiplyScalar(tone);
+        const M = kit.compose(x, y + h / 2 + (wheels ? 0.08 : 0), z, 0, ry, 0), W = new T.Matrix4(), body = C('#2b2b34').multiplyScalar(tone);
         const put = (B, g, local, c) => { W.multiplyMatrices(M, local); B.add(g, W, c); };
         put(caseB, kit.rbox(w, h, d, 0.018), new T.Matrix4(), body);
         const e = 0.014, rails = [];
@@ -547,7 +544,7 @@ export function createStage(THREE, env = {}, opts = {}) {
   const chair = new T.Group(); chair.name = 'chair';
   if (O.chair) {
     const wb = new GeoBuilder(T), cbld = new GeoBuilder(T), bb = new GeoBuilder(T), X = V3(1, 0, 0);
-    let wk = 0; const wood = () => C('#3a2417').multiplyScalar(0.85 + 0.3 * hash(wk++, 3, O.seed));
+    let wk = 0; const wood = () => C('#6a4326').multiplyScalar(0.85 + 0.3 * hash(wk++, 3, O.seed));
     const bar = (a, b, w, h, r) => kit.bar(wb, V3(...a), V3(...b), w, h, r, wood(), X);
     for (const sx of [-1, 1]) {
       const x = sx * 0.285;
@@ -563,7 +560,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     bar([-0.285, 0.035, 0.235], [0.285, 0.035, 0.235], 0.02, 0.03, 0.008); bar([-0.285, 0.035, -0.235], [0.285, 0.035, -0.235], 0.02, 0.03, 0.008);
     kit.seg(wb, V3(-0.31, 1.18, -0.255), V3(0.31, 1.18, -0.255), 0.017, wood(), 'cyl16'); kit.seg(wb, V3(-0.31, 0.935, -0.255), V3(0.31, 0.935, -0.255), 0.015, wood(), 'cyl16');
     kit.seg(wb, V3(-0.30, 0.64, 0.255), V3(0.30, 0.64, 0.255), 0.013, wood(), 'cyl16'); kit.seg(wb, V3(-0.30, 0.64, -0.255), V3(0.30, 0.64, -0.255), 0.013, wood(), 'cyl16');
-    const cream = [0.93, 0.84, 0.66], pipe = [0.80, 0.2, 0.1];
+    const cream = [0.66, 0.54, 0.34], pipe = [0.62, 0.12, 0.06];
     cbld.add(kit.grid(32, 12, (u, v, o) => { const x = (u - 0.5) * 0.56, z = (v - 0.5) * 0.5, sag = 0.034 * (1 - (x / 0.28) ** 2) * (1 - 0.35 * (z / 0.25) ** 2); o[0] = x; o[1] = 0.637 - sag; o[2] = z; }, (u, v) => (v < 0.045 || v > 0.955 ? pipe : cream), (u, v) => [u * 5.6, v * 5.0]), new T.Matrix4(), null);
     cbld.add(kit.grid(32, 8, (u, v, o) => { const x = (u - 0.5) * 0.56, y = 0.945 + v * 0.22, k = (y - 1.055) / 0.11; o[0] = x; o[1] = y; o[2] = -0.262 - 0.016 * (1 - k * k) * (1 - 0.3 * (x / 0.28) ** 2); }, (u, v) => (v < 0.06 || v > 0.94 ? pipe : cream), (u, v) => [u * 5.6, v * 2.2]), new T.Matrix4(), null);
     for (let k = 0; k < 9; k++) { const x = -0.255 + k * 0.06375; for (const y of [0.953, 1.157]) kit.seg(bb, V3(x, y, -0.2685), V3(x, y, -0.2595), 0.0075, C('#ffffff'), 'cyl8'); }
@@ -666,7 +663,7 @@ export function createStage(THREE, env = {}, opts = {}) {
       const sel = rig.get(o.sel ?? 'front').slice(0, o.max ?? 6), out = { group: new T.Group(), beams: [], update(t) { for (const b of this.beams) b.update(t); } }; out.group.name = 'rig-beams';
       for (const f of sel) {
         const to = f.aim.clone(); if (o.floor !== false && f.dir.y < -0.05) to.copy(f.lensPos).addScaledVector(f.dir, -f.lensPos.y / f.dir.y);
-        const b = createBeam(T, { from: f.lensPos.clone(), to, color: o.color ?? f.lens.clone().multiplyScalar(0.5), angle: o.angle ?? 0.2, intensity: o.intensity ?? 1, noise: o.noise ?? 1, ...(o.beam || {}) }); b.fixture = f; out.beams.push(b); out.group.add(b.mesh);
+        const b = createBeam(T, { from: f.lensPos.clone(), to, color: o.color ?? (f.color ? f.color.clone() : lookLens(f.role)), angle: o.angle ?? 0.2, intensity: o.intensity ?? 1, noise: o.noise ?? 1, ...(o.beam || {}) }); b.fixture = f; out.beams.push(b); out.group.add(b.object);
       }
       group.add(out.group); return out;
     },
@@ -686,7 +683,7 @@ export function createStage(THREE, env = {}, opts = {}) {
       const base = f.color || lookLens(f.role), e = (f.on ? f.intensity : 0) * st.glowK * (f.type === 'panel' ? 1.4 : 2.2);
       f.lens.copy(base).multiplyScalar(e);
       if (f.type === 'panel') panelMesh.setColorAt(lensRect.indexOf(f), f.lens); else lensMesh.setColorAt(lensCircle.indexOf(f), f.lens);
-      haloGeo.attributes.aCol.setXYZ(k, f.lens.r * 0.3, f.lens.g * 0.3, f.lens.b * 0.3);
+      haloGeo.attributes.aCol.setXYZ(k, f.lens.r * 0.2, f.lens.g * 0.2, f.lens.b * 0.2);
     });
     lensMesh.instanceColor.needsUpdate = true; if (panelMesh) panelMesh.instanceColor.needsUpdate = true; haloGeo.attributes.aCol.needsUpdate = true;
   }
@@ -694,7 +691,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     if (!tubeMesh) return;
     tubeDefs.forEach((t, k) => {
       const it = tubesApi.items[k], base = it.color || C(st.look ? st.look.tubes[k % 2] : '#7cc4ff');
-      it.lens.copy(base).multiplyScalar((t.kind === 'bulb' ? 3.2 : 1.8) * it.intensity * st.glowK); tubeMesh.setColorAt(k, it.lens);
+      it.lens.copy(base).multiplyScalar((t.kind === 'bulb' ? 3.2 : 1.5) * it.intensity * st.glowK); tubeMesh.setColorAt(k, it.lens);
     });
     tubeMesh.instanceColor.needsUpdate = true;
   }
@@ -754,6 +751,8 @@ export function createStage(THREE, env = {}, opts = {}) {
     setHaze(k) { st.hazeK = k; stageU.uHazeD.value = (O.fog ? 1 : 0) * (st.look ? st.look.hazeD : 0.05) * k; mists.forEach((m, i) => { m.material.uniforms.uAmt.value = [0.06, 0.045][i] * k * (st.look ? st.look.haze[1] * 2 : 1); }); return api; },
     setGlow(k) { st.glowK = k; st.dirty = true; return api; },
     setLook(name, o) { return setLook(api, name, o); },
+    /** blend two looks (names or look objects), k 0..1; pass {lights:true} to also recolour key/fill/rim/amb */
+    blendLook(a, b, k, o = {}) { return setLook(api, blendLooks(T, a, b, k), { lights: false, quiet: !o.lights, ...o }); },
     bindLights(on = true) { if (on && !st.bound.length) bindLightFixtures(); boundGroup.visible = on; if (!on) st.bound.length = 0; return api; },
     reflect(obj, o) { return reflect(api, obj, o); },
     /** 'periphery' (default, props out of the way) | 'showcase' (table + cases pulled in, for lab shots) */
@@ -765,7 +764,7 @@ export function createStage(THREE, env = {}, opts = {}) {
   if (O.bindLights) api.bindLights(true);
   setLook(api, O.look, { quiet: true });
   if (O.reflections && O.chair) api.chairReflection = reflect(api, chair, { strength: 1 });
-  if (O.reflections && O.table) api.tableReflection = reflect(api, table, { strength: 0.9, filter: (m) => m.name !== 'table-screen' });
+  if (O.reflections && O.table && O.reflectTable) api.tableReflection = reflect(api, table, { strength: 0.9, filter: (m) => m.name !== 'table-screen' });
   { let meshes = 0, tris = 0; group.traverse((o) => { if ((o.isMesh || o.isPoints) && o.visible) { meshes++; const g = o.geometry; tris += ((g.index ? g.index.count : g.attributes.position.count) / 3) * (o.isInstancedMesh ? o.count : 1); } }); api.stats = { meshes, tris: Math.round(tris) }; }
   api.update(0);
   return api;
@@ -778,8 +777,8 @@ export function radialTexture(T) {
 
 // ------------------------------------------------------------------------------------------------ looks / rigs / pools
 export function setLook(stage, name = 'neutral', o = {}) {
-  const T = stage.THREE, L = LOOKS[name] || LOOKS.neutral, k = o.intensity ?? 1, cu = stage.uniforms.cyc, su = stage.uniforms.stage, st = stage.state, col = (v) => new T.Color(v);
-  st.look = { ...L, name }; st.lookName = name;
+  const T = stage.THREE, L = (name && typeof name === 'object') ? name : (LOOKS[name] || LOOKS.neutral), k = o.intensity ?? 1, cu = stage.uniforms.cyc, su = stage.uniforms.stage, st = stage.state, col = (v) => new T.Color(v);
+  st.look = { ...L, name: typeof name === 'object' ? (L.name || 'blend') : name }; st.lookName = st.look.name;
   cu.uWashL.value.copy(col(L.washL[0])).multiplyScalar(L.washL[1] * k); cu.uWashR.value.copy(col(L.washR[0])).multiplyScalar(L.washR[1] * k); cu.uWashC.value.copy(col(L.pool[0])).multiplyScalar(L.pool[1] * k * 0.9); cu.uCycGlow.value = L.glow;
   su.uHazeCol.value.copy(col(L.haze[0])).multiplyScalar(L.haze[1] * 0.16 * (0.5 + k * 0.5));
   stage.floorMat.color.set(L.floor);
@@ -787,6 +786,13 @@ export function setLook(stage, name = 'neutral', o = {}) {
   if (o.lights !== false && !o.quiet) { const Ls = stage.lights; Ls.key.color.set(L.key[0]); Ls.fill.color.set(L.fill[0]); Ls.rim.color.set(L.rim[0]); Ls.amb.color.set(L.amb[0]); Ls.amb.intensity = L.amb[1]; }
   st.dirty = true; stage.setHaze(st.hazeK);
   return L;
+}
+
+/** Interpolated look object between two presets (k 0..1) — feed it to setLook / stage.blendLook. For the COLOR job's grade transformation. */
+export function blendLooks(T, a, b, k) {
+  const A = typeof a === 'string' ? LOOKS[a] : a, B = typeof b === 'string' ? LOOKS[b] : b, hx = (x, y, t) => '#' + new T.Color(x).lerp(new T.Color(y), t).getHexString(), lr = (x, y) => x + (y - x) * k;
+  const pair = (p, q) => [hx(p[0], q[0], k), lr(p[1], q[1])], arr = (p, q) => p.map((v, i) => hx(v, q[i], k));
+  return { key: pair(A.key, B.key), fill: pair(A.fill, B.fill), rim: pair(A.rim, B.rim), amb: pair(A.amb, B.amb), washL: pair(A.washL, B.washL), washR: pair(A.washR, B.washR), pool: pair(A.pool, B.pool), glow: lr(A.glow, B.glow), haze: pair(A.haze, B.haze), hazeD: lr(A.hazeD, B.hazeD), lens: arr(A.lens, B.lens), tubes: arr(A.tubes, B.tubes), floor: hx(A.floor, B.floor, k), bg: hx(A.bg, B.bg, k), name: 'blend' };
 }
 
 /** Position key/fill/rim around a target. Angles in DEGREES: az 0 = from the camera side (+Z), +az toward +X; el above the horizon.
@@ -828,9 +834,6 @@ export function spotPool(stage, o = {}) {
 // ------------------------------------------------------------------------------------------------ planar-ish reflections
 const REFL_VS = /* glsl */`
 varying vec3 vW; varying vec3 vN; varying vec2 vUv; varying vec3 vC;
-#ifdef USE_COLOR
-  attribute vec3 color;
-#endif
 void main(){
   vec3 tp = position;
   #ifdef USE_INSTANCING
@@ -849,7 +852,7 @@ void main(){
 const REFL_FS = /* glsl */`
 precision highp float;
 varying vec3 vW; varying vec3 vN; varying vec2 vUv; varying vec3 vC;
-uniform vec3 uColor, uEmis, uKeyDir, uKeyCol; uniform float uAmb, uFade, uStrength, uAlpha; uniform sampler2D uMap;
+uniform vec3 uColor, uEmis, uKeyDir, uKeyCol; uniform float uAmb, uFade, uStrength, uAlpha, uUnlit; uniform sampler2D uMap;
 void main(){
   vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
   vec3 no = vec3(n.x, -n.y, n.z);
@@ -858,7 +861,8 @@ void main(){
   #ifdef USE_MAP
     base *= texture2D(uMap, vUv).rgb;
   #endif
-  vec3 col = base * (uAmb + (1.0 - uAmb) * lam * 1.4) * uKeyCol + uEmis;
+  float lit = mix(uAmb + (1.0 - uAmb) * lam * 1.4, 1.0, uUnlit);
+  vec3 col = base * lit * mix(uKeyCol, vec3(1.0), uUnlit) + uEmis;
   float h = max(-vW.y, 0.0);
   col *= exp(-h * uFade) * uStrength;
   gl_FragColor = vec4(col, 1.0);
@@ -883,7 +887,7 @@ export function reflect(stage, obj, o = {}) {
     let rec = mats.get(key);
     if (!rec) {
       const mat = new T.ShaderMaterial({
-        uniforms: { ...U, uColor: { value: new T.Color() }, uEmis: { value: new T.Color() }, uAlpha: { value: 1 }, uMap: { value: sm.map || null } },
+        uniforms: { ...U, uColor: { value: new T.Color() }, uEmis: { value: new T.Color() }, uAlpha: { value: 1 }, uUnlit: { value: basic ? 1 : 0 }, uMap: { value: sm.map || null } },
         vertexShader: REFL_VS, fragmentShader: REFL_FS, vertexColors: hasVC, defines: sm.map ? { USE_MAP: '' } : {}, side: sm.side === T.DoubleSide ? T.DoubleSide : T.FrontSide, fog: false, toneMapped: false,
       });
       rec = { src: sm, mat, basic }; mats.set(key, rec);
@@ -907,7 +911,7 @@ export function reflect(stage, obj, o = {}) {
       }
       for (const r of mats.values()) {
         const s = r.src, u = r.mat.uniforms;
-        if (r.basic) { u.uColor.value.set(0, 0, 0); u.uEmis.value.copy(s.color); } else { u.uColor.value.copy(s.color); if (s.emissive) u.uEmis.value.copy(s.emissive).multiplyScalar(s.emissiveIntensity ?? 1); else u.uEmis.value.set(0, 0, 0); }
+        if (r.basic) { u.uColor.value.copy(s.color); u.uEmis.value.set(0, 0, 0); } else { u.uColor.value.copy(s.color); if (s.emissive) u.uEmis.value.copy(s.emissive).multiplyScalar(s.emissiveIntensity ?? 1); else u.uEmis.value.set(0, 0, 0); }
         if (s.map) u.uMap.value = s.map;
       }
       root.visible = true; return any;

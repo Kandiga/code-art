@@ -68,6 +68,9 @@ const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
 /** all n-note voicings of chord `name` inside [lo,hi] (every chord tone present, no minor 2nds, no clusters low down) */
 function voicingCandidates(name, lo, hi, n, maxSpan) {
   const pcs = th.chordPitchClasses(name);
+  // the lowest voice is the root, the fifth or the third (never a 7th / 9th / 2nd: those stay inside the chord)
+  const rootPc = pcs[0];
+  const lowOk = new Set([rootPc, (rootPc + 7) % 12, ...pcs.filter((p) => ((p - rootPc + 12) % 12 === 3 || (p - rootPc + 12) % 12 === 4))]);
   const pool = [];
   for (let m = lo; m <= hi; m++) if (pcs.includes(((m % 12) + 12) % 12)) pool.push(m);
   const out = [];
@@ -75,6 +78,7 @@ function voicingCandidates(name, lo, hi, n, maxSpan) {
     if (cur.length === n) {
       if (!pcs.every((pc) => cur.some((m) => m % 12 === pc))) return;
       if (cur[n - 1] - cur[0] > maxSpan) return;
+      if (!lowOk.has(cur[0] % 12)) return;
       for (let i = 1; i < n; i++) {
         const d = cur[i] - cur[i - 1];
         if (d < 2 || (d === 2 && cur[i - 1] < 66) || (d < 3 && cur[i - 1] < 55)) return;
@@ -105,7 +109,8 @@ export function voiceLead(names, { lo = 48, hi = 76, n = 4, center = null, maxSp
     return s + topWeight * Math.abs(a[n - 1] - b[n - 1]) + 0.25 * Math.abs(a[0] - b[0]);
   };
   const reg = (c) => 0.35 * Math.abs(mean(c) - ctr);
-  let prev = cand[0].map((c) => ({ c, cost: reg(c), back: -1 }));
+  const rootBonus = (nm, c) => { const r = th.chordPitchClasses(nm)[0]; const d = (c[0] % 12 - r + 12) % 12; return d === 0 ? 0 : d === 7 ? 0.6 : 1.2; };
+  let prev = cand[0].map((c) => ({ c, cost: reg(c) + rootBonus(names[0], c), back: -1 }));
   const table = [prev];
   for (let i = 1; i < names.length; i++) {
     const cur = cand[i].map((c) => {
@@ -114,7 +119,7 @@ export function voiceLead(names, { lo = 48, hi = 76, n = 4, center = null, maxSp
         const v = p.cost + move(p.c, c);
         if (v < best) { best = v; bi = j; }
       });
-      return { c, cost: best + reg(c), back: bi };
+      return { c, cost: best + reg(c) + rootBonus(names[i], c), back: bi };
     });
     table.push(cur);
     prev = cur;
@@ -151,6 +156,7 @@ const spansOf = (b0, b1, col = (n) => n) => barsBetween(b0 * BAR, b1 * BAR).map(
 // -----------------------------------------------------------------------------
 // layer rendering with a content-addressed disk cache (key = instrument id + notes + options + hash of the instrument sources)
 // -----------------------------------------------------------------------------
+const USED = new Set(); // cache files touched in this process (the rest are stale and pruned after a full render)
 let SRC_HASH = null;
 function srcHash() {
   if (SRC_HASH) return SRC_HASH;
@@ -165,6 +171,7 @@ function srcHash() {
 function renderCached(ctx, id, notes, opts = {}) {
   const key = crypto.createHash('sha1').update(JSON.stringify([id, notes, opts])).update(srcHash()).digest('hex').slice(0, 20);
   const file = path.join(CACHE_DIR, `${id}_${key}.f32`);
+  USED.add(path.basename(file));
   if (ctx.cache && fs.existsSync(file)) {
     try {
       const raw = fs.readFileSync(file);
@@ -200,7 +207,7 @@ export const renderLayer = (layer, ctx = { cache: true }) => renderCached(ctx, l
 // =============================================================================
 export const LV = {
   // jobs
-  pulse: -5.5, bass: -9, sub: -14, kick: -9, snare: -6.5, clap: -9, hat: -5, openhat: -8, toms: -10, crash: -10,
+  pulse: -5.5, bass: -9, sub: -14, kick: -9, snare: -7, clap: -10, hat: -8, openhat: -10, toms: -10, crash: -10,
   impactS: -22, impactM: -15,
   pad: -9.5, strOst: -8, strMotif: -8, strSwell: -13,
   horns: -9, trumpets: -6, lowbrass: -13, choir: -8, timp: -11, taiko: -11,
@@ -208,7 +215,7 @@ export const LV = {
   fChoirPad: -8, fChoirMel: -8, fHarp: -7, fCel: -9, fShim: -9, fStr: -11, fSub: -14, fHorns: -9, fTrump: -7, fLow: -13,
   // recap / end
   rStr: -10, rTimp: -11, rRiser: -6, rRewind: -14, rTape: -8, rLow: -13, eChoir: -9, eShim: -10, eHarp: -9, eStr: -11, eSub: -13,
-  hit: -4,
+  hit: -6.5,
 };
 
 // per-bus reverb sends: [preset, wet, overrides]. One reverb per bus per group (never per note).
@@ -250,7 +257,7 @@ export function buildLayers() {
     const rng = rngFor('pulse');
     const ACC = [0.95, 0.5, 0.78, 0.55, 0.9, 0.5, 0.78, 0.62];
     const chunks = [
-      { a: STEM.pulse, b: STEM.drums, o: { brightScale: 0.8, decay: 0.13 }, v: 0.85 },
+      { a: STEM.pulse, b: STEM.drums, o: { brightScale: 0.8, decay: 0.13, echo: 0.3 }, v: 0.85 },
       { a: STEM.drums, b: STEM.orchestra, o: { brightScale: 0.95, decay: 0.15 }, v: 0.92 },
       { a: STEM.orchestra, b: TIME.jobsEnd, o: { brightScale: 1.12, decay: 0.17 }, v: 1.0 },
     ];
@@ -403,7 +410,7 @@ export function buildLayers() {
     // --- THE HIT (37.0): everything lands together; sharp transients (impact crack, timpani, taiko, crash) pin it to the grid
     const H = 'jobsHit';
     add('hitImpact', H, 'fx', 'impact', [{ t: tH, vel: 1, size: 'L' }], {}, LV.hit - 1);
-    add('hitSub', H, 'sub', 'sub808', [{ t: tH, dur: 1.6, midi: 31, vel: 1 }], { decay: 1.5, drive: 2.2 }, LV.sub + 1);
+    add('hitSub', H, 'sub', 'sub808', [{ t: tH, dur: 1.6, midi: 31, vel: 1 }], { decay: 1.5, drive: 2.2 }, LV.sub - 1);
     add('hitTimp', H, 'perc', 'timpani', [{ t: tH, dur: 1.6, midi: 43, vel: 1 }, { t: tH, dur: 1.6, midi: 50, vel: 0.85 }], {}, LV.timp + 1);
     add('hitTaiko', H, 'perc', 'taiko', [{ t: tH, midi: 43, vel: 1, rim: true }], {}, LV.taiko);
     add('hitLow', H, 'brass', 'brass_low', GMAJ.low.map((m) => ({ t: tH, dur: 1.2, midi: m, vel: 1 })), { attackScale: 0.4 }, LV.lowbrass + 1);
@@ -568,7 +575,7 @@ export function buildLayers() {
     const F = 'final';
     const ch = [48, 55, 60, 64, 67];
     add('finImpact', F, 'fx', 'impact', [{ t: t58, vel: 1, size: 'L' }], {}, LV.hit);
-    add('finSub', F, 'sub', 'sub808', [{ t: t58, dur: 2.2, midi: 24, vel: 1 }, { t: t58, dur: 2.2, midi: 36, vel: 0.8 }], { decay: 1.8, drive: 2.2 }, LV.sub + 2);
+    add('finSub', F, 'sub', 'sub808', [{ t: t58, dur: 2.2, midi: 24, vel: 1 }, { t: t58, dur: 2.2, midi: 36, vel: 0.8 }], { decay: 1.8, drive: 2.2 }, LV.sub - 2);
     add('finTimp', F, 'perc', 'timpani', [{ t: t58, dur: 2.2, midi: 48, vel: 1 }, { t: t58, dur: 2.2, midi: 43, vel: 0.9 }], {}, LV.timp + 1);
     add('finTaiko', F, 'perc', 'taiko', [{ t: t58, midi: 36, vel: 1, rim: true }, { t: t58, midi: 48, vel: 0.9 }], {}, LV.taiko);
     add('finLow', F, 'brass', 'brass_low', [36, 43, 48, 55].map((m) => ({ t: t58, dur: 1.6, midi: m, vel: 1 })), { attackScale: 0.4, releaseScale: 1.4 }, LV.lowbrass + 1);
@@ -728,10 +735,12 @@ export function assemble(groups, ctx = {}) {
   // the held breath before the baton hit: every non-hit element drops out for 70 ms (the hit's own layers are not dipped)
   dip(jobs, TIME.baton - 0.07, TIME.baton);
   // 38.0 on-beat stutter edits and 40.0-42.0 low-pass sweep open over the WHOLE jobs mix (jobs + hit tails)
-  const jm = new Buf(cues.DURATION);
+  let jm = new Buf(cues.DURATION);
   sumInto(jm, jobs); sumInto(jm, jobsHit);
   stutter(jm, STEM.stutter, TIME.jobsEnd, STUTTER_PATTERNS);
   filterOpen(jm, STEM.filter_open, TIME.jobsEnd);
+  // make-up for what the chops and the closed filter take away (the section must keep rising, not dip)
+  jm = dsp.automate(jm, [[STEM.stutter - 0.02, 0], [STEM.stutter, 2.0], [STEM.filter_open, 2.0], [STEM.filter_open + 0.3, 4.0], [STEM.filter_open + 1.2, 4.0], [TIME.jobsEnd, 1.0]], { shape: 'smooth' });
   releaseAt(jm, TIME.jobsEnd, 0.9); // the jobs fall away into the future (their reverb tails ring out for < 1 s)
   sumInto(mix, jm);
   // the future
@@ -774,18 +783,26 @@ export function assemble(groups, ctx = {}) {
   return mix;
 }
 
-/** the gentle master: glue compressor + safety true-peak limiter (peak <= -2 dBFS). Returns a new Buf. */
+/** the gentle master: glue compressor + safety true-peak limiter (peak <= -2 dBFS). Returns a new Buf with .masterStats {glueMaxGrDb, limiterMaxGrDb}. */
 export function masterBus(buf, { ceilingDb = -2.1, glue = true } = {}) {
-  let x = buf;
-  if (glue) x = dsp.compressor(x, { thresholdDb: -20, ratio: 1.6, attackMs: 40, releaseMs: 280, kneeDb: 10, detect: 'rms', rmsMs: 40 });
+  let x = buf, glueGr = 0;
+  if (glue) {
+    x = dsp.compressor(x, { thresholdDb: -17, ratio: 1.5, attackMs: 40, releaseMs: 280, kneeDb: 10, detect: 'rms', rmsMs: 40, returnGr: true });
+    for (let i = 0; i < x.gr.length; i += 16) glueGr = Math.min(glueGr, x.gr[i]);
+  }
   const r = dsp.limiter(x, { ceilingDb, lookaheadMs: 5, releaseMs: 200, truePeak: true });
-  return Buf.from(r.L, r.R);
+  const out = Buf.from(r.L, r.R);
+  out.masterStats = { glueMaxGrDb: -glueGr, limiterMaxGrDb: r.stats ? Math.abs(r.stats.maxReductionDb) : NaN };
+  return out;
 }
 
 /**
  * renderScoreB(buf, ctx): adds the score for 26..60 into `buf` (60 s Buf, un-mastered; the master is render.mjs's job).
  * Returns {layers: [names], seconds, report} - and the raw B-only mix as `.mix` for tests.
  */
+/** overall trim of the B stem before the master (the layer balance lives in LV; this sets the level of the whole score) */
+export const MIX_TRIM_DB = 4;
+
 export function renderScoreB(buf, ctx = {}) {
   ctx = { cache: true, log: console.log, ...ctx };
   if (ctx.log === false) ctx.log = () => {};
@@ -794,11 +811,17 @@ export function renderScoreB(buf, ctx = {}) {
   const { groups, timing } = mixdown(layers, ctx);
   let mix = assemble(groups, ctx);
   // vocal pockets under the narration (cues.VO inside 26..58)
-  const regions = cues.VO.filter((v) => v.t0 >= TIME.start && v.t0 < TIME.finalHit).map((v) => [v.t0 - 0.08, v.maxEnd + 0.2]);
+  // (VO 5 sits under the 48.0 climax and VO 4c under the baton hit: a deeper pocket there)
+  const DEPTH = { vo5: 1.8, vo4c: 1.3 };
+  const regions = cues.VO.filter((v) => v.t0 >= TIME.start && v.t0 < TIME.finalHit).map((v) => [v.t0 - 0.08, v.maxEnd + 0.2, DEPTH[v.id] || 1]);
   mix = voPocket(mix, regions);
-  addAt(buf, mix, 0, 0, 0);
+  mix = dsp.butter(mix, 'hp', 28, 2); // nothing useful below 28 Hz: keep the headroom
+  addAt(buf, mix, 0, MIX_TRIM_DB, 0);
   const secs = Number(process.hrtime.bigint() - t0) / 1e9;
-  ctx.log(`[score_b] ${layers.length} layers, ${(secs).toFixed(1)} s`);
+  if (ctx.cache && !ctx.only && !ctx.skip) { // prune cache entries left over from earlier versions of the score
+    try { for (const f of fs.readdirSync(CACHE_DIR)) if (f.endsWith('.f32') && !USED.has(f)) fs.unlinkSync(path.join(CACHE_DIR, f)); } catch (e) { /* optional */ }
+  }
+  ctx.log(`[score_b] ${layers.length} layers, ${secs.toFixed(1)} s, rss ${Math.round(process.memoryUsage().rss / 1e6)} MB`);
   return { layers: layers.map((l) => l.name), seconds: secs, mix, timing };
 }
 
@@ -811,8 +834,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const ctx = { cache: !args.includes('--no-cache') };
   const buf = new Buf(cues.DURATION);
   renderScoreB(buf, ctx);
+  if (args.includes('--premaster')) { const pm = path.join(TMP, 'score_b', 'b_premaster.wav'); ensure(path.dirname(pm)); dsp.writeWav(pm, buf); console.log(`[score_b] wrote ${path.relative(process.cwd(), pm)}`); }
   const out = masterBus(buf);
-  const file = solo ? stemPath('music_b') : stemPath('music_b');
+  console.log(`[score_b] master: glue max GR ${out.masterStats.glueMaxGrDb.toFixed(2)} dB, limiter max GR ${out.masterStats.limiterMaxGrDb.toFixed(2)} dB`);
+  const file = stemPath('music_b');
   ensure(path.dirname(file));
   dsp.writeWav(file, out);
   console.log(`[score_b] wrote ${path.relative(process.cwd(), file)}`);

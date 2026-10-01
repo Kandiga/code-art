@@ -40,8 +40,8 @@ const CAM = [
   { t: 22.5, p: [0.0, 1.55, 8.4], g: [0.0, 1.05, 0.0], mm: 35 },
   { t: 23.5, p: [0.08, 1.53, 8.26], g: [0.03, 1.05, 0.0], mm: 35 },
   { t: 24.0, p: [0.38, 1.44, 7.9], g: [0.2, 0.97, 0.1], mm: 37 },
-  { t: 25.0, p: [0.85, 1.25, 6.5], g: [0.5, 0.88, 0.25], mm: 44 },
-  { t: 26.0, p: [1.0, 1.2, 5.9], g: [0.55, 0.78, 0.3], mm: 50 },
+  { t: 25.0, p: [0.85, 1.2, 6.5], g: [0.5, 0.8, 0.25], mm: 44 },
+  { t: 26.0, p: [1.0, 1.15, 5.9], g: [0.55, 0.66, 0.3], mm: 50 },
 ];
 function hermite(a, b, ma, mb, u, dt) { const u2 = u * u, u3 = u2 * u; return (2 * u3 - 3 * u2 + 1) * a + (u3 - 2 * u2 + u) * dt * ma + (-2 * u3 + 3 * u2) * b + (u3 - u2) * dt * mb; }
 function camAt(t, out) {
@@ -325,30 +325,16 @@ export default {
     const camera = new THREE.PerspectiveCamera(vfovOf(35), ASPECT, 0.08, 90);
 
     // ---- the soundstage behind the paper
-    const stage = createStage(THREE, { S }); scene.add(stage.group);
+    const stage = createStage(THREE, { S, renderer }, { look: 'neutral' }); scene.add(stage.group);
     const L = stage.lights;
     L.key.castShadow = true; L.key.shadow.mapSize.set(1024, 1024); L.key.shadow.camera.near = 3; L.key.shadow.camera.far = 14; L.key.shadow.bias = -0.0005;
     const rim2 = new THREE.PointLight('#1FB5A6', 0, 30, 2); scene.add(rim2); // cool teal rim from the right-back (no shadow)
     const burst = new THREE.PointLight('#ffd9a0', 0, 40, 1.6); scene.add(burst); // light of the tear
     // backdrop haze glow + distant practicals (give the DOF something to bokeh)
     const mkMat = (frag, uniforms, extra = {}) => new THREE.ShaderMaterial({ vertexShader: FLAT_VERT, fragmentShader: frag, uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false, ...extra });
-    const dotN = 46, dotPos = new Float32Array(dotN * 3), dotSize = new Float32Array(dotN), dotCol = new Float32Array(dotN * 3);
-    const palCols = [[1.0, 0.72, 0.28], [0.3, 0.85, 0.8], [0.55, 0.5, 1.0], [0.55, 0.78, 1.0], [1.0, 0.45, 0.28]];
-    for (let i = 0; i < dotN; i++) {
-      const z = -8.6 + hash(SEED, i, 3) * 2.6, x = (hash(SEED, i, 1) - 0.5) * 20, y = 0.35 + Math.pow(hash(SEED, i, 2), 1.4) * 6.2;
-      dotPos.set([x, y, z], i * 3); dotSize[i] = 5 + hash(SEED, i, 4) * 7; const c = palCols[Math.floor(hash(SEED, i, 5) * palCols.length)], k = 0.5 + 1.8 * hash(SEED, i, 6); dotCol.set([c[0] * k, c[1] * k, c[2] * k], i * 3);
-    }
-    const dotGeo = new THREE.BufferGeometry(); dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPos, 3)); dotGeo.setAttribute('aSize', new THREE.BufferAttribute(dotSize, 1)); dotGeo.setAttribute('aCol', new THREE.BufferAttribute(dotCol, 3));
-    const dotMat = new THREE.ShaderMaterial({ vertexShader: DOT_VERT, fragmentShader: DOT_FRAG, uniforms: { uScale: { value: 1000 }, uInt: { value: 1 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false });
-    const dots = new THREE.Points(dotGeo, dotMat); dots.frustumCulled = false; scene.add(dots);
-    const glowBack = new THREE.Mesh(new THREE.PlaneGeometry(46, 22), mkMat(`precision highp float; varying vec2 vUv; uniform float uI; void main(){ vec2 p=(vUv-vec2(0.5,0.42))*vec2(1.6,2.0); float r=length(p); float g=exp(-r*r*3.2); gl_FragColor=vec4(vec3(0.1,0.12,0.2)*g*uI+vec3(0.03,0.025,0.05)*uI*0.5,1.0);} `, { uI: { value: 0.3 } }));
-    glowBack.position.set(0, 5, -8.7); scene.add(glowBack);
-    const hazeMat = (frag, col, I) => new THREE.ShaderMaterial({ vertexShader: HAZE_VERT, fragmentShader: frag, uniforms: { uCol: { value: new THREE.Color(...col) }, uI: { value: I } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false });
-    const floorHaze = new THREE.Mesh(new THREE.PlaneGeometry(40, 16), hazeMat(FLOORHAZE_FRAG, [0.09, 0.11, 0.17], 0.4)); floorHaze.rotation.x = -Math.PI / 2; floorHaze.position.set(0, 0.015, -1); floorHaze.renderOrder = 2; scene.add(floorHaze);
-    const wallHaze = new THREE.Mesh(new THREE.PlaneGeometry(44, 9), hazeMat(WALLHAZE_FRAG, [0.1, 0.12, 0.2], 0.45)); wallHaze.position.set(0, 4.5, -8.6); wallHaze.renderOrder = 2; scene.add(wallHaze);
-
     // ---- Amrita + chair
     const A = createAmrita(THREE); A.root.visible = false; scene.add(A.root);
+    try { stage.reflect(A.root, { strength: 0.9 }); } catch (e) { S.warn('turn: stage.reflect failed: ' + e.message); }
     const aMeshes = []; A.root.traverse((m) => { if (m.isMesh) aMeshes.push(m); });
     // ---- spotlight volume: analytic cone raymarch (one bounding cone mesh per beam)
     const apex = new THREE.Vector3(0.55, 7.0, 1.2), base = new THREE.Vector3(0.45, 0, 0.35), axis = base.clone().sub(apex).normalize();
@@ -432,7 +418,7 @@ export default {
     const shardP = Array.from({ length: SN }, (_, i) => { const k = Math.floor(hash(SEED, i, 61) * NC), r0 = 0.04 + Math.pow(hash(SEED, i, 62), 0.8) * 0.66, a = crackAngle(k, r0), rad = a + (hash(SEED, i, 63) - 0.5) * 0.9, sp = 0.5 + 1.7 * hash(SEED, i, 64);
       return { x0: CRACK_C[0] + r0 * Math.cos(crackAngle(k, r0)), y0: CRACK_C[1] + r0 * Math.sin(crackAngle(k, r0)), t0: TEAR + r0 / 14 + 0.02 * hash(SEED, i, 65), vx: Math.cos(rad) * sp, vy: Math.sin(rad) * sp, vz: 0.15 + 1.1 * hash(SEED, i, 66), sz: 0.01 + 0.032 * Math.pow(hash(SEED, i, 67), 1.6), asp: 0.5 + hash(SEED, i, 68), ax: hash(SEED, i, 69) * 6.28, ay: hash(SEED, i, 70) * 6.28, wx: (hash(SEED, i, 71) - 0.5) * 16, wy: (hash(SEED, i, 72) - 0.5) * 16, wz: (hash(SEED, i, 73) - 0.5) * 12 }; });
     const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), shardObj = new THREE.Object3D();
-    return { THREE, scene, camera, stage, L, rim2, aMeshes, shards, shardP, SN, shardObj, burst, A, beam, moteObj, floorHaze, wallHaze, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, dotMat, glowBack, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, nx, ny, Wp, Hp, tex: null, texCanvas: null };
+    return { THREE, scene, camera, stage, stageRef: stage, L, rim2, aMeshes, shards, shardP, SN, shardObj, burst, A, beam, moteObj, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, nx, ny, Wp, Hp, tex: null, texCanvas: null };
   },
 
   async prepare(st, T, S) {
@@ -471,6 +457,7 @@ export default {
     const renderH = Math.round((S.W * S.scale) / ASPECT / 2) * 2, ptScale = (0.5 * renderH) / Math.tan((camera.fov * DEG) / 2) * 0.0035;
 
     // ---------------- paper
+    st.stage.group.visible = !D.noStage; st.L.key.castShadow = !D.noShadow;
     const paperOn = t < 24.7;
     st.sheet.visible = paperOn;
     st.glow.visible = t < 24.2 && !D.noGlow;
@@ -531,8 +518,10 @@ export default {
     st.rim2.position.set(3.2, 5.0, -4.2); st.rim2.intensity = 45 * st.rimK;
     L.fill.intensity = 2 + 6 * smooth((t - SPOT) / 1.0); L.fill.color.set('#8a97c8');
     L.amb.intensity = 0.2 + 0.08 * settled; L.amb.color.set('#343848');
-    st.dotMat.uniforms.uInt.value = 0.55 + 0.25 * settled; st.dotMat.uniforms.uScale.value = ptScale;
-    st.glowBack.material.uniforms.uI.value = 0.3 + 0.2 * sstep(LAND - 0.05, LAND + 0.4, t);
+    // the soundstage: dark and hazy until the spot ignites, wakes up on the landing (tubes / cyc wash / fixtures)
+    const wake = sstep(LAND - 0.02, LAND + 0.6, t), pre = 0.1 + 0.12 * sstep(23.0, 23.9, t);
+    stage.update(t); stage.setGlow(lerp(pre + 0.12 * settled, 0.7, wake) * (1 + 0.5 * Math.exp(-Math.max(0, tl) / 0.25) * (t >= LAND ? 1 : 0)));
+    stage.uniforms.cyc.uCycGlow.value = lerp(0.18 + 0.12 * settled, 0.9, wake);
 
     // chair: swivels when she lands
     const ch = stage.chair; ch.position.set(0, 0, 0);
@@ -551,7 +540,7 @@ export default {
       const base = 0.5 * (1 + sqz) * 0.92;
       ay = lerp(base, hover, spring(Math.max(0, x - 0.05), 2.1, 0.3)) ; if (x < 0.05) ay = base;
     }
-    A.root.visible = vis;
+    A.root.visible = vis && !D.noAmrita;
     const wantShadow = ay < 1.9; if (st.shadowOn !== wantShadow) { st.shadowOn = wantShadow; for (const m of st.aMeshes) m.castShadow = wantShadow; }
     const yaw = -0.45 + 0.25 * Math.sin(t * 1.3) * smooth(tl / 0.8);
     A.root.position.set(landX, ay, landZ); A.root.rotation.set(0, 0, 0);
@@ -564,7 +553,7 @@ export default {
 
     // beam / motes / pool / ring / puff
     st.beam.visible = !D.noBeam; st.moteObj.visible = !D.noBeam;
-    st.beamU.uInt.value = 0.26 * spotK * (1 + 0.25 * antic) * (0.9 + 0.1 * settled); st.beamU.uTime.value = t;
+    st.beamU.uInt.value = 0.26 * spotK * (1 + 0.25 * antic) * (1 - 0.5 * wake) * (0.9 + 0.1 * settled); st.beamU.uTime.value = t;
     const apexV = st.apex, ax = st.axis, tanA = Math.tan(0.215);
     const shock = t >= LAND ? 1 - Math.exp(-tl / 0.3) : 0;
     for (let i = 0; i < st.MN; i++) {

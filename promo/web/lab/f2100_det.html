@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8">
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script></head>
+<body><script type="module">
+// f2100 determinism check: same t rendered twice (with other times in between) must give identical pixels.
+import '/web/engine/main.js';
+await new Promise(r=>{const i=setInterval(()=>{if(window.film){clearInterval(i);r();}},20)});
+const f=window.film; await f.init({scale:0.4});
+const probe=document.createElement('canvas'); probe.width=f.W; probe.height=f.H; const pg=probe.getContext('2d',{willReadFrequently:true});
+async function sig(t){ await f.renderFrame(t); pg.drawImage(f.out,0,0); const d=pg.getImageData(0,0,f.W,f.H).data; let h=0; for(let i=0;i<d.length;i+=1){ h=(Math.imul(h^d[i],16777619))>>>0; } return h; }
+const a=await sig(45.3), b=await sig(44.6), c=await sig(45.3), d=await sig(44.6), e=await sig(46.5-0.7);
+console.log('DET', a===c ? 'SAME' : 'DIFF', a, c, '|', b===d ? 'SAME' : 'DIFF', b, d, '|', a!==b ? 'distinct' : 'IDENTICAL-BAD');
+window.__done=true;
+</script></body></html>

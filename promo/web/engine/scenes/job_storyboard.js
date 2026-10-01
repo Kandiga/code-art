@@ -189,20 +189,23 @@ export default {
   id: 'job_storyboard', kind: '3d', ratio: 2.39,
   setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#03050a'); scene.fog = new THREE.FogExp2('#080c14', 0.024);
-    const stage = buildStage(THREE, { THREE, S, renderer }); scene.add(stage.group);
+    const DB = globalThis.__dbg || {};
+    const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'neutral', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false }); scene.add(stage.group);
+    if (stage.setLook) stage.setLook('neutral', { intensity: 0.7 });
     scene.environment = makeEnv(THREE, renderer, [
       { w: 7, h: 3.5, pos: [-5, 4, 5], color: '#dbe9ff', i: 2.4 }, { w: 2.2, h: 8, pos: [6, 3, -4], color: '#ffd9b0', i: 2.2 },
       { w: 10, h: 2, pos: [0, 8, 1], color: '#ffffff', i: 1.0 }, { w: 6, h: 2, pos: [3, 0.5, 6], color: '#9ad0ff', i: 0.9 },
     ]);
     scene.environmentIntensity = 0.3;
     // perf: unlit baked backdrop instead of the PBR cyc; no shadow maps (blob decal below); drop the weak stage fill light
-    stage.cyc.visible = false; stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
-    scene.add(makeBackdrop(THREE, S, [
+    stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
+    if (!DB.libCyc) { stage.cyc.visible = false; scene.add(makeBackdrop(THREE, S, [
       { x: -2.5, y: 3.6, rx: 6, ry: 3.4, color: '110,150,230', a: 0.2 }, { x: 2.5, y: 2.6, rx: 5.5, ry: 3.0, color: '140,170,240', a: 0.12 },
       { x: 6.5, y: 2.8, rx: 4.5, ry: 3.2, color: '255,150,60', a: 0.16 }, { x: 0.5, y: 0.4, rx: 12, ry: 0.9, color: '110,120,160', a: 0.1 },
-    ], { base: ['#04060b', '#090d16'] }));
+    ], { base: ['#04060b', '#090d16'] })); }
     const camera = new THREE.PerspectiveCamera(lensFov(35), 2.39, 0.1, 80);
-    const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root); A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
+    if (stage.reflect && !DB.noReflect) stage.reflect(A.root, { strength: 0.8 }); A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(0.82, 0.12, 0.45); stylus.group.rotation.z = -0.9;
     const glowTex = radialTexture(THREE, S);
     const sprite = (col, sx, sy, op = 1) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(...col), transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); m.scale.set(sx, sy, 1); m.renderOrder = 4; return m; };
@@ -326,11 +329,12 @@ export default {
     { const wa = (lt - POP) / 0.36; st.whoosh.visible = wa >= 0 && wa < 1; if (st.whoosh.visible) { st.whoosh.position.set(GRID[0] + 0.1, GRID[1], GRID[2] + 1.2); st.whoosh.quaternion.copy(camera.quaternion); st.whoosh.material.uniforms.uT.value = wa; } }
 
     // ---------------- lights
+    if (stage.update) stage.update(T);
     const L = stage.lights;
     L.key.color.set('#fff1e0'); L.key.intensity = 235; L.key.position.set(-2.6, 4.6, 6.4); L.key.target.position.set(-0.8, 1.0, 0.3); L.key.angle = 0.5; L.key.penumbra = 0.75;
     L.rim.color.set('#ffb35c'); L.rim.intensity = 330; L.rim.position.copy(st.RIMP); L.rim.target.position.set(0.8, 1.1, 0); L.rim.angle = 0.3; L.rim.penumbra = 0.8;
     L.fill.color.set('#5f7fc0'); L.fill.intensity = 6; L.amb.intensity = 0.08;
-    st.glow.position.set(GRID[0] - 0.3, GRID[1] + 0.2, 2.4); st.glow.intensity = 2.0 * (nSnap / 6) + 4 * flash * 0.5 + 6 * popK;
+    st.glow.position.set(GRID[0] - 0.3, GRID[1] + 0.2, 2.4); st.glow.intensity = 1.5 * (nSnap / 6) + 1.5 * flash * 0.5 + 2.5 * popK;
     st.poolGrid.material.opacity = 0.15 * (nSnap / 6) + 0.2 * popK; st.poolAm.material.opacity = 0.16 + 0.05 * popK;
 
     // ---------------- uniforms
@@ -341,6 +345,6 @@ export default {
 
     const fp = tmp.v.set(lerp(AM[0], GRID[0], 0.45), 1.15, lerp(AM[2], GRID[2], 0.85));
     if (D.noDof) return { dof: { enabled: false }, bloom: { strength: D.noBloom ? 0 : 0.34, radius: 0.5, threshold: 1.15 } };
-    return { dof: { focus: camera.position.distanceTo(fp), strength: 0.6, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.2 * imp + 0.4 * popK + 0.08 * Math.min(1, flash), radius: 0.5, threshold: 1.15 } };
+    return { dof: { focus: camera.position.distanceTo(fp), strength: 0.6, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.2 * imp + 0.3 * popK + 0.06 * Math.min(1, flash), radius: 0.5, threshold: 1.15 } };
   },
 };

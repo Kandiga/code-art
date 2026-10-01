@@ -160,6 +160,10 @@ console.log('\nnotes:');
   const inst = await import('../instruments.mjs');
   const outRange = plan.filter((n) => { const r = inst.info(n.id).range; return r && (n.midi < r[0] || n.midi > r[1]); });
   ok(outRange.length === 0, `every pitched event is inside its instrument's playable range${outRange.length ? ' - OUT: ' + outRange.slice(0, 5).map((n) => `${n.id}@${f(n.t, 2)}=${n.midi}`).join(' ') : ''}`);
+  // humanisation: every pitched event (glissandi excepted) sits within 6 ms of the 16th-note grid; downbeat events within 2 ms after the bar line
+  const grid = BEAT / 4;
+  const offGrid = plan.filter((n) => n.layer !== 'harp' && n.era >= 0).map((n) => ({ n, d: Math.abs(n.t - Math.round(n.t / grid) * grid) })).filter((x) => x.d > 0.0061);
+  ok(offGrid.length === 0, `all pitched events within +-6 ms of the 16th grid (max ${f(1000 * Math.max(...plan.filter((n) => n.layer !== 'harp' && n.era >= 0).map((n) => Math.abs(n.t - Math.round(n.t / grid) * grid))), 1)} ms)${offGrid.length ? ' - OFF: ' + offGrid.slice(0, 4).map((x) => `${x.n.layer}@${f(x.n.t, 3)}`).join(' ') : ''}`);
   let motifOk = true;
   for (const E of ERAS) {
     const evs = plan.filter((n) => n.era === E.index);

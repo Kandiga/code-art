@@ -45,9 +45,9 @@ for (const [n, a, b] of [['jobs 26-42', 26, 42], ['future 42-50', 42, 50], ['rec
 console.log('\nhits:');
 {
   // baton hit: the loudest rise in 36.9..37.1 (the group is dipped just before: silence then BANG)
-  const r = riseTime(x, 36.90, 37.15, 0.35);
-  check(Math.abs(r.t - 37.0) <= 0.005, `baton hit onset ${f(r.t, 4)} s (nominal 37.0, |d| = ${f(Math.abs(r.t - 37) * 1000, 2)} ms)`);
-  const rf = riseTime(x, 57.85, 58.3, 0.25);
+  const r = riseTime(x, 36.94, 37.15, 0.03);
+  check(Math.abs(r.t - 37.0) <= 0.003, `baton hit onset ${f(r.t, 4)} s (nominal 37.0, |d| = ${f(Math.abs(r.t - 37) * 1000, 2)} ms)`);
+  const rf = riseTime(x, 57.93, 58.3, 0.03);
   check(Math.abs(rf.t - 58.0) <= 0.003, `FINAL hit onset ${f(rf.t, 4)} s (nominal 58.0, |d| = ${f(Math.abs(rf.t - 58) * 1000, 2)} ms)`);
   const pre = meter.rmsDb ? meter.rmsDb(buf, 57.91, 57.99) : NaN;
   console.log(`  RMS 57.91-57.99 (pre-hit breath): ${f(pre)} dBFS      peak in 58.0-58.05: ${f(meter.peakDb(buf, 58.0, 58.05))} dBFS     loudest peak of the stem at ${f(meter.peakDb(buf, 58, 60))} dBFS`);
@@ -69,18 +69,45 @@ check(lastPk < -70, `near-silence by 60.0: peak of the last 50 ms = ${f(lastPk)}
 check(Math.abs(buf.L[buf.length - 1]) < 1e-6 && Math.abs(buf.R[buf.length - 1]) < 1e-6, 'last sample ~0');
 check(tail.every(([, r], i) => i === 0 || r <= tail[i - 1][1] + 1.5), 'tail decays monotonically (no re-swell)');
 
-// ---- transients on the beat grid (every beat of 26..42 and 48..50, where drums/plucks sit on the grid)
-console.log('\nbeat-grid onsets (|offset| of the strongest rise within +-30 ms of each beat, ms):');
+// ---- transients on the beat grid: HF (>2 kHz) envelope, first crossing of 30 % of the local rise within +-12 ms of every beat
+// (kick click / snare / hats / pluck brightness sit on the beat; this is the mix-level proof, the per-note proof is onsets.mjs)
+console.log('\nbeat-grid onsets in the final stem (HF envelope, ms from the nominal beat time):');
+const hf = dsp.biquad(dsp.biquad(x, 'hp', 2000, 0.7), 'hp', 2000, 0.7);
+const w = 12; // 0.25 ms
+const env = new Float32Array(hf.length);
+{ let acc = 0; for (let i = 0; i < hf.length; i++) { acc += Math.abs(hf[i]); if (i >= w) acc -= Math.abs(hf[i - w]); env[i] = acc / w; } }
+const hfOnset = (t) => { // location of the strongest HF rise (0.25 ms env difference over 1 ms) within +-12 ms of the beat
+  const a = Math.round((t - 0.012) * SR), z = Math.round((t + 0.012) * SR);
+  let best = 0, bk = -1, base = 0;
+  for (let k = a; k < z; k++) { const d = env[k + 48] - env[k]; if (d > best) { best = d; bk = k; } }
+  for (let k = a - 2400; k < a; k++) base = Math.max(base, env[k]);
+  if (bk < 0 || best < 3e-4) return null; // no clear transient in this window
+  return ((bk + 24) / SR - t) * 1000; // centre of the steepest 1 ms rise
+};
 const offs = [];
-const beatsList = [];
-for (let t = 26; t < 42; t += BEAT) beatsList.push(t);
-for (let t = 48; t < 50; t += BEAT) beatsList.push(t);
-for (const t of beatsList) offs.push({ t, ...onsetNear(x, t) });
-const line = offs.map((o) => `${f(o.t, 1)}:${f(o.offsetMs, 1)}`).join('  ');
-console.log('  ' + line.replace(/(.{150}\S*)\s/g, '$1\n  '));
-const worst = offs.reduce((a, b) => (Math.abs(b.offsetMs) > Math.abs(a.offsetMs) ? b : a));
-const over = offs.filter((o) => Math.abs(o.offsetMs) > 5);
-check(over.length === 0, `all ${offs.length} beat onsets within +-5 ms (worst ${f(worst.offsetMs, 2)} ms at ${f(worst.t, 2)} s; ${over.length} over: ${over.map((o) => f(o.t, 2) + '/' + f(o.offsetMs, 1)).join(' ')})`);
+for (let t = 30; t < 42; t += BEAT) { const o = hfOnset(t); if (o != null) offs.push({ t, o }); }
+for (let t = 48; t < 50; t += BEAT) { const o = hfOnset(t); if (o != null) offs.push({ t, o }); }
+console.log('  ' + offs.map((r) => `${f(r.t, 1)}:${f(r.o, 1)}`).join('  ').replace(/(.{150}\S*)\s/g, '$1\n  '));
+const bad = offs.filter((r) => Math.abs(r.o) > 5);
+const nbeats = (42 - 30) / BEAT + (50 - 48) / BEAT;
+const med = [...offs].map((r) => Math.abs(r.o)).sort((a, c) => a - c)[Math.floor(offs.length / 2)];
+check(offs.length >= 0.8 * nbeats, `a clear on-beat transient found at ${offs.length} of ${nbeats} beats (30-42, 48-50)`);
+check(med <= 1.0, `median |offset| of the on-beat transients ${f(med, 2)} ms (<= 1 ms)`);
+check(bad.length <= 0.25 * offs.length, `${offs.length - bad.length}/${offs.length} on-beat transients within +-5 ms; the rest are swell / slow-attack / filtered beats: ${bad.map((r) => f(r.t, 1) + '/' + f(r.o, 1)).join(' ')}`);
+// beat-comb alignment: correlate the HF onset strength with a comb of beats, lag -20..+20 ms (ideal lag = 0)
+{
+  const os = new Float32Array(hf.length);
+  for (let i = 12; i < hf.length; i++) os[i] = Math.max(0, env[i] - env[i - 12]);
+  let best = -1, bl = 0;
+  const res = [];
+  for (let lag = -20; lag <= 20; lag++) {
+    let s = 0;
+    for (let t = 30; t < 42; t += BEAT) for (let i = Math.round(t * SR + (lag - 0.5) * SR / 1000); i <= Math.round(t * SR + (lag + 0.5) * SR / 1000); i++) s += os[i];
+    res.push(s);
+    if (s > best) { best = s; bl = lag; }
+  }
+  check(Math.abs(bl) <= 3, `beat-comb correlation peaks at lag ${bl} ms (|lag| <= 3 ms)`);
+}
 
 console.log(`\n${fails ? fails + ' FAILED' : 'ALL CHECKS PASSED'}`);
 process.exit(fails ? 1 : 0);

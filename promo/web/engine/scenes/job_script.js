@@ -339,20 +339,23 @@ export default {
   id: 'job_script', kind: '3d', ratio: 2.39,
   setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#040306'); scene.fog = new THREE.FogExp2('#0b0a12', 0.024);
-    const stage = buildStage(THREE, { THREE, S, renderer }); scene.add(stage.group);
+    const DB = globalThis.__dbg || {};
+    const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'warm', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false }); scene.add(stage.group);
+    if (stage.setLook) stage.setLook('warm', { intensity: 0.8 });
     scene.environment = makeEnv(THREE, renderer, [
       { w: 7, h: 3.5, pos: [-5, 4, 5], color: '#ffd9a0', i: 5 }, { w: 2.2, h: 8, pos: [6, 3, -4], color: '#9fd4ff', i: 3.5 },
       { w: 10, h: 2, pos: [0, 8, 1], color: '#ffffff', i: 1.2 }, { w: 5, h: 2, pos: [3, 0.5, 6], color: '#ffb870', i: 1.0 },
     ]);
     scene.environmentIntensity = 0.5;
     // perf: unlit baked backdrop instead of the PBR cyc; no shadow maps (blob decal below); drop the weak stage fill light
-    stage.cyc.visible = false; stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
-    scene.add(makeBackdrop(THREE, S, [
+    stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
+    if (!DB.libCyc) { stage.cyc.visible = false; scene.add(makeBackdrop(THREE, S, [
       { x: -3.0, y: 3.4, rx: 7, ry: 3.4, color: '255,160,64', a: 0.2 }, { x: -6.5, y: 5.0, rx: 4, ry: 3, color: '255,190,110', a: 0.1 },
       { x: 5.5, y: 2.6, rx: 5, ry: 3.2, color: '80,120,200', a: 0.2 }, { x: 0.5, y: 0.4, rx: 12, ry: 0.9, color: '110,100,140', a: 0.1 },
-    ]));
+    ])); }
     const camera = new THREE.PerspectiveCamera(lensFov(45), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
+    if (stage.reflect && !DB.noReflect) stage.reflect(A.root, { strength: 0.8 });
     A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(-0.7, -0.45, 0.6); stylus.group.rotation.z = 0.6;
@@ -537,13 +540,14 @@ export default {
     book.tabs.forEach((m, i) => { const s = spring(lt - (SNAP + 0.05 + 0.045 * i), 6, 0.45); m.visible = lt >= SNAP + 0.05 + 0.045 * i; m.position.x = W2 / 2 - 0.03 + 0.075 * s; });
 
     // ---------------- lights
+    if (stage.update) stage.update(T);
     const L = stage.lights;
     L.key.color.set('#ffd7a0'); L.key.intensity = 230; L.key.position.set(-4.2, 6.5, 4.4); L.key.target.position.set(1.1, 0.9, 0.2); L.key.angle = 0.42; L.key.penumbra = 0.7;
     L.rim.color.set('#9cc8ff'); L.rim.intensity = 520; L.rim.position.set(4.6, 6.4, -4.6); L.rim.target.position.set(1.0, 0.9, 0); L.rim.angle = 0.38; L.rim.penumbra = 0.8;
     L.fill.color.set('#6a86c8'); L.fill.intensity = 6; L.amb.intensity = 0.1;
     const gl = st.glow;
     if (lt < 1.1) gl.position.set(-0.8, 1.9, 1.6); else gl.position.copy(root.position).add(tmp.v.set(-0.6, 0.4, 1.6));
-    gl.intensity = (lt < BELL ? 4 * (0.3 + 0.7 * typedN / 8) * (1 + Math.exp(-kAge / 0.06)) : 4) + (lt >= BELL ? 8 * Math.exp(-(lt - BELL) / 0.12) : 0) + 12 * snapP;
+    gl.intensity = (lt < BELL ? 3 * (0.3 + 0.7 * typedN / 8) * (1 + Math.exp(-kAge / 0.06)) : 2.5) + (lt >= BELL ? 4 * Math.exp(-(lt - BELL) / 0.12) : 0) + 4 * snapP;
     st.poolWords.material.opacity = 0.2 * (typedN / 8) * (1 - seg(lt, 1.1, 1.4)); st.poolAm.material.opacity = 0.2 + 0.1 * snapP; st.poolBook.material.opacity = 0.24 * sp;
     st.ghostHalo.material.opacity = 0.5 + 0.08 * Math.sin(t * 3.1);
     st.blob.position.x = A.root.position.x + 0.05;
@@ -560,6 +564,6 @@ export default {
     const mx = lerp(AM[0], REST[0], 0.5), my = lerp(AM[1], REST[1], 0.5), mz = lerp(AM[2], REST[2], 0.5);
     const fx = lerp(lerp(AM[0], ASM[0], f), mx, f2), fy = lerp(lerp(AM[1], ASM[1], f), my, f2), fz = lerp(lerp(AM[2], ASM[2], f), mz, f2);
     if (D.noDof) return { dof: { enabled: false }, bloom: { strength: D.noBloom ? 0 : 0.34, radius: 0.5, threshold: 1.15 } };
-    return { dof: { focus: camera.position.distanceTo(tmp.v.set(fx, fy, fz)), strength: 0.65, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.22 * imp + 0.45 * snapP, radius: 0.5, threshold: 1.15 } };
+    return { dof: { focus: camera.position.distanceTo(tmp.v.set(fx, fy, fz)), strength: 0.65, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.2 * imp + 0.32 * snapP, radius: 0.5, threshold: 1.15 } };
   },
 };

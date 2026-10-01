@@ -271,6 +271,12 @@ export const MOTIF = {
 };
 // Chord per bar (0..29). Arrays = two chords per bar (half-bars).
 // Roots/qualities: Am F C G (+ "add9/6" colour allowed). Final bar = C major.
+// The solo-piano TURN uses the same four pitches at EVEN spacing (one per half-bar beat) so that the third note, A,
+// lands exactly on the "Meet Amrita." hit / Amrita's landing at 25.0 (not the syncopated era rhythm above):
+//   E4 24.0 · G4 24.5 · A4 25.0 · C5 25.5 (held into 26.0, where the pulse enters)
+export const MOTIF_TURN = [
+  { t: 24.0, midi: 64 }, { t: 24.5, midi: 67 }, { t: 25.0, midi: 69 }, { t: 25.5, midi: 72 },
+];
 export const CHORDS = [
   'Am', 'Am', // 0-1  cold open drone on A
   'Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'G', 'Am', // 2-10 nine eras

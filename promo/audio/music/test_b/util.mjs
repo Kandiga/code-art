@@ -73,7 +73,7 @@ export function chroma(x, t0, t1, N = 16384) {
     fft.transform(re, im);
     for (let k = 1; k < N / 2; k++) {
       const fr = (k * SR) / N;
-      if (fr < 80 || fr > 4000) continue;
+      if (fr < 160 || fr > 3500) continue;
       const m = 69 + 12 * Math.log2(fr / 440);
       const pc = ((Math.round(m) % 12) + 12) % 12;
       const dev = Math.abs(m - Math.round(m));

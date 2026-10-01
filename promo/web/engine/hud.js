@@ -380,7 +380,7 @@ function drawCellsPaper(ctx, T, st) {
     rpath(ctx, x, y, CELL_W, CELL_H, 4); ctx.fillStyle = pg; ctx.fill();
     drawPictogram(ctx, c.picto, cx, y + 23, 0.93, { mode: 'paper', boil, seed: 100 + i * 13 });
     ctx.save(); ctx.font = F.hand(20, 700); ctx.textAlign = 'center'; ctx.fillStyle = GRAPH; const jx = jit(i, boil, 8, 0.4); ctx.fillText(String(c.year), cx + jx, y + CELL_H - 4.5); ctx.restore();
-    const dim = 0.56 * (1 - lit);
+    const dim = (0.42 + 0.05 * Math.min(4, Math.abs(i - cur))) * (1 - lit);
     if (dim > 0.01) { rpath(ctx, x, y, CELL_W, CELL_H, 4); ctx.fillStyle = `rgba(14,13,18,${dim})`; ctx.fill(); }
     P.ink(ctx, P.rectPts(x, y, CELL_W, CELL_H, 4, 3), { closed: true, color: INK, width: 1.6, amp: 0.6, passes: 2, step: 6, boil, seed: 60 + i, alpha: 0.85 });
   }
@@ -410,7 +410,7 @@ function drawPlatePaper(ctx, T, st) {
   rpath(ctx, px, py, pw, ph, 9); ctx.fillStyle = '#17151C'; ctx.fill();
   ctx.save(); rpath(ctx, px, py, pw, ph, 9); ctx.clip(); ctx.lineCap = 'round';
   for (let i = 0; i < (pw + ph) / 5; i++) { const x = px - ph + i * 5 + jit(i, boil, 2, 0.8); ctx.strokeStyle = i % 3 ? 'rgba(255,243,214,0.05)' : 'rgba(255,243,214,0.09)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, py + ph); ctx.lineTo(x + ph, py); ctx.stroke(); }
-  if (isNow) { const f = Math.exp(-nowS * 6); ctx.fillStyle = rgba(AMBER, 0.6 * f); ctx.fillRect(px, py, pw, ph); const hg = ctx.createLinearGradient(0, py, 0, py + ph); hg.addColorStop(0, rgba(AMBER, 0.20)); hg.addColorStop(1, rgba(AMBER, 0.02)); ctx.fillStyle = hg; ctx.fillRect(px, py, pw, ph); }
+  if (isNow) { const f = Math.exp(-nowS * 9); ctx.fillStyle = rgba(AMBER, 0.6 * f); ctx.fillRect(px, py, pw, ph); const hg = ctx.createLinearGradient(0, py, 0, py + ph); hg.addColorStop(0, rgba(AMBER, 0.10)); hg.addColorStop(1, rgba(AMBER, 0.0)); ctx.fillStyle = hg; ctx.fillRect(px, py, pw, ph); }
   ctx.restore();
   P.ink(ctx, rr(px, py, pw, ph, 9), { closed: true, color: INK, width: 3.4, amp: 1.1, passes: 2, step: 7, boil, seed: 31, alpha: 1 });
   P.ink(ctx, rr(px + 5, py + 5, pw - 10, ph - 10, 6), { closed: true, color: isNow ? AMBER : P.mix(AMBER, INK, 0.45), width: isNow ? 2.2 : 1.5, amp: 0.55, passes: 1, step: 7, boil, seed: 33, alpha: isNow ? 1 : 0.8 });
@@ -449,7 +449,7 @@ function drawPlatePaper(ctx, T, st) {
 const NOW_PX = 124;
 function drawNow(ctx, T, st, g) {
   const { nowS, boil } = st, s = Math.max(0, nowS), t = T.t;
-  const k = 1 + 0.95 * (1 - spring(s, 3.4, 0.5)), a = clamp(s / 0.03);
+  const k = 1 + 0.95 * (1 - spring(s, 3.4, 0.5)), a = 1;
   const sh = Math.exp(-s * 12), shx = (hash(Math.floor(t * 30), 41) - 0.5) * 8 * sh, shy = (hash(Math.floor(t * 30), 42) - 0.5) * 7 * sh;
   ctx.save();
   // burst ticks (hand-drawn, radiate from the tab, pop then settle)

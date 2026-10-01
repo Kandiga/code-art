@@ -691,39 +691,40 @@ function amritaState(t) {
   return { x, y, size, squash, roll, yaw, eye, crank: (t - 6.55) * 11 };
 }
 
+const PROF = (n, ctx, fn) => { if (!globalThis.__prof) return fn(); const t0 = performance.now(); fn(); ctx.getImageData(0, 0, 2, 2); const d = performance.now() - t0; globalThis.__prof[n] = (globalThis.__prof[n] || 0) + d; };
 // ---------- the scene ------------------------------------------------------------------------------------------------------
 export default {
   id: 'e1902', kind: '2d',
   draw(ctx, T, S) {
     const P = S.pencil, B = T.boil, t = T.t;
     ctx.save();
-    blit(ctx, cached(S, 'back' + B, (gx) => drawBack(gx, S, B)));
-    drawMoon(ctx, P, T, S);
-    drawZzz(ctx, P, T);
-    drawClouds(ctx, P, T);
-    drawStars(ctx, P, T);
+    PROF('back', ctx, () => blit(ctx, cached(S, 'back' + B, (gx) => drawBack(gx, S, B))));
+    PROF('moon', ctx, () => drawMoon(ctx, P, T, S));
+    PROF('zzz', ctx, () => drawZzz(ctx, P, T));
+    PROF('clouds', ctx, () => drawClouds(ctx, P, T));
+    PROF('stars', ctx, () => drawStars(ctx, P, T));
     // stage light pool for Amrita
     if (t >= 6.5) {
       const a = smooth((t - 6.5) / 0.2);
       ctx.save(); ctx.globalAlpha = 0.5 * a; const gr = ctx.createRadialGradient(AMR.x, 880, 20, AMR.x, 880, 260); gr.addColorStop(0, 'rgba(255,230,160,0.7)'); gr.addColorStop(1, 'rgba(255,230,160,0)');
       ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(AMR.x, 890, 290, 70, 0, 0, TAU); ctx.fill(); ctx.restore();
     }
-    drawPuffs(ctx, P, T, false);
-    drawConfetti(ctx, P, T, 'back');
+    PROF('puffs0', ctx, () => drawPuffs(ctx, P, T, false));
+    PROF('confB', ctx, () => drawConfetti(ctx, P, T, 'back'));
     const A = amritaState(t);
     if (A) {
       // warm halo behind her so she pops off the dark flats
       ctx.save(); const hg = ctx.createRadialGradient(A.x, A.y, A.size * 0.3, A.x, A.y, A.size * 1.9); hg.addColorStop(0, 'rgba(255,236,170,0.55)'); hg.addColorStop(1, 'rgba(255,236,170,0)');
       ctx.fillStyle = hg; ctx.globalAlpha = smooth((t - 6.52) / 0.15); ctx.beginPath(); ctx.arc(A.x, A.y, A.size * 1.9, 0, TAU); ctx.fill(); ctx.restore();
-      hero(ctx, T, S, { palette: AMR_PAL, x: A.x, y: A.y, size: A.size, yaw: A.yaw, roll: A.roll, squash: A.squash, eye: A.eye, prop: 'crank', propAnim: { crank: A.crank }, propSide: 1, seed: 17, shadow: false });
+      PROF('hero', ctx, () => hero(ctx, T, S, { palette: AMR_PAL, x: A.x, y: A.y, size: A.size, yaw: A.yaw, roll: A.roll, squash: A.squash, eye: A.eye, prop: 'crank', propAnim: { crank: A.crank }, propSide: 1, seed: 17, shadow: false }));
     }
-    drawPuffs(ctx, P, T, true);
-    drawFlashSparks(ctx, P, T);
+    PROF('puffs1', ctx, () => drawPuffs(ctx, P, T, true));
+    PROF('flash', ctx, () => drawFlashSparks(ctx, P, T));
     // curtains (dynamic while moving)
-    drawCurtains(ctx, P, t, B);
-    blit(ctx, cached(S, 'front' + B, (gx) => drawFront(gx, S, B)));
-    drawConfetti(ctx, P, T, 'front');
-    drawSparkles(ctx, P, T);
+    PROF('curtains', ctx, () => drawCurtains(ctx, P, t, B));
+    PROF('front', ctx, () => blit(ctx, cached(S, 'front' + B, (gx) => drawFront(gx, S, B))));
+    PROF('confF', ctx, () => drawConfetti(ctx, P, T, 'front'));
+    PROF('spark', ctx, () => drawSparkles(ctx, P, T));
     ctx.restore();
   },
 };

@@ -384,7 +384,7 @@ ERA_BUILDERS[6] = (E) => {
   const kick = lockDown(t0, [N(t0, 33, 0.3, 0.95), N(T(t0, 2), 33, 0.3, 0.9), N(T(t0, 2.5), 33, 0.3, 0.55)]);
   const snare = [N(T(t0, 1), 53, 0.3, 0.9), N(T(t0, 3), 53, 0.3, 0.95)];
   const bass = lockDown(t0, [N(t0, 36, 0.42, 0.9), N(T(t0, 0.75), 36, 0.18, 0.7), N(T(t0, 1.5), 43, 0.3, 0.75), N(T(t0, 2), 36, 0.42, 0.88), N(T(t0, 2.75), 36, 0.18, 0.64)]);
-  const run = pickup(E, 1, [0.5, 0.85], 0.1, { gainDb: 0 }).map((n) => ({ ...n, midi: n.midi + 12 }));
+  const run = pickup(E, 1, [0.5, 0.85], 0.1);
   return {
     layers: [
       { name: 'bell', id: 'fm_bell', notes: hum(bell, 'e6b'), opts: { index: 0.7, seed: 91 }, db: -2, send: 1.1, pan: 0.15, fx: soften },
@@ -392,9 +392,9 @@ ERA_BUILDERS[6] = (E) => {
       { name: 'pad', id: 'synth_pad', notes: pad, opts: { seed: 92 }, db: -9, send: 0.9, pan: 0 },
       { name: 'strings', id: 'strings', notes: strings, opts: { art: 'legato', attackScale: 0.8, seed: 93 }, db: -9, send: 1, pan: 0 },
       { name: 'stab', id: 'supersaw', notes: stab, opts: { maxGate: 0.3, decay: 0.2, seed: 94 }, db: -6, send: 0.5, pan: 0 },
-      { name: 'kick', id: 'kick', notes: kick, opts: { variant: 'tight', seed: 95 }, db: -8, send: 0.1, pan: 0 },
+      { name: 'kick', id: 'kick', notes: kick, opts: { variant: 'tight', seed: 95 }, db: -11, send: 0.1, pan: 0 },
       { name: 'snare', id: 'snare_gated', notes: hum(snare, 'e6s', { timing: 0.002 }), opts: { seed: 96 }, db: -5, send: 0.1, pan: 0 },
-      { name: 'bass', id: 'synth_bass', notes: hum(bass, 'e6bs', { timing: 0.002 }), opts: { seed: 97 }, db: -8, send: 0, pan: 0 },
+      { name: 'bass', id: 'synth_bass', notes: hum(bass, 'e6bs', { timing: 0.002 }), opts: { seed: 97 }, db: -11, send: 0, pan: 0 },
       { name: 'run', id: 'synth_pulse', notes: hum(run, 'e6r', { timing: 0.002 }), opts: { echo: 0.25, seed: 98 }, db: -4, send: 0.8, pan: 0.2 },
       { name: 'swell', id: 'reverse_swell', notes: [{ t: T(t0, 1), dur: BEAT * 3, vel: 0.6 }], opts: { seed: 99 }, db: -13, send: 0, pan: 0 },
     ],
@@ -406,8 +406,9 @@ ERA_BUILDERS[6] = (E) => {
 // ---- 2009  braams + taiko + risers (G) ----------------------------------------------------------------------------------
 ERA_BUILDERS[7] = (E) => {
   const t0 = E.t0, ch = chordOf(E);
-  const lo = motif(t0, { octave: -1, vel: [0.88, 0.7, 0.74, 0.9] });
-  const hi = motif(t0, { octave: 0, vel: [0.8, 0.64, 0.68, 0.84] });
+  const lo = motif(t0, { octave: -2, vel: [0.88, 0.7, 0.74, 0.9] }); // E2 G2 A2 C3: weight
+  const hi = motif(t0, { octave: -1, vel: [0.8, 0.64, 0.68, 0.84] }); // E3 G3 A3 C4: the line itself
+  const horn = motif(t0, { octave: 0, vel: [0.7, 0.56, 0.6, 0.76] }); // E4 G4 A4 C5: hard-edged horns keep the motif readable on small speakers
   const braam = lockDown(t0, [N(t0, 31, 1.1, 0.92)]);
   const trem = [43, 50, 55, 62].map((m) => N(t0, m, BAR * 0.97, 0.6));
   const taiko = lockDown(t0, [[0, 43, 1], [1.5, 38, 0.8], [2, 43, 0.98], [3, 38, 0.86]].map(([b, m, v]) => N(T(t0, b), m, 0.5, v)));
@@ -419,11 +420,12 @@ ERA_BUILDERS[7] = (E) => {
     layers: [
       { name: 'brass_lo', id: 'brass_low', notes: hum(lo, 'e7l'), opts: { ...kitOpts(E, 'motif'), seed: 111 }, db: 0, send: 0.9, pan: 0 },
       { name: 'brass_hi', id: 'brass_low', notes: hum(hi, 'e7h'), opts: { ...kitOpts(E, 'motif'), seed: 112 }, db: -3, send: 0.9, pan: 0.1 },
+      { name: 'horns', id: 'horns', notes: hum(horn, 'e7hn'), opts: { art: 'stab', seed: 120 }, db: -6, send: 0.9, pan: 0.2 },
       { name: 'braam', id: 'braam', notes: braam, opts: { seed: 113 }, db: -8, send: 0.7, pan: 0 },
       { name: 'trem', id: 'strings_tremolo', notes: trem, opts: { section: 'low', seed: 114 }, db: -6, send: 1, pan: 0 },
-      { name: 'taiko', id: 'taiko', notes: hum([...taiko, ...flam], 'e7t', { timing: 0.002 }), opts: { seed: 115 }, db: -11, send: 0.8, pan: 0 },
-      { name: 'sub', id: 'sub808', notes: sub, opts: { decay: 0.7, drive: 1.8, seed: 116 }, db: -11, send: 0, pan: 0 },
-      { name: 'impact', id: 'impact', notes: imp, opts: { seed: 117 }, db: -11, send: 0.4, pan: 0 },
+      { name: 'taiko', id: 'taiko', notes: hum([...taiko, ...flam], 'e7t', { timing: 0.002 }), opts: { seed: 115 }, db: -13, send: 0.8, pan: 0 },
+      { name: 'sub', id: 'sub808', notes: sub, opts: { decay: 0.7, drive: 1.8, seed: 116 }, db: -14, send: 0, pan: 0 },
+      { name: 'impact', id: 'impact', notes: imp, opts: { seed: 117 }, db: -13, send: 0.4, pan: 0 },
       { name: 'run', id: 'brass_low', notes: hum(run, 'e7r', { timing: 0.003 }), opts: { art: 'stab', seed: 118 }, db: -5, send: 0.9, pan: 0 },
       { name: 'riser', id: 'riser', notes: [{ t: T(t0, 2), dur: BEAT * 2, vel: 0.9, midi: 88 }], opts: { seed: 119 }, db: -4, send: 0.3, pan: 0 },
     ],
@@ -574,15 +576,14 @@ function renderTurn(A, log) {
   dsp.addAt(A, dr, 0, 0, 0);
   // --- solo piano: motif E4 G4 A4 C5 in even quarters (the "even" reading of cues.MOTIF), left hand sparse, big hall ---
   const ev = th.motifEvents(PIANO_T0, { rhythm: 'even', vel: [0.5, 0.56, 0.74, 0.7] });
-  const pedalUp = TURN.t1 - 0.16; // lift just before 26.0 so the F ring clears for the C chord; C5 keeps ringing
-  const rh = ev.map((e, i) => N(e.t + [0, 0.002, 0.001, 0.003][i], e.midi, i === 3 ? 1.0 : 0.62, e.vel, { lock: true }));
+    const rh = ev.map((e, i) => N(e.t + [0, 0.002, 0.001, 0.003][i], e.midi, i === 3 ? 1.0 : 0.62, e.vel, { lock: true }));
   const lh = [
-    N(PIANO_T0, 41, 1.7, 0.42), N(PIANO_T0, 48, 1.7, 0.34), // F2 + C3 under the first two notes
-    N(PIANO_T0 + 2 * BEAT, 29, 1.3, 0.62), N(PIANO_T0 + 2 * BEAT, 41, 1.3, 0.55), // the hit on A4 (25.0): F1 + F2
-    N(PIANO_T0 + 2 * BEAT, 53, 1.2, 0.34), // F3
+    N(PIANO_T0, 41, 1.5, 0.42), N(PIANO_T0, 48, 1.5, 0.34), // F2 + C3 under the first two notes
+    N(PIANO_T0 + 2 * BEAT, 29, 0.8, 0.62), N(PIANO_T0 + 2 * BEAT, 41, 0.8, 0.55), // the hit on A4 (25.0): F1 + F2 (short: the F clears before the C chord of 26.0)
+    N(PIANO_T0 + 2 * BEAT, 53, 0.7, 0.34), // F3
   ];
-  const pn = renderLayer('piano_grand', rh, { pedal: (t) => t < pedalUp, pedalRelease: 1.8, brightScale: 0.9, seed: 301 }, LOCAL_SEC);
-  const pl = renderLayer('piano_grand', lh, { pedal: true, pedalRelease: 1.3, brightScale: 0.7, seed: 302 }, LOCAL_SEC);
+  const pn = renderLayer('piano_grand', rh, { pedal: true, pedalRelease: 1.8, brightScale: 0.9, seed: 301 }, LOCAL_SEC);
+  const pl = renderLayer('piano_grand', lh, { pedal: true, pedalRelease: 0.6, brightScale: 0.7, seed: 302 }, LOCAL_SEC);
   const mix = new Buf(LOCAL_SEC);
   dsp.addAt(mix, pn, 0, 0, 0);
   dsp.addAt(mix, pl, 0, -3, 0);
@@ -655,9 +656,10 @@ export async function renderScoreA(buf, ctx = {}) {
   dsp.addAt(A, past, 0, 0, 0);
   dsp.addAt(A, turn, 0, 0, 0);
   // master for A: gentle true-peak limiter at -3 dBFS (keeps the NOW hit and the sub drop honest)
+  report.prePeakDb = dsp.linToDb(dsp.peakOf(A));
   const lim = dsp.limiter(A, { ceilingDb: -3.0, lookaheadMs: 4, releaseMs: 90 });
   const Lm = Buf.from(lim.L, lim.R);
-  report.limiterMaxReductionDb = lim.stats ? lim.stats.maxReductionDb : null;
+  report.limiterStats = lim.stats || null;
   // keep the guarantee after limiting: nothing in the freeze window
   for (let i = Math.round(FREEZE_T * SR); i < Math.round(SILENCE_END * SR); i++) { Lm.L[i] = 0; Lm.R[i] = 0; }
   if (ctx.gainDb) Lm.gain(ctx.gainDb);
@@ -720,8 +722,10 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
     if (flag('png')) {
       const ff = await import('../lib/ff.mjs');
       const dir = ensure(path.join(HERE, 'test_a'));
-      ff.spectrogramPng(out, path.join(dir, 'score_a_spec.png'), { w: 1800, h: 700, start: 0, dur: 30, drange: 90 });
-      console.log('wrote', path.join(dir, 'score_a_spec.png'));
+      for (const [name, start, dur] of [['score_a_spec', 0, 30], ['score_a_spec_coldopen_eras1-4', 0, 12], ['score_a_spec_eras5-9', 12, 10.2], ['score_a_spec_now_turn', 19.5, 11]]) {
+        ff.spectrogramPng(out, path.join(dir, name + '.png'), { w: 1800, h: 640, start, dur, drange: 90 });
+        console.log('wrote', path.join(dir, name + '.png'));
+      }
     }
   } else {
     console.log('usage: node audio/music/score_a.mjs --solo [--eras 0,1] [--png] [--nocache]');
