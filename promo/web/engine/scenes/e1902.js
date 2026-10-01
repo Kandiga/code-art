@@ -164,7 +164,7 @@ function drawEye(ctx, P, T, o, boil) {
     ls.addColorStop(0, 'rgba(70,40,10,0.55)'); ls.addColorStop(1, 'rgba(70,40,10,0)');
     ctx.fillStyle = ls; ctx.fillRect(cx - 200, cy - 160, 400, 140);
     // iris + pupil (looks straight at the lens when fully open)
-    const settle = 1 - smooth((t - 7.15) / 0.35);
+    const settle = 1 - smooth((t - 7.1) / 0.3); // iris is dead-centre (exact portal) from 7.4
     const ix = cx + (-26 * Math.sin(t * 5) * 0.4 - 14) * settle, iy = cy + (16 + 6 * Math.cos(t * 6)) * settle;
     const R = EYE.r;
     ctx.fillStyle = '#E39A2E'; ctx.beginPath(); ctx.arc(ix, iy, R, 0, TAU); ctx.fill();
@@ -708,9 +708,9 @@ function amritaState(t) {
   const ant = Math.sin(Math.PI * clamp((t - 6.78) / 0.12)) * 0.12;
   const rise = Math.sin(Math.PI * clamp((t - 7.1) / 0.24)) * 0.2;
   const after = t > 7.27 ? Math.exp(-(t - 7.27) * 9) * Math.sin((t - 7.27) * 24) * 0.06 : 0;
-  roll = 0.5 * b - 0.04 * Math.sin(Math.PI * clamp((t - 7.18) / 0.2));
-  squash += ant - 0.2 * b + rise + after;
-  y += 26 * b - 16 * ant * 8 - 14 * rise * 4;
+  roll = 0.72 * b - 0.05 * Math.sin(Math.PI * clamp((t - 7.18) / 0.2));
+  squash += ant - 0.26 * b + rise + after;
+  y += 42 * b - 16 * ant * 8 - 14 * rise * 4;
   yaw = 0.3 - 0.12 * b;
   const gaze = smooth((t - 7.12) / 0.2);
   if (b > 0.25 || (t > 6.86 && t < 7.22)) eye = { happy: 1 };

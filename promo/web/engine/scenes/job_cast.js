@@ -223,7 +223,9 @@ export default {
 
   update(st, T, S) {
     const { THREE, camera, A, cast, marks, beams, haze, sparks, ringsG, stage, tmp, taps, ready, amRim } = st;
-    const t = T.t, lt = clamp(T.lt, 0, 2), imp = Math.min(1, T.impact);
+    const t = T.t, lt = clamp(T.lt, 0, 2), imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
+    beams.forEach((b) => { b.object.visible = !D.noBeams; }); haze.object.visible = !D.noHaze; st.bokeh.visible = !D.noBokeh; st.sparks.visible = !D.noSparks; st.ringsG.visible = !D.noRings;
+    marks.forEach((m) => { m.visible = !D.noMarks; }); A.root.visible = !D.noAmrita; cast.forEach((c) => { if (D.noCast) c.root.visible = false; }); stage.group.visible = !D.noStage; st.amRim.visible = !D.noAmRim;
     stage.update(t);
 
     // landing envelope helpers

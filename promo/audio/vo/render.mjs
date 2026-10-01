@@ -59,6 +59,8 @@ export async function renderVo(opts = {}) {
     }
   }
   const linesFile = path.join(build, 'vo_lines.json');
+  // audio/build.mjs looks for the manifest next to the stems: keep both copies identical
+  if (fs.existsSync(linesFile) && !opts.only?.length) fs.copyFileSync(linesFile, path.join(build, 'stems', 'vo_lines.json'));
   const lines = fs.existsSync(linesFile) ? JSON.parse(fs.readFileSync(linesFile, 'utf8')) : [];
   return { stem: path.join(build, 'stems', 'vo.wav'), lines, linesFile };
 }

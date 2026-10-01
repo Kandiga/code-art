@@ -60,7 +60,7 @@ Amrita **is** the mark. She is an icon character, never a human: no limbs, no to
              leaving a central opening of circumradius 0.62
  face      : cream rounded PLAY-TRIANGLE filling that opening — vertices at circumradius 0.60,
              angles 0°, 120°, 240° (tip points RIGHT = "play"), corner radius 0.10, raised 0.06 in 3D
- eyes      : two glossy black OVALS inside the triangle, each 0.13 wide × 0.22 tall,
+ eyes      : two glossy black OVALS inside the triangle, each 0.15 wide × 0.25 tall,
              centers at (-0.08, ±0.17); white specular dot upper-left
  expression: eye shapes only — neutral, blink (scaleY→0.08), squint, happy arcs (^ ^),
              determined (flat upper lid slanted inward), surprised (round, bigger), sleepy

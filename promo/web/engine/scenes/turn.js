@@ -423,7 +423,7 @@ export default {
     const cv = await S.act1Frame(21.9999);
     if (st.texCanvas !== cv) {
       const { THREE } = st; if (st.tex) st.tex.dispose();
-      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = S.renderer.capabilities.getMaxAnisotropy(); tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter; tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.generateMipmaps = true; tex.needsUpdate = true;
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min((globalThis.__turnDbg || {}).aniso ?? 8, S.renderer.capabilities.getMaxAnisotropy()); tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter; tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; tex.generateMipmaps = true; tex.needsUpdate = true;
       st.tex = tex; st.texCanvas = cv; st.shared.tMap.value = tex;
     }
   },

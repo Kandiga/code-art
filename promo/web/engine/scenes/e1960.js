@@ -540,7 +540,7 @@ export default {
     ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.34; P.paper(ctx, S, { seed: 61, base: '#F4EBDD', shade: '#E4D6BF' }); ctx.restore();
     ctx.restore();
     // redraw the lens exactly over the paper grain so nothing can dim it during the dive
-    if (T.lt >= 1.4) { ctx.save(); ctx.beginPath(); ctx.arc(SUN.cx, SUN.cy, SUN.r, 0, TAU); ctx.clip(); drawSunDisc(ctx, B, t, false); ctx.restore(); }
+    ctx.save(); ctx.beginPath(); ctx.arc(SUN.cx, SUN.cy, SUN.r, 0, TAU); ctx.clip(); drawSunDisc(ctx, B, t, false); ctx.restore();
   },
   grade: () => ({}),
   barColor: '#0b0a0d',

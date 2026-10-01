@@ -42,7 +42,11 @@ for cue, role in items:
         if sh:
             y22 = prosody.change_voice(y22, sr22, sh.get("formant_ratio", 1.0), sh.get("median_hz", 0.0), sh.get("range", 1.0))
         dur = len(y22) / sr22
-        r = asr_wer(path, cue["text"], "tiny.en", prompt=("Amrita." if "Amrita" in cue["text"] else None))
+        lim = len(y22) / sr22 + 0.1
+        r = asr_wer(path, cue["text"], "base.en" if "Amrita" in cue["text"] else "tiny.en", limit_s=lim)
+        if "Amrita" in cue["text"]:  # name lines: also test with a vocabulary hint; both must be exact for a top score
+            r2 = asr_wer(path, cue["text"], "base.en", prompt="Amrita.", limit_s=lim)
+            r["errors"] = r["errors"] + r2["errors"]; r["conf"] = 0.5 * (r["conf"] + r2["conf"]); r["hyp"] += " | " + r2["hyp"]
         m = voice_metrics(y22.astype(np.float64), sr22)
         score = r["conf"] - (0 if r["errors"] == 0 else 2.0) - (5.0 if dur > avail else 0.0)
         if target:

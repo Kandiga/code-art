@@ -448,6 +448,7 @@ def render_all(args):
     if not only:
         dsp.write_wav_f32(os.path.join(out_dir, "stems", "vo.wav"), stem)
         json.dump(rows, open(os.path.join(out_dir, "vo_lines.json"), "w"), indent=1)
+        json.dump(rows, open(os.path.join(out_dir, "stems", "vo_lines.json"), "w"), indent=1)  # build.mjs looks here
         prune_raw(keep)
     else:
         json.dump(rows, open(os.path.join(out_dir, "vo_lines.partial.json"), "w"), indent=1)

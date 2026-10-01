@@ -465,7 +465,7 @@ function buildTrainGeometry(THREE) {
 // path of the loco in PANE-LOCAL space: q in [0,1] along the rails on the ground (far -> near edge), q in [1,2] lifts off the screen toward the family
 const RAIL = (v) => { const g = gpos(0.4 + 0.2 * v, v); return [g[0], g[1] + 0.012, g[2]]; };
 function makeExitCurve(THREE) {
-  const f = RAIL(1), pts = [[f[0], f[1], f[2]], [f[0] + 0.12, f[1] + 0.14, f[2] + 0.38], [f[0] + 0.36, f[1] + 0.36, f[2] + 0.85], [f[0] + 0.62, f[1] + 0.6, f[2] + 1.35]].map((p) => new THREE.Vector3(...p));
+  const f = RAIL(1), pts = [[f[0], f[1], f[2]], [f[0] + 0.05, f[1] + 0.13, f[2] + 0.35], [f[0] + 0.13, f[1] + 0.24, f[2] + 0.78], [f[0] + 0.17, f[1] + 0.2, f[2] + 1.2]].map((p) => new THREE.Vector3(...p));
   return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
 }
 const qOf = (lt) => (lt < EV.pop ? Math.pow(seg(lt, 0.3, EV.pop), 1.5) : 1 + Math.pow(seg(lt, EV.pop, EV.snap), 1.15));
@@ -554,7 +554,7 @@ function buildHolo(THREE, st) {
 
   // ---- depth proxies: invisible quads drawn LAST that write depth so the DOF sees the hologram (additive layers write none)
   const proxyMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: true, transparent: true, side: THREE.DoubleSide });
-  const pp = new THREE.Mesh(new THREE.PlaneGeometry(PANE.w * 0.98, PANE.h * 0.98), proxyMat); pp.position.set(0, 0, -0.02); pp.renderOrder = 100; pp.frustumCulled = false; pane.add(pp); st.paneProxy = pp;
+  const pp = new THREE.Mesh(new THREE.PlaneGeometry(PANE.w * 1.04, PANE.h * 1.06), proxyMat); pp.position.set(0, 0, 0.0); pp.renderOrder = 100; pp.frustumCulled = false; pane.add(pp); st.paneProxy = pp;
   const ap = new THREE.Mesh(new THREE.CircleGeometry(0.62, 24), proxyMat); ap.renderOrder = 100; ap.frustumCulled = false; scene.add(ap); st.ampProxy = ap;
   const tp = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.5), proxyMat); tp.renderOrder = 100; tp.frustumCulled = false; scene.add(tp); st.trumpProxy = tp;
 
@@ -802,7 +802,7 @@ export default {
     const dA = K.v1.set(AMR[0] * 0.5 + PANE.x * 0.5, 1.2, AMR[2] * 0.4 + PANE.z * 0.6).sub(camera.position).dot(st.cam.fwd);
     const dL = K.v2.copy(st.locoWorld).sub(camera.position).dot(st.cam.fwd), ft = sm(0.75, 1.05, lt) * (1 - sm(1.5, 1.78, lt)) * (trVis ? 1 : 0);
     const focus = lerp(dA, Math.max(2, dL), ft * 0.8);
-    return { dof: { focus, strength: 0.24, maxPx: 9, bokeh: 1.5 }, bloom: { strength: 0.52 + 0.35 * T.impact + 0.4 * surge + 0.18 * popK, radius: 0.75, threshold: 0.8 }, exposure: 1.0 + 0.16 * T.impact + 0.28 * surge, shake: 4 };
+    return { dof: globalThis.__nodof ? { enabled: false } : { focus, strength: 0.24, maxPx: 9, bokeh: 1.5 }, bloom: { strength: globalThis.__nobloom ? 0 : 0.5 + 0.3 * T.impact + 0.3 * surge + 0.1 * popK, radius: 0.5, threshold: 1.15 }, exposure: 1.0 + 0.16 * T.impact + 0.28 * surge, shake: 4 };
   },
 
   // digital glitch pop on the cut (first ~0.3 s), micro-glitches on the pop and the snap: sliced rows, RGB split, scan bars, blocks

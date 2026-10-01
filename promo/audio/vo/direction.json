@@ -198,7 +198,7 @@
   "vo3b": {
    "segments": [
     {
-     "text": "Meet [[ɐmɹˈiːtə.]]{v1.12}",
+     "text": "Meet Amrita.{v1.12}",
      "ls": 0.95,
      "nw": 0.7
     }
@@ -329,7 +329,7 @@
   "vo6a": {
    "segments": [
     {
-     "text": "[[ɐmɹˈiːtə]] Cinema Studio.",
+     "text": "Amrita Cinema Studio.",
      "ls": 0.9,
      "sp": 0.6,
      "nw": 0.7
@@ -340,7 +340,7 @@
    "pitch": {
     "events": [
      {
-      "word": "[[ɐmɹˈiːtə]]",
+      "word": "Amrita",
       "st": -2.0,
       "shape": "plateau",
       "edge": 0.05
