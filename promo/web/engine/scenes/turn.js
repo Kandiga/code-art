@@ -313,7 +313,6 @@ void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = proj
 const DOT_FRAG = /* glsl */`precision highp float; varying vec3 vC; void main(){ vec2 c = gl_PointCoord - 0.5; float d = length(c) * 2.0; if (d > 1.0) discard; gl_FragColor = vec4(vC * (1.0 - 0.5 * d * d), 1.0); }`;
 
 // ------------------------------------------------------------------ the scene module
-const V = (THREE) => new THREE.Vector3();
 export default {
   id: 'turn', kind: '3d', ratio: ASPECT,
 
@@ -415,7 +414,7 @@ export default {
     const shardP = Array.from({ length: SN }, (_, i) => { const k = Math.floor(hash(SEED, i, 61) * NC), r0 = 0.04 + Math.pow(hash(SEED, i, 62), 0.8) * 0.66, a = crackAngle(k, r0), rad = a + (hash(SEED, i, 63) - 0.5) * 0.9, sp = 0.5 + 1.7 * hash(SEED, i, 64);
       return { x0: CRACK_C[0] + r0 * Math.cos(crackAngle(k, r0)), y0: CRACK_C[1] + r0 * Math.sin(crackAngle(k, r0)), t0: TEAR + r0 / 14 + 0.02 * hash(SEED, i, 65), vx: Math.cos(rad) * sp, vy: Math.sin(rad) * sp, vz: 0.15 + 1.1 * hash(SEED, i, 66), sz: 0.01 + 0.032 * Math.pow(hash(SEED, i, 67), 1.6), asp: 0.5 + hash(SEED, i, 68), ax: hash(SEED, i, 69) * 6.28, ay: hash(SEED, i, 70) * 6.28, wx: (hash(SEED, i, 71) - 0.5) * 16, wy: (hash(SEED, i, 72) - 0.5) * 16, wz: (hash(SEED, i, 73) - 0.5) * 12 }; });
     const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), shardObj = new THREE.Object3D();
-    return { THREE, scene, camera, stage, puff, L, rim2, aMeshes, shards, shardP, SN, shardObj, burst, A, beam, moteObj, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, nx, ny, Wp, Hp, tex: null, texCanvas: null };
+    return { THREE, scene, camera, stage, puff, L, rim2, aMeshes, shards, shardP, SN, shardObj, burst, A, beam, moteObj, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, fwd: new THREE.Vector3(), nx, ny, Wp, Hp, tex: null, texCanvas: null };
   },
 
   async prepare(st, T, S) {
@@ -447,7 +446,7 @@ export default {
       g.x += hashSigned(hf, 5) * sh * 8; g.y += hashSigned(hf, 6) * sh * 8;
     }
     camera.lookAt(g);
-    const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd);
+    const fwd = st.fwd; camera.getWorldDirection(fwd);
     const zDepth = (x, y, z) => (x - camera.position.x) * fwd.x + (y - camera.position.y) * fwd.y + (z - camera.position.z) * fwd.z;
     camera.updateMatrixWorld(true);
     // point sprite scale = half the render height / tan(fov/2)
@@ -492,12 +491,11 @@ export default {
         st.shards.instanceMatrix.needsUpdate = true;
       }
       // burst light behind the paper
-      const bi = x < 0 ? 0.0 : (1 - sstep(0, 0.03, 0.03 - x)) * (12 * Math.exp(-x / 0.45) + 0.8 * Math.exp(-x / 1.4));
       st.glowU.uI.value = ((x < 0 ? 0.0 : 1.0) * (3.4 * Math.exp(-x / 0.17) * sstep(0, 0.03, x) + 0.3 * Math.exp(-x / 0.7)) + hairK * 1.4) * (1 - sstep(23.0, 23.55, t));
       st.glowU.uTime.value = t;
       st.burst.intensity = x < 0 ? 0 : 520 * Math.exp(-x / 0.5) + 30 * Math.exp(-x / 1.6);
-      st.burst.position.copy(new THREE.Vector3(0, 0.05, -1.4).applyMatrix4(st.sheet.matrixWorld));
-      shared.uBackPos.value.copy(new THREE.Vector3(CRACK_C[0], CRACK_C[1] + 0.02, -0.4).applyMatrix4(st.sheet.matrixWorld));
+      st.burst.position.set(0, 0.05, -1.4).applyMatrix4(st.sheet.matrixWorld);
+      shared.uBackPos.value.set(CRACK_C[0], CRACK_C[1] + 0.02, -0.4).applyMatrix4(st.sheet.matrixWorld);
     } else st.burst.intensity = 0;
 
     // ---------------- stage lights
