@@ -73,15 +73,28 @@ def get_take(lid, voice_cfg, spec, ls_mul, use_cache=True):
     return y[0].astype(np.float64), sr, words, path
 
 
+def shaped_take(path, y, sr, sh, use_cache=True):
+    """Praat 'Change gender' is NOT repeatable (it differs run to run, even on identical input), so the shaped take
+    is cached next to the dry take (raw/<id>.<key>.sh<hash>.wav) and re-used: renders stay bit-exact."""
+    h = hashlib.sha1(json.dumps(sh, sort_keys=True).encode()).hexdigest()[:8]
+    sp = path[:-4] + f".sh{h}.wav"
+    if use_cache and os.path.exists(sp):
+        z, _ = dsp.read_wav(sp)
+        return z[0].astype(np.float64)
+    z = prosody.change_voice(y, sr, sh.get("formant_ratio", 1.0), sh.get("median_hz", 0.0), sh.get("range", 1.0))
+    dsp.write_wav_f32(sp, z, sr)
+    z, _ = dsp.read_wav(sp)  # re-read: the cached float32 is what every later render sees
+    return z[0].astype(np.float64)
+
+
 def prune_raw(keep):
+    """Remove stale takes (anything in raw/ whose '<id>.<key>' stem is not used by the current direction)."""
     if not os.path.isdir(RAW):
         return
+    stems = {os.path.basename(k)[:-4] for k in keep}
     for f in os.listdir(RAW):
-        p = os.path.join(RAW, f)
-        if p not in keep and os.path.splitext(p)[0] + ".wav" not in keep and f.endswith((".wav", ".words.json")):
-            base = f[:-len(".words.json")] + ".wav" if f.endswith(".words.json") else f
-            if os.path.join(RAW, base) not in keep:
-                os.remove(p)
+        if not any(f.startswith(st + ".") for st in stems):
+            os.remove(os.path.join(RAW, f))
 
 
 # ----------------------------------------------------------------------------- the chain
@@ -277,7 +290,7 @@ def render_line(cue, role, spec, D, next_t0, use_cache=True, log=print):
         sh = dict(vcfg.get("shape", {}))
         sh.update(spec.get("shape", {}))
         if sh:
-            y22 = prosody.change_voice(y22, sr22, sh.get("formant_ratio", 1.0), sh.get("median_hz", 0.0), sh.get("range", 1.0))
+            y22 = shaped_take(path, y22, sr22, sh, use_cache)
         # --- intonation direction on the raw take (PSOLA), word-anchored
         pe = spec.get("pitch", {})
         if pe.get("events") or pe.get("global_st"):

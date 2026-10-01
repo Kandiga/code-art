@@ -37,13 +37,20 @@ def read_wav(path):
 
 
 def write_wav_f32(path, y, sr=SR):
-    """y: (n,) or (ch,n) -> 32-bit float WAV."""
-    import soundfile as sf
+    """y: (n,) or (ch,n) -> IEEE-float32 WAV with a minimal header (no PEAK/timestamp chunk: files are byte-exact
+    across renders, libsndfile would embed a time stamp)."""
     y = np.asarray(y)
     if y.ndim == 1:
         y = y[None, :]
+    ch = y.shape[0]
+    data = np.ascontiguousarray(y.T.astype("<f4")).tobytes()
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    sf.write(path, y.T.astype(np.float32), sr, subtype="FLOAT")
+    with open(path, "wb") as f:
+        f.write(b"RIFF" + (36 + len(data)).to_bytes(4, "little") + b"WAVE")
+        f.write(b"fmt " + (16).to_bytes(4, "little") + (3).to_bytes(2, "little") + ch.to_bytes(2, "little")
+                + int(sr).to_bytes(4, "little") + (int(sr) * 4 * ch).to_bytes(4, "little") + (4 * ch).to_bytes(2, "little")
+                + (32).to_bytes(2, "little"))
+        f.write(b"data" + len(data).to_bytes(4, "little") + data)
 
 
 # ----------------------------------------------------------------------------- filters (RBJ cookbook)
