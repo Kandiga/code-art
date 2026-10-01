@@ -11,8 +11,11 @@
 //   24.5-25.0  Amrita drops in (stretch) -> lands 25.0 (squash, shock ring, rim pops, chair swivels, eyes open)
 //   25.0-26.0  hero push-in (35 -> 50 mm), title 'Meet Amrita.' is drawn by the engine in the 'lower' zone.
 //
-// Pure function of T.t. All "randomness" is hash based (rng.js). Libraries used: stage3d.createStage, amrita3d.createAmrita.
-// Everything else (paper physics, beam, motes, burst) is local to this file.
+// Pure function of T.t. All "randomness" is hash based (rng.js). Libraries used: stage3d.createStage (+ stage.update/setGlow/reflect,
+// uniforms.cyc), amrita3d.createAmrita. Everything else (paper physics, beam, motes, burst, scraps) is local to this file.
+// Paper: 5 pieces = grid meshes (6.5 mm cells) deformed on the CPU per sub-frame (page-curl bend about a travelling fold line + twist +
+// flutter + rigid release), crack membership / fibre erosion / white torn rim / ACES-inverse albedo in the fragment shader.
+// globalThis.__turnDbg (optional) toggles components for perf/debug stills only; it is undefined in a normal render.
 // =============================================================================
 import { createStage } from '../stage3d.js';
 import { createAmrita } from '../amrita3d.js';
