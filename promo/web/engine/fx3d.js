@@ -5,9 +5,10 @@
 //
 //  export                         returns                                   what / key options
 //  ----------------------------------------------------------------------------------------------------------------------------------
-//  createBeam(T,{from,to,color,angle,length,intensity,noise,...})   {object,mesh,update(t),set(),setIntensity(),setColor(),pool,glow,uniforms}
-//        VOLUMETRIC spotlight: analytic cone ray-march (additive), soft edges, axial falloff, animated 3D-noise haze + light-shaft streaks,
-//        clipped by the floor, contact pool + lens glow. angle=half-angle rad (0.2), steps (10), soft (0.55), falloff (1.1), streak (0.35), floorY (0)
+//  createBeam(T,{from,to,color,angle,length,intensity,noise,...})   {object,mesh,foot,update(t),set(),setIntensity(),setColor(),pool,glow,uniforms}  (add beam.object to the scene)
+//        VOLUMETRIC spotlight: analytic cone ray-march (additive, back-face raster + floor-footprint proxy), soft edges, axial falloff, animated
+//        3D-noise haze (+ optional light-shaft streaks), clipped by the floor, contact pool + lens glow. COST: ~0.5-0.8 s per beam at 1080p x 4 sub-frames
+//        in software GL (loaded box) — keep to <= 3 big beams per shot, use steps/gain/angle to trade. angle=half-angle rad (0.2), steps (5; adaptive, dithered per sub-frame), soft (0.42), falloff (1.1), streak (0 = off; 0.3 adds light-shaft striations, ~+30% cost), floorY (0)
 //  createBeams(T,[opts...],shared) {group,beams,update(t),setIntensity(k)}      several beams in one go
 //  createHaze(T,{count,bounds,seed,size,color,intensity,twinkle,drift,turbulence,ambient,boost})   {points,update(t),attachBeams(beams),uniforms}
 //        dust motes (1 draw call, GPU) that drift/twinkle, wrap through `bounds` ({min:[x,y,z],max:[x,y,z]}) and LIGHT UP inside attached beams
@@ -44,8 +45,7 @@ export function pxScale(renderer, camera) {
   if (!h) { const s = renderer.getDrawingBufferSize(_sz); h = s.y || 1080; }
   return 0.5 * h * camera.projectionMatrix.elements[5];
 }
-const _sz = { x: 0, y: 0, set(a, b) { this.x = a; this.y = b; return this; } };
-_sz.set = function (a, b) { this.x = a; this.y = b; return this; };
+const _sz = { x: 0, y: 0, set(a, b) { this.x = a; this.y = b; return this; }, floor() { this.x = Math.floor(this.x); this.y = Math.floor(this.y); return this; } };
 
 // ------------------------------------------------------------------------------------------------ textures
 function pnoise3(x, y, z, per, seed) {
@@ -83,7 +83,7 @@ const smooth01 = (x) => { x = clamp(x); return x * x * (3 - 2 * x); };
 // ================================================================================================ BEAM
 const BEAM_VS = /* glsl */`
 uniform float uFloorY; varying vec3 vWorld;
-void main(){ vec4 w = modelMatrix * vec4(position, 1.0); w.y = max(w.y, uFloorY + 0.003); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
+void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
 const BEAM_FS = /* glsl */`
 precision highp float; precision highp sampler3D;
 varying vec3 vWorld;
@@ -99,7 +99,6 @@ void main(){
   float tlo = 0.1, thi = 1e4;
   if (abs(aD) > 1e-5) { float a = -aW / aD, b = (uLen - aW) / aD; tlo = max(tlo, min(a, b)); thi = min(thi, max(a, b)); }
   else if (aW < 0.0 || aW > uLen) discard;
-  if (D.y < -1e-5) thi = min(thi, (uFloorY - O.y) / D.y);
   float disc = c1 * c1 - c2 * c0;
   if (abs(c2) > 1e-6) {
     if (disc < 0.0) { if (c2 < 0.0) discard; }
@@ -109,9 +108,14 @@ void main(){
       else if (aD > 0.0) tlo = max(tlo, hi); else thi = min(thi, lo);
     }
   }
+  float tF = D.y < -1e-5 ? (uFloorY - O.y) / D.y : 1e9;
+  #ifdef FOOT
+  if (tF > thi + 0.012) discard;   // footprint proxy: only rays that reach the floor INSIDE the beam (the cone back-faces cover the rest)
+  #endif
+  thi = min(thi, tF);
   if (thi <= tlo) discard;
   float span = thi - tlo; int ns = int(clamp(span * 2.2, 3.0, float(STEPS)));
-  float dt = span / float(ns), j = ign(gl_FragCoord.xy + uSeed * 17.0);
+  float dt = span / float(ns), j = ign(gl_FragCoord.xy + uSeed * 17.0 + vec2(fract(uTime * 61.803) * 53.0, fract(uTime * 37.17) * 71.0)); // dither decorrelates across the 4 sub-frames (they differ in t)
   float acc = 0.0;
   for (int i = 0; i < STEPS; i++) {
     if (i >= ns) break;
@@ -145,11 +149,11 @@ function coneGeometry(T, seg = 40) { // apex at the origin, axis +Z, unit length
 }
 
 /** Volumetric spotlight cone. Returns { object (Group: add THIS), mesh, material, uniforms, update(t), set(p), setIntensity(k), setColor(c), pool, glow }.
- *  o: { from, to, color, angle=0.2, length, intensity=1, noise=1, steps=10, soft=0.55, falloff=1.1, streak=0.35, startFade=0.35, endFade=0, floorY=0,
+ *  o: { from, to, color, angle=0.2, length, intensity=1, noise=1, steps=5, soft=0.42, falloff=1.1, streak=0, startFade=0.35, endFade=0, floorY=0,
  *       gain=0.55, scale=1 (noise feature scale), seed=0, pool=true, glow=true, poolIntensity=0.5, glowSize=0.9 }
  *  The cone is a function of its mesh transform (apex+axis are read at render time) so you may also move/rotate beam.object directly. */
 export function createBeam(T, o = {}) {
-  const P = { angle: 0.2, intensity: 1, noise: 1, steps: 8, soft: 0.42, falloff: 1.1, streak: 0.3, startFade: 0.35, endFade: 0, floorY: 0, gain: 0.2, scale: 1, seed: 0, pool: true, glow: true, poolIntensity: 0.22, glowSize: 0.55, ...o };
+  const P = { angle: 0.2, intensity: 1, noise: 1, steps: 5, soft: 0.42, falloff: 1.1, streak: 0, startFade: 0.35, endFade: 0, floorY: 0, gain: 0.2, scale: 1, seed: 0, pool: true, glow: true, poolIntensity: 0.22, glowSize: 0.55, ...o };
   const from = toVec(T, o.from ?? [0, 7, 0]), to = toVec(T, o.to ?? [0, 0, 0]), color = toColor(T, o.color ?? '#ffe2b0');
   const dir = to.clone().sub(from), dist = dir.length(); dir.divideScalar(Math.max(dist, 1e-6));
   P.length = o.length ?? dist * 1.12;
@@ -161,11 +165,16 @@ export function createBeam(T, o = {}) {
   const mat = new T.ShaderMaterial({ uniforms: U, vertexShader: BEAM_VS, fragmentShader: BEAM_FS, defines: { STEPS: P.steps | 0 }, transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, side: T.BackSide, fog: false, toneMapped: false });
   const mesh = new T.Mesh(coneGeometry(T), mat); mesh.name = 'beam'; mesh.frustumCulled = false; mesh.renderOrder = 5; mesh.matrixAutoUpdate = true;
   const object = new T.Group(); object.name = 'beam-object'; object.add(mesh);
-  const _a = new T.Vector3(), _b = new T.Vector3(), _q = new T.Quaternion(), Z = new T.Vector3(0, 0, 1);
-  mesh.onBeforeRender = () => { // world apex + axis from the mesh transform (supports transformed parents / direct animation)
+  const _a = new T.Vector3(), _b = new T.Vector3(), Z = new T.Vector3(0, 0, 1);
+  const syncU = () => { // world apex + axis from the mesh transform (supports transformed parents / direct animation)
     const m = mesh.matrixWorld; _a.setFromMatrixPosition(m); U.uApex.value.copy(_a); _b.set(m.elements[8], m.elements[9], m.elements[10]).normalize(); U.uAxis.value.copy(_b);
     const h = Math.abs(_b.y) < 0.9 ? _a.set(0, 1, 0) : _a.set(1, 0, 0); U.uBu.value.crossVectors(_b, h).normalize(); U.uBv.value.crossVectors(_b, U.uBu.value);
   };
+  mesh.onBeforeRender = syncU;
+  // floor footprint proxy: the cone's back faces dip below the floor (depth-rejected), so rays that hit the floor INSIDE the beam are rasterised by this flat quad
+  // (same analytic shader). The two sets of pixels are disjoint, so nothing is counted twice.
+  const fmat = new T.ShaderMaterial({ uniforms: U, vertexShader: BEAM_VS, fragmentShader: BEAM_FS, defines: { STEPS: P.steps | 0, FOOT: 1 }, transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false, toneMapped: false });
+  const foot = new T.Mesh(new T.PlaneGeometry(1, 1), fmat); foot.rotation.order = 'YXZ'; foot.rotation.x = -Math.PI / 2; foot.renderOrder = 5; foot.frustumCulled = false; foot.name = 'beam-footprint'; foot.onBeforeRender = syncU; object.add(foot);
   let pool = null, glow = null;
   if (P.pool) {
     const pm = new T.ShaderMaterial({ uniforms: { uCol: { value: color.clone() }, uI: { value: P.poolIntensity * P.intensity }, uEdge: { value: 0.7 } }, vertexShader: FLAT_VS, fragmentShader: POOL_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
@@ -174,7 +183,7 @@ export function createBeam(T, o = {}) {
   if (P.glow) {
     glow = new T.Sprite(new T.SpriteMaterial({ map: glowTexture(T), color: color.clone().multiplyScalar(P.intensity * 0.9), blending: T.AdditiveBlending, depthWrite: false, depthTest: true, transparent: true, toneMapped: false, fog: false })); glow.scale.setScalar(P.glowSize); glow.renderOrder = 6; glow.name = 'beam-glow'; object.add(glow);
   }
-  const api = { object, mesh, material: mat, uniforms: U, pool, glow, params: P, color, from, to };
+  const api = { object, mesh, foot, material: mat, uniforms: U, pool, glow, params: P, color, from, to };
   api.set = (p = {}) => {
     if (p.from) toVec(T, p.from, api.from); if (p.to) toVec(T, p.to, api.to);
     if (p.angle != null) P.angle = p.angle; if (p.intensity != null) P.intensity = p.intensity;
@@ -182,6 +191,8 @@ export function createBeam(T, o = {}) {
     P.length = p.length ?? (p.from || p.to ? L * 1.12 : P.length);
     mesh.position.copy(api.from); mesh.quaternion.setFromUnitVectors(Z, d); const R = P.length * Math.tan(P.angle) * 1.06; mesh.scale.set(R, R, P.length); mesh.updateMatrix();
     U.uCos2.value = Math.cos(P.angle) ** 2; U.uTanA.value = Math.tan(P.angle); U.uLen.value = P.length;
+    U.uApex.value.copy(api.from); U.uAxis.value.copy(d);
+    { const ok = d.y < -0.02; foot.visible = ok; if (ok) { const t = (api.from.y - P.floorY) / -d.y, hx = api.from.x + d.x * t, hz = api.from.z + d.z * t, rr = t * Math.tan(P.angle), st = 1 / Math.max(0.3, -d.y); foot.position.set(hx, P.floorY + 0.003, hz); foot.rotation.y = Math.atan2(d.x, d.z); foot.scale.set(rr * 2 * 1.5 + 0.2, rr * 2 * st * 1.5 + 0.2, 1); } }
     if (p.color != null) { toColor(T, p.color, color); U.uColor.value.copy(color); }
     U.uInt.value = P.intensity;
     if (pool) { // floor footprint: ellipse stretched along the projected axis
@@ -607,7 +618,7 @@ export function createPanelFrame(T, o = {}) {
   const iw = P.w - 2 * P.border, ih = P.h - 2 * P.border, ir = Math.max(0.005, P.radius - P.border * 0.6);
   const outer = roundedRectShape(T, P.w, P.h, P.radius), holePath = roundedRectShape(T, iw, ih, ir); outer.holes.push(holePath);
   const fg = new T.ExtrudeGeometry(outer, { depth: P.depth, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2, curveSegments: 10 }); fg.translate(0, 0, -P.depth / 2);
-  const frame = new T.Mesh(fg, new T.MeshPhysicalMaterial({ color: P.color, roughness: 0.32, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 2.6 })); frame.name = 'panel-frame'; frame.castShadow = true; group.add(frame);
+  const frame = new T.Mesh(fg, new T.MeshPhysicalMaterial({ color: P.color, roughness: 0.32, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 2.6, emissive: toColor(T, P.edge).multiplyScalar(0.07) })); frame.name = 'panel-frame'; frame.castShadow = true; group.add(frame);
   // emissive lip (thin ring just inside the frame)
   const lip = roundedRectShape(T, iw + 0.012, ih + 0.012, ir + 0.006); lip.holes.push(roundedRectShape(T, iw - 0.004, ih - 0.004, Math.max(0.003, ir - 0.002)));
   const edge = new T.Mesh(new T.ShapeGeometry(lip, 10), new T.MeshBasicMaterial({ color: toColor(T, P.edge).multiplyScalar(P.edgeIntensity), toneMapped: false, fog: false })); edge.position.z = P.depth / 2 + 0.0095; edge.name = 'panel-edge'; group.add(edge);

@@ -41,17 +41,17 @@ def main():
     rows_sorted = sorted(rows, key=lambda r: r["t0"])
     nxt = {r["id"]: (rows_sorted[i + 1]["t0"] if i + 1 < len(rows_sorted) else None) for i, r in enumerate(rows_sorted)}
     bad = 0
+    recon = np.zeros_like(stem)
     if not args.no_asr:
         from analyze import asr_wer, VOCAB_PROMPT
         models = args.models.split(",")
     for r in rows:
         a, _ = dsp.read_wav(os.path.join(B, r["file"]))
         i0 = int(round(r["t0"] * SR))
-        # onset as seen in the STEM (measured on this line's own samples, all others are silent around it)
-        seg = stem[:, max(0, i0 - int(0.05 * SR)): i0 + int(0.05 * SR)]
-        first = dsp.onset_index(a, -40.0)  # dry+wet line: onset of the line file itself
-        stem_on = max(0, i0 - int(0.05 * SR)) + dsp.onset_index(seg, -40.0) if dsp.onset_index(seg, -40.0) >= 0 else -1
-        onset_err_ms = (stem_on - i0) / SR * 1000 if stem_on >= 0 else float("nan")
+        # onset: the first sample > -40 dBFS of the line file sits at index ~0; the stem has it at round(t0*SR)
+        first = dsp.onset_index(a, -40.0)
+        onset_err_ms = (first / SR) * 1000.0 if first >= 0 else float("nan")
+        recon[:, i0: i0 + a.shape[1]] += a[:, : max(0, min(a.shape[1], recon.shape[1] - i0))]
         tail = r["tailEnd"]
         checks = {
             "onset_err_ms": round(onset_err_ms, 3),
@@ -68,12 +68,18 @@ def main():
             r["asr"] = {}
             for i, m in enumerate(models):
                 prompt = VOCAB_PROMPT if True else None
-                res = asr_wer(os.path.join(B, r["file"]), r["text"], m, prompt=prompt)
-                res2 = asr_wer(os.path.join(B, r["file"]), r["text"], m, prompt=None) if i == 0 else None
+                lim = (r["end"] - r["t0"]) + 0.15
+                res = asr_wer(os.path.join(B, r["file"]), r["text"], m, prompt=prompt, limit_s=lim)
+                res2 = asr_wer(os.path.join(B, r["file"]), r["text"], m, prompt=None, limit_s=lim) if i == 0 else None
                 r["asr"][m] = {"hyp": res["hyp"], "wer": round(res["wer"], 4), "conf": round(res["conf"], 3)}
                 if res2:
                     r["asr"][m + "_noprompt"] = {"hyp": res2["hyp"], "wer": round(res2["wer"], 4), "conf": round(res2["conf"], 3)}
             r["wer"] = r["asr"][models[0]]["wer"]
+    stem_err = float(np.abs(stem - recon).max())
+    print(f"stem == sum of placed lines: max abs diff {stem_err:.2e} ({'OK' if stem_err < 1e-6 else 'MISMATCH'}); "
+          f"stem peak {dsp.db(np.abs(stem).max()):.2f} dBFS, {stem.shape[1] / SR:.3f} s, {stem.shape[0]} ch")
+    if stem_err >= 1e-6:
+        bad += 1
     json.dump(rows, open(os.path.join(B, "vo_lines.json"), "w"), indent=1)
     # ---- report
     print(f"{'id':9s} {'t0':>6s} {'onsetErr':>9s} {'end':>7s}/{'max':<6s} {'tail':>7s} {'peak':>6s} {'tp':>6s} {'LUFS':>6s}  WER  ASR")

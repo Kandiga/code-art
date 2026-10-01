@@ -59,7 +59,7 @@ def edit_distance(a, b):
 VOCAB_PROMPT = "Amrita Cinema Studio. Meet Amrita. Your story. Directed."
 
 
-def asr_wer(path, ref, model="base.en", beam=5, prompt=None):
+def asr_wer(path, ref, model="base.en", beam=5, prompt=None, limit_s=None):
     """Transcribe wav, return dict(hyp, wer, errors, nref, conf) (conf = mean word probability).
     prompt: optional Whisper initial_prompt (vocabulary hint, e.g. the brand name 'Amrita')."""
     import scipy.signal as ss
@@ -71,16 +71,21 @@ def asr_wer(path, ref, model="base.en", beam=5, prompt=None):
     segs, _ = m.transcribe(y, language="en", beam_size=beam, word_timestamps=True,
                            condition_on_previous_text=False, vad_filter=False, temperature=0.0,
                            initial_prompt=prompt)
-    words, probs, text = [], [], ""
+    words, probs, text, raw = [], [], "", ""
     for s in segs:
-        text += s.text
+        raw += s.text
         for w in (s.words or []):
+            # limit_s: only words that START inside the real audio count (Whisper likes to invent
+            # 'See you next time' in the silence padding / reverb tail after the last real word)
+            if limit_s is not None and w.start > 0.4 + limit_s:
+                continue
+            text += w.word
             probs.append(w.probability)
     hyp = norm(text)
     r = norm(ref)
     rw, hw = r.split(), hyp.split()
     err = edit_distance(rw, hw)
-    return {"hyp": text.strip(), "wer": err / max(1, len(rw)), "errors": err, "nref": len(rw),
+    return {"hyp": text.strip(), "raw": raw.strip(), "wer": err / max(1, len(rw)), "errors": err, "nref": len(rw),
             "conf": float(np.mean(probs)) if probs else 0.0, "minconf": float(np.min(probs)) if probs else 0.0}
 
 

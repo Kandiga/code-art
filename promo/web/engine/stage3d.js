@@ -17,7 +17,7 @@
 //   chair        director's chair: dark walnut frame, cream canvas seat/back (weave + sag + vermilion piping), brass fittings.
 //   table/clapper script-supervisor table with clapperboard (stage.clapper.setOpen(k)), 7" monitor with colour bars, script, mug, lamp.
 //   cases/grips/cables/tubes/marks   flight cases w/ alloy rails, C-stands + flags, floor cables, LED tubes, gaffer-tape spike marks.
-//   mist         two drifting ground-mist layers (premultiplied, camera-aware).
+//   mist         one drifting ground-mist layer (premultiplied, camera-aware; costs ~0.5 s at 1080p in software GL: opts.mist=false to drop it).
 //
 // ---- API additions (v0 names unchanged) -------------------------------------------------------------------------------------
 //   stage.update(t | T)            OPTIONAL per-frame call (pure fn of t): animates mist / fog wisps. Without it the haze is static.
@@ -35,6 +35,13 @@
 //   stage.floor / cyc / chair / lights / floorMat / cycMat are exactly the v0 handles (floorMat is a MeshPhysicalMaterial, transparent+premultiplied: leave it that way).
 //   module exports:  rigThreePoint(stage,{target,key,fill,rim})   spotPool(stage,{x,z,radius,color,intensity,...})   setLook(stage,name,opts)   blendLooks(T,a,b,k)
 //                    reflect(stage,obj,opts)   LOOKS   makeStudioEnv(THREE,renderer)   pxScale(renderer,camera)   noiseTexture(T)   radialTexture(T)
+// QUICKSTART (scene author):
+//   setup():   const stage = createStage(THREE, { S }); scene.add(stage.group); scene.background = new THREE.Color(stage.state.look.bg);
+//              const refl = stage.reflect(A.root);                       // Amrita (or any Object3D) mirrored in the floor
+//              const beams = stage.rig.beams({ sel: 'front', max: 3 });  // volumetric beams from the rig (already added to stage.group)
+//   update():  stage.update(T.t); beams.update(T.t);                      // time-driven haze / beams (pure functions of T.t)
+//              stage.lights.key / fill / rim / amb  ->  drive exactly as in v0;  stage.rig.set('back', { intensity: k })  to ignite fixtures
+//              stage.setLook('teal-orange') / stage.blendLook('neutral','teal-orange',k)  for the COLOR job;  stage.layout('showcase') pulls props in
 // Lights are physical (candela): key = SpotLight (the ONLY shadow caster), fill = PointLight, rim = SpotLight, amb = AmbientLight. Scenes keep driving them exactly as in v0.
 // Rendering contract: scene.background should be dark (the floor blends over it); keep floorMat.transparent=true. Per sub-frame cost: ~30 draw calls.
 // =============================================================================
@@ -96,7 +103,7 @@ vec3 stageHaze(vec3 col, vec3 P){
 }`;
 
 const FLOOR_VERT = /* glsl */`#include <project_vertex>\nvFloorW = (modelMatrix * vec4(transformed, 1.0)).xyz;`;
-const NLINE = 8;
+const NLINE = 7;
 const FLOOR_FRAG = /* glsl */`
 {
   vec3 Vv = normalize(vFloorW - cameraPosition);
@@ -106,15 +113,16 @@ const FLOOR_FRAG = /* glsl */`
   float rgh = clamp(material.roughness, 0.04, 1.0);
   vec3 refl = vec3(0.0);
   if (Rr.z < -0.02) { float s = (uWallZ - vFloorW.z) / Rr.z; vec3 hp = vFloorW + Rr * s; refl += cycEmit(hp.xy) * uCycRefl; }
+  vec2 rh = Rr.xz; float rl = max(length(rh), 1e-4);
   for (int i = 0; i < ${NLINE}; i++) {
-    vec3 A = uLA[i] - vFloorW, B = uLB[i] - vFloorW, d = B - A;
-    float dd = dot(d, d), rd = dot(Rr, d), den = dd - rd * rd;
-    float u = den > 1e-5 ? clamp((dot(Rr, A) * rd - dot(A, d)) / den, 0.0, 1.0) : 0.0;
-    vec3 Cp = A + d * u; float dist = max(length(Cp), 0.05);
-    float sinA = length(cross(Rr, Cp)) / dist;
-    float sig = 0.02 + rgh * 0.22 + uLR[i] / dist;
-    float lobe = exp(-(sinA * sinA) / (sig * sig)) * step(0.0, dot(Rr, Cp));
-    refl += uLC[i] * lobe * min(1.0, 0.045 / sig);
+    vec3 lc = uLC[i]; if (lc.x + lc.y + lc.z < 1e-4) continue;
+    vec2 hv = uLA[i].xz - vFloorW.xz; float hl = max(length(hv), 0.05);
+    float cr = (hv.x * rh.y - hv.y * rh.x) / (hl * rl);
+    float fw = step(0.0, dot(hv, rh));
+    float yh = Rr.y / rl * hl;
+    float sa = 0.025 + rgh * 0.2 + uLR[i] / hl, sy = 0.1 + rgh * 0.5;
+    float cov = smoothstep(uLA[i].y - sy, uLA[i].y + sy, yh) * (1.0 - smoothstep(uLB[i].y - sy, uLB[i].y + sy, yh));
+    refl += lc * exp(-cr * cr / (sa * sa)) * cov * fw * min(1.0, 0.045 / sa);
   }
   float brk = 0.8 + 0.36 * texture2D(uNoise, vFloorW.xz * vec2(0.9, 0.14)).g;
   outgoingLight += refl * min(Fr, 0.6) * brk * uReflK2;
@@ -310,15 +318,16 @@ export function createStage(THREE, env = {}, opts = {}) {
   const phys = (p) => { const m = new T.MeshPhysicalMaterial(p); if (envMap) m.envMap = envMap; return m; };
   const std = (p) => { const m = new T.MeshStandardMaterial(p); if (envMap) m.envMap = envMap; return m; };
   const floorTex = floorTexture(T);
-  const floorMat = new T.MeshPhysicalMaterial({ color: '#0d0d12', roughness: 0.46, metalness: 0.3, clearcoat: 0.32, clearcoatRoughness: 0.4, roughnessMap: floorTex, bumpMap: floorTex, bumpScale: 0.5 });
+  const floorMat = new T.MeshStandardMaterial({ color: '#0d0d12', roughness: 0.4, metalness: 0.35, roughnessMap: floorTex });
   floorMat.transparent = true; floorMat.depthWrite = true; floorMat.blending = T.CustomBlending; floorMat.blendSrc = T.OneFactor; floorMat.blendDst = T.OneMinusSrcAlphaFactor; floorMat.blendSrcAlpha = T.OneFactor; floorMat.blendDstAlpha = T.OneMinusSrcAlphaFactor;
   floorMat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, stageU, cycU, floorU);
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vFloorW;').replace('#include <project_vertex>', FLOOR_VERT);
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vFloorW;\nuniform vec3 uLA[${NLINE}], uLB[${NLINE}], uLC[${NLINE}]; uniform float uLR[${NLINE}]; uniform float uReflK, uReflK2, uCycRefl, uFloorR;\n${CYC_GLSL}`)
+      .replace('#include <lights_fragment_maps>', '/* IBL removed: the floor uses analytic reflections + stage.reflect() clones (PMREM lookups are very slow in software GL) */')
       .replace('#include <opaque_fragment>', FLOOR_FRAG);
   };
-  floorMat.customProgramCacheKey = () => 'stage3d-floor-v1';
+  floorMat.customProgramCacheKey = () => 'stage3d-floor-v2';
   const cycMat = new T.MeshStandardMaterial({ color: '#17161e', roughness: 0.94, metalness: 0 });
   cycMat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, stageU, cycU);
@@ -336,7 +345,7 @@ export function createStage(THREE, env = {}, opts = {}) {
   const woodMat = phys({ color: '#ffffff', vertexColors: true, roughness: 0.42, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.4, envMapIntensity: 0.8 });
   const brassMat = std({ color: '#d9a548', metalness: 1, roughness: 0.27, envMapIntensity: 1.1 });
   const weave = weaveTexture(T);
-  const canvasMat = phys({ color: '#ffffff', vertexColors: true, roughness: 0.9, metalness: 0, map: weave, bumpMap: weave, bumpScale: 0.2, side: T.DoubleSide, sheen: 0.5, sheenRoughness: 0.6, sheenColor: C('#fff1d0'), envMapIntensity: 0.5 });
+  const canvasMat = phys({ color: '#ffffff', vertexColors: true, roughness: 0.9, metalness: 0, map: weave, side: T.DoubleSide, sheen: 0.5, sheenRoughness: 0.6, sheenColor: C('#fff1d0'), envMapIntensity: 0.5 });
   const tapeMat = new T.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 0.62, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 
   // ------------------------------------------------------------ floor + cyc
@@ -363,7 +372,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(N, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(U, 2)); g.setIndex(I);
     g.computeBoundingSphere(); return g;
   })();
-  const cyc = new T.Mesh(cycGeo, cycMat); cyc.name = 'cyc'; cyc.receiveShadow = true; group.add(cyc);
+  const cyc = new T.Mesh(cycGeo, cycMat); cyc.name = 'cyc'; cyc.receiveShadow = false; group.add(cyc);
 
   // ------------------------------------------------------------ truss + fixtures
   const trussGroup = new T.Group(); trussGroup.name = 'truss'; group.add(trussGroup);
@@ -548,7 +557,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     const bar = (a, b, w, h, r) => kit.bar(wb, V3(...a), V3(...b), w, h, r, wood(), X);
     for (const sx of [-1, 1]) {
       const x = sx * 0.285;
-      bar([x, 0.015, 0.235], [x, 0.60, -0.235], 0.024, 0.046, 0.009); bar([x, 0.015, -0.235], [x, 0.60, 0.235], 0.024, 0.046, 0.009);
+      bar([x, 0.015, 0.235], [x, 0.60, -0.235], 0.034, 0.036, 0.013); bar([x, 0.015, -0.235], [x, 0.60, 0.235], 0.034, 0.036, 0.013);
       bar([x, 0.62, -0.27], [x, 0.62, 0.27], 0.03, 0.034, 0.01);
       bar([sx * 0.30, 0.62, 0.215], [sx * 0.30, 0.875, 0.215], 0.03, 0.03, 0.009);
       bar([sx * 0.30, 0.62, -0.245], [sx * 0.30, 1.19, -0.245], 0.03, 0.03, 0.009);
@@ -566,7 +575,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     for (let k = 0; k < 9; k++) { const x = -0.255 + k * 0.06375; for (const y of [0.953, 1.157]) kit.seg(bb, V3(x, y, -0.2685), V3(x, y, -0.2595), 0.0075, C('#ffffff'), 'cyl8'); }
     for (let k = 0; k < 7; k++) { const z = -0.215 + k * 0.0717; for (const x of [-0.262, 0.262]) kit.seg(bb, V3(x, 0.628, z), V3(x, 0.639, z), 0.0075, C('#ffffff'), 'cyl8'); }
     chair.add(Object.assign(new T.Mesh(wb.build(), woodMat), { name: 'chair-wood', castShadow: true }));
-    chair.add(Object.assign(new T.Mesh(cbld.build(), canvasMat), { name: 'chair-canvas', castShadow: true, receiveShadow: true }));
+    chair.add(Object.assign(new T.Mesh(cbld.build(), canvasMat), { name: 'chair-canvas', castShadow: true, receiveShadow: false }));
     chair.add(Object.assign(new T.Mesh(bb.build(), brassMat), { name: 'chair-brass' }));
   }
   group.add(chair);
@@ -600,7 +609,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     for (const y of [0.075, 0.125, 0.175]) cb.add(kit.prim.box, kit.compose(0, y, 0.0115, 0, 0, 0, bw * 0.92, 0.004, 0.001), chalk);
     cb.add(kit.prim.box, kit.compose(-0.06, 0.125, 0.0115, 0, 0, 0, 0.004, 0.1, 0.001), chalk); cb.add(kit.prim.box, kit.compose(0.07, 0.15, 0.0115, 0, 0, 0, 0.004, 0.05, 0.001), chalk);
     cb.add(kit.prim.box, kit.compose(0.1, 0.075, 0.0115, 0, 0, 0, 0.1, 0.03, 0.001), chalk.clone().multiplyScalar(0.55));
-    const stripes = (B, y0, hgt, x0, x1, n, flip, mat0) => { for (let k = 0; k < n; k += 2) { const w = (x1 - x0) / n, xa = x0 + k * w, g = kit.grid(1, 1, (u, v, o) => { o[0] = xa + u * w + (flip ? 1 : -1) * (v - 0.5) * hgt * 0.8; o[1] = y0 + v * hgt; o[2] = 0; }); B.add(g, mat0, chalk); g.dispose(); } };
+    const stripes = (B, y0, hgt, x0, x1, n, flip, mat0) => { for (let k = 0; k < n; k += 2) { const w = (x1 - x0) / n, xa = x0 + k * w, g = kit.grid(1, 1, (u, v, o) => { o[0] = xa + v * w + (flip ? 1 : -1) * (u - 0.5) * hgt * 0.8; o[1] = y0 + u * hgt; o[2] = 0; }); B.add(g, mat0, chalk); g.dispose(); } };
     cb.add(kit.rbox(bw, 0.034, 0.022, 0.004), kit.compose(0, bh + 0.03, 0), C('#101014')); stripes(cb, bh + 0.013, 0.034, -bw / 2 + 0.03, bw / 2 - 0.03, 10, true, kit.compose(0, 0, 0.0118));
     ab.add(kit.rbox(bw, 0.036, 0.022, 0.004), kit.compose(bw / 2, 0.018, 0), C('#101014')); stripes(ab, 0.0, 0.036, 0.03, bw - 0.03, 10, false, kit.compose(0, 0, 0.0118));
     const cm = phys({ color: '#ffffff', vertexColors: true, roughness: 0.5, metalness: 0, clearcoat: 0.2, envMapIntensity: 0.6 });
@@ -625,15 +634,15 @@ export function createStage(THREE, env = {}, opts = {}) {
   const mists = [];
   if (O.mist) {
     const mistU = { uTime: stageU.uTime, uNoise: stageU.uNoise, uColor: { value: new T.Color('#7c92c8') }, uCenter: { value: new T.Vector2(0, -1) }, uCenterCol: { value: new T.Color('#ffd7a0') } };
-    [[0.22, 0.9, 0.06], [0.7, 1.4, 0.045]].forEach(([y, scale, amt], i) => {
+    [[0.3, 0.9, 0.07]].forEach(([y, scale, amt], i) => {
       const mat = new T.ShaderMaterial({
         uniforms: { ...mistU, uAmt: { value: amt }, uH: { value: y }, uScale: { value: scale }, uSeed: { value: i } }, transparent: true, depthWrite: false, side: T.DoubleSide, fog: false, toneMapped: false,
         blending: T.CustomBlending, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, blendSrcAlpha: T.OneFactor, blendDstAlpha: T.OneMinusSrcAlphaFactor,
         vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
         fragmentShader: `precision highp float; varying vec3 vW; uniform sampler2D uNoise; uniform vec3 uColor, uCenterCol; uniform vec2 uCenter; uniform float uTime, uAmt, uH, uScale, uSeed;
           void main(){ vec2 p = vW.xz * 0.05 * uScale;
-            float n1 = texture2D(uNoise, p + vec2(uTime * 0.004, uTime * 0.0025) * uScale + uSeed * 0.37).r, n2 = texture2D(uNoise, p * 2.3 - vec2(uTime * 0.006, 0.0) + uSeed).g;
-            float d = smoothstep(0.36, 0.86, n1 * 0.62 + n2 * 0.38);
+            vec3 nz = texture2D(uNoise, p + vec2(uTime * 0.004, uTime * 0.0025) * uScale + uSeed * 0.37).rgb;
+            float d = smoothstep(0.36, 0.86, nz.r * 0.6 + nz.g * 0.4);
             float dc = distance(cameraPosition, vW), camF = smoothstep(1.2, 4.5, dc), yF = smoothstep(0.0, 0.45, abs(cameraPosition.y - uH));
             float edge = smoothstep(19.0, 8.0, length(vW.xz));
             float pool = exp(-dot(vW.xz - uCenter, vW.xz - uCenter) / 22.0);
@@ -691,7 +700,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     if (!tubeMesh) return;
     tubeDefs.forEach((t, k) => {
       const it = tubesApi.items[k], base = it.color || C(st.look ? st.look.tubes[k % 2] : '#7cc4ff');
-      it.lens.copy(base).multiplyScalar((t.kind === 'bulb' ? 3.2 : 1.5) * it.intensity * st.glowK); tubeMesh.setColorAt(k, it.lens);
+      it.lens.copy(base).multiplyScalar((t.kind === 'bulb' ? 3.2 : 1.3) * it.intensity * st.glowK); tubeMesh.setColorAt(k, it.lens);
     });
     tubeMesh.instanceColor.needsUpdate = true;
   }
@@ -699,14 +708,15 @@ export function createStage(THREE, env = {}, opts = {}) {
     const A = floorU.uLA.value, B = floorU.uLB.value, Cc = floorU.uLC.value, R = floorU.uLR.value; let n = 0;
     for (let k = 0; k < tubeDefs.length && n < NLINE; k++, n++) {
       const t = tubeDefs[k], it = tubesApi.items[k];
-      if (t.kind === 'bulb') { A[n].copy(LAMP).applyMatrix4(table.matrix); B[n].copy(A[n]); R[n] = 0.05; } else { A[n].copy(t.a); B[n].copy(t.b); R[n] = t.r * 1.5; }
-      Cc[n].set(it.lens.r * (t.kind === 'bulb' ? 0.3 : 0.6), it.lens.g * (t.kind === 'bulb' ? 0.3 : 0.6), it.lens.b * (t.kind === 'bulb' ? 0.3 : 0.6));
+      if (t.kind === 'bulb') { A[n].copy(LAMP).applyMatrix4(table.matrix); B[n].copy(A[n]); A[n].y -= 0.1; B[n].y += 0.1; R[n] = 0.05; } else { A[n].copy(t.a); B[n].copy(t.b); R[n] = t.r * 1.5; }
+      { const k = t.kind === 'bulb' ? 0.1 : 0.6; Cc[n].set(it.lens.r * k, it.lens.g * k, it.lens.b * k); }
     }
     for (; n < NLINE; n++) { Cc[n].set(0, 0, 0); A[n].set(0, -50, 0); B[n].set(0, -50, 0); }
   }
   function syncBound() {
     for (const b of st.bound) {
       const l = b.light, p = _v.copy(l.position), tg = l.target ? _v2.copy(l.target.position) : _v2.set(0, 0.5, 0);
+      const show = p.z > -8.6 && p.y > 2; b.group.visible = show; b.halo.visible = show; if (!show) { b.pipe.visible = false; continue; } // a light behind the cyc has no fixture on the set
       kit.aim(p, tg, _m4); b.group.matrix.copy(_m4); b.group.matrixWorldNeedsUpdate = true;
       const k = clamp(l.intensity / b.ref, 0, 3); _c.copy(l.color).multiplyScalar(0.05 + 2.8 * k * st.glowK); b.lens.material.color.copy(_c);
       b.pipe.visible = p.y < RIGY - 0.2 && p.y > 2; b.pipe.position.set(p.x, (p.y + RIGY) / 2, p.z); b.pipe.scale.set(0.012, RIGY - p.y, 0.012);
@@ -749,7 +759,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     THREE: T, group, floor, cyc, chair, lights, floorMat, cycMat, rig, tubes: tubesApi, table, clapper, cases: casesGroup, casesLeft: casesL, casesRight: casesR, truss: trussGroup, grips: gripsGroup, cables: cablesGroup, marks: marksGroup, marksList: marks, mists, envMap, options: O,
     uniforms: { stage: stageU, cyc: cycU, floor: floorU }, state: st, kit,
     update(tOrT) { const t = typeof tOrT === 'number' ? tOrT : tOrT.t; stageU.uTime.value = t; st.time = t; return api; },
-    setHaze(k) { st.hazeK = k; stageU.uHazeD.value = (O.fog ? 1 : 0) * (st.look ? st.look.hazeD : 0.05) * k; mists.forEach((m, i) => { m.material.uniforms.uAmt.value = [0.06, 0.045][i] * k * (st.look ? st.look.haze[1] * 2 : 1); }); return api; },
+    setHaze(k) { st.hazeK = k; stageU.uHazeD.value = (O.fog ? 1 : 0) * (st.look ? st.look.hazeD : 0.05) * k; mists.forEach((m, i) => { m.material.uniforms.uAmt.value = [0.07, 0.045][i] * k * (st.look ? st.look.haze[1] * 2 : 1); }); return api; },
     setGlow(k) { st.glowK = k; st.dirty = true; return api; },
     setLook(name, o) { return setLook(api, name, o); },
     /** blend two looks (names or look objects), k 0..1; pass {lights:true} to also recolour key/fill/rim/amb */

@@ -20,8 +20,8 @@ const T0 = 28;
 const SNAPS = Array.from({ length: 6 }, (_, k) => 0.25 + 0.125 * k);   // lt of the six panel_snap events (28.25 + 0.125k)
 const POP = 1.5;                                                        // lt of panel_pop_3d (29.5)
 const PW = 0.94, PH = 0.529, GAPX = 0.13, BORD = 0.045;                 // panel (picture) size, grid gap, frame border (m)
-const GRID = [1.0, 1.2, 0.3];                                          // grid centre
-const AM = [-1.35, 1.1, 0];                                              // Amrita's centre
+const GRID = [0.85, 1.2, 0.3];                                          // grid centre
+const AM = [-1.45, 1.1, 0];                                              // Amrita's centre
 const CELLS = Array.from({ length: 6 }, (_, k) => [GRID[0] + ((k % 3) - 1) * (PW + GAPX + 2 * BORD * 0.5), GRID[1] + (0.5 - Math.floor(k / 3)) * (PH + GAPX + 2 * BORD * 0.5), GRID[2]]);
 const LAYER_Z = [-0.22, -0.09, 0.04, 0.17];                             // parallax depths of the 4 cards once popped (m)
 const LAYER_SHADE = [0.42, 0.62, 0.82, 1.0];                            // atmospheric dimming of far cards once popped
@@ -189,7 +189,6 @@ export default {
   id: 'job_storyboard', kind: '3d', ratio: 2.39,
   setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#03050a'); scene.fog = new THREE.FogExp2('#080c14', 0.024);
-    const DB = globalThis.__dbg || {};
     const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'neutral', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false }); scene.add(stage.group);
     if (stage.setLook) stage.setLook('neutral', { intensity: 0.7 });
     scene.environment = makeEnv(THREE, renderer, [
@@ -199,13 +198,13 @@ export default {
     scene.environmentIntensity = 0.3;
     // perf: unlit baked backdrop instead of the PBR cyc; no shadow maps (blob decal below); drop the weak stage fill light
     stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
-    if (!DB.libCyc) { stage.cyc.visible = false; scene.add(makeBackdrop(THREE, S, [
+    stage.cyc.visible = false; scene.add(makeBackdrop(THREE, S, [
       { x: -2.5, y: 3.6, rx: 6, ry: 3.4, color: '110,150,230', a: 0.2 }, { x: 2.5, y: 2.6, rx: 5.5, ry: 3.0, color: '140,170,240', a: 0.12 },
       { x: 6.5, y: 2.8, rx: 4.5, ry: 3.2, color: '255,150,60', a: 0.16 }, { x: 0.5, y: 0.4, rx: 12, ry: 0.9, color: '110,120,160', a: 0.1 },
-    ], { base: ['#04060b', '#090d16'] })); }
+    ], { base: ['#04060b', '#090d16'] }));
     const camera = new THREE.PerspectiveCamera(lensFov(35), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
-    if (stage.reflect && !DB.noReflect) stage.reflect(A.root, { strength: 0.8 }); A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    if (stage.reflect) stage.reflect(A.root, { strength: 0.8 }); A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(0.82, 0.12, 0.45); stylus.group.rotation.z = -0.9;
     const glowTex = radialTexture(THREE, S);
     const sprite = (col, sx, sy, op = 1) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: new THREE.Color(...col), transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); m.scale.set(sx, sy, 1); m.renderOrder = 4; return m; };
@@ -258,7 +257,7 @@ export default {
       const c = p.cell, t = T0 + SNAPS[k];
       bursts.push({ t, pos: [c[0], c[1] - 0.2, c[2] + 0.12], n: 16, speed: [0.4, 2.2], life: [0.3, 0.7], dir: [0, 0.2, 1], spread: 0.85, size: [0.012, 0.028], color: k % 2 ? warm : cool, seed: k + 1 });
       rings.push({ t, pos: [c[0], c[1], c[2] + 0.04], r0: 0.08, r1: 0.78, dur: 0.2, color: [0.9, 1.15, 1.5], width: 0.05 });
-      bursts.push({ t: T0 + POP + 0.025 * k, pos: [c[0], c[1], c[2] + 0.1], n: 26, speed: [0.8, 3.4], life: [0.4, 1.0], dir: [0, 0, 1], spread: 0.95, size: [0.014, 0.034], color: k % 2 ? cool : warm, seed: 50 + k });
+      bursts.push({ t: T0 + POP + 0.025 * k, pos: [c[0], c[1], c[2] + 0.1], n: 14, speed: [0.8, 3.4], life: [0.4, 0.9], dir: [0, 0, 1], spread: 0.95, size: [0.012, 0.026], color: (k % 2 ? cool : warm).map((v) => v * 0.7), seed: 50 + k });
     });
     rings.push({ t: T0 + POP, pos: [GRID[0], GRID[1], GRID[2] + 0.2], r0: 0.4, r1: 2.8, dur: 0.34, color: [0.7, 0.85, 1.1], width: 0.03 });
     const sparks = makeSparks(THREE, bursts); scene.add(sparks);
@@ -270,11 +269,8 @@ export default {
 
   update(st, T, S) {
     const { THREE, camera, A, panels, tmp, stage } = st;
-    const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
-    st.scene.visible = !D.empty;
-    st.poolGrid.visible = st.poolAm.visible = st.blob.visible = !D.noPools; A.root.visible = !D.noAmrita; st.panels.forEach((p) => { if (D.noPanels) p.g.visible = false; });
-    st.beamKey.visible = st.beamRim.visible = !D.noBeams; st.dustA.visible = st.dustB.visible = !D.noDust; st.bulbs.visible = !D.noBulbs; st.sparks.visible = !D.noSparks;
-    const popK = lt >= POP ? Math.exp(-(lt - POP) / 0.16) : 0;
+    const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact);
+    const popK = lt >= POP ? Math.exp(-(lt - POP) / 0.12) : 0;
     const nSnap = SNAPS.reduce((n, s) => n + (lt >= s ? 1 : 0), 0), lastSnap = nSnap ? SNAPS[nSnap - 1] : -1;
 
     // ---------------- camera: constant-speed dolly-in (35 mm) + a lateral swoop on the pop so the diorama layers parallax
@@ -320,8 +316,8 @@ export default {
       const Dp = 0.012 + 0.5 * ep; p.frame.scale.z = Dp;
       p.layers.forEach((m, i) => { m.position.z = LAYER_Z[i] * 1.2 * ep + 0.0016 * i; m.material.color.setScalar(lerp(1, LAYER_SHADE[i], smooth(pp))); m.material.emissiveIntensity = 0.22 * lerp(1, 0.8, smooth(pp)) + 0.7 * pPop * (0.4 + 0.2 * i) + 0.9 * bump; });
       p.frameMat.emissiveIntensity = 1.5 * bump + 1.3 * pPop + (pp > 0 ? 0.05 : 0);
-      p.lip.position.z = 0.4 * Dp + 0.002; p.lipMat.color.setRGB(2.2, 1.35, 0.4).multiplyScalar(0.55 + 0.9 * bump + 1.0 * pPop + 0.25 * ep);
-      p.halo.visible = true; p.halo.material.opacity = clamp((a >= 0 ? 0.07 : 0) + 0.5 * bump + 0.6 * pPop + 0.08 * ep, 0, 1);
+      p.lip.position.z = 0.4 * Dp + 0.002; p.lipMat.color.setRGB(2.2, 1.35, 0.4).multiplyScalar(0.55 + 0.9 * bump + 0.6 * pPop + 0.25 * ep);
+      p.halo.visible = true; p.halo.material.opacity = clamp((a >= 0 ? 0.06 : 0) + 0.45 * bump + 0.35 * pPop + 0.05 * ep, 0, 1);
       flash += bump * 0.5 + pPop * 0.6;
     });
 
@@ -344,7 +340,6 @@ export default {
     st.beamKey.material.uniforms.uTime.value = t; st.beamRim.material.uniforms.uTime.value = t; st.ringsG.userData.update(t, camera);
 
     const fp = tmp.v.set(lerp(AM[0], GRID[0], 0.45), 1.15, lerp(AM[2], GRID[2], 0.85));
-    if (D.noDof) return { dof: { enabled: false }, bloom: { strength: D.noBloom ? 0 : 0.34, radius: 0.5, threshold: 1.15 } };
-    return { dof: { focus: camera.position.distanceTo(fp), strength: 0.6, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.2 * imp + 0.3 * popK + 0.06 * Math.min(1, flash), radius: 0.5, threshold: 1.15 } };
+    return { dof: { focus: camera.position.distanceTo(fp), strength: 0.6, maxPx: 13, bokeh: 1.4 }, bloom: { strength: 0.34 + 0.2 * imp + 0.3 * popK + 0.06 * Math.min(1, flash), radius: 0.5, threshold: 1.15 } };
   },
 };

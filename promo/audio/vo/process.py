@@ -107,6 +107,13 @@ def narrator_chain(y, cfg, spec, seed_base):
                        detect="rms")
     sat = c["sat"]
     y = dsp.tape_saturate(y, sat["drive"], sat["bias"], sat["wet"])
+    if c.get("air_db") is not None:
+        y = dsp.air_exciter(y, c["air_db"])
+    if spec.get("depth_db") is not None:
+        # "depth": octave-down copy (formants shifted down too = bigger body), low-passed 700 Hz -> chest weight
+        sub = dsp.ffmpeg_filter(y, SR, "rubberband=pitch=0.5:formant=shifted:transients=smooth:pitchq=quality")[0][: len(y)]
+        sub = dsp.hpf(dsp.lpf(sub, 700.0, 4), 60.0, 2)
+        y = y + np.pad(sub, (0, len(y) - len(sub))) * dsp.lin(float(spec["depth_db"]))
     hush = float(spec.get("hush", 0.0))
     if hush > 0:
         y = y + dsp.whisper_layer(y, seed=seed_base + 5) * hush
@@ -227,6 +234,32 @@ def lead_in(x, n):
     return x
 
 
+def apply_gaps(y, sr, words, gaps):
+    """'A beat of air': insert silence (ms) after a given word, centred in the natural inter-word space
+    (20 ms cosine crossfades). Word times after the cut are shifted. -> (y, words)."""
+    words = [dict(w) for w in words]
+    for g in sorted(gaps or [], key=lambda g: -find_word_idx(words, g["after"], g.get("nth", 0))):
+        i = find_word_idx(words, g["after"], g.get("nth", 0))
+        t_cut = 0.5 * (words[i]["t1"] + words[i + 1]["t0"]) if i + 1 < len(words) else words[i]["t1"]
+        n = int(round(g["ms"] * 1e-3 * sr))
+        c = int(round(t_cut * sr))
+        x = max(1, int(0.01 * sr))
+        left, right = y[:c].copy(), y[c:].copy()
+        left[-x:] *= np.linspace(1, 0, x) ** 0.5
+        right[:x] *= np.linspace(0, 1, x) ** 0.5
+        y = np.concatenate([left, np.zeros(n), right])
+        for w in words[i + 1:]:
+            w["t0"] += g["ms"] * 1e-3
+            w["t1"] += g["ms"] * 1e-3
+    return y, words
+
+
+def find_word_idx(words, key, nth=0):
+    k = "".join(ch for ch in key.lower() if ch.isalnum() or ch == "'")
+    hits = [i for i, w in enumerate(words) if "".join(ch for ch in w["w"].lower() if ch.isalnum() or ch == "'") == k]
+    return hits[nth]
+
+
 def render_line(cue, role, spec, D, next_t0, use_cache=True, log=print):
     vcfg = D["voices"][spec.get("voice", role)]
     cfg = D
@@ -238,6 +271,8 @@ def render_line(cue, role, spec, D, next_t0, use_cache=True, log=print):
     hist = []
     for attempt in range(8):
         y22, sr22, words, path = get_take(cue["id"], vcfg, spec, ls_mul, use_cache)
+        if spec.get("gaps"):
+            y22, words = apply_gaps(y22, sr22, words, spec["gaps"])
         # --- narrator timbre/register: Praat "Change gender" (formant ratio, median F0, intonation range)
         sh = dict(vcfg.get("shape", {}))
         sh.update(spec.get("shape", {}))
@@ -408,7 +443,8 @@ def render_all(args):
             row["diegetic"] = True
         rows.append(row)
         print(f"{cue['id']:8s} onset {cue['t0']:.3f} end {row['end']:.3f} (max {cue['maxEnd']}) lufs {row['lufs']} "
-              f"peak {row['peakDb']} tp {row['truePeakDb']} ls*{res['ls_mul']:.3f} tempo {res['tempo']:.3f}", flush=True)
+              f"peak {row['peakDb']} tp {row['truePeakDb']} ls*{res['ls_mul']:.3f} tempo {res['tempo']:.3f}"
+              + (f"  fit:{res['fit_history']}" if len(res['fit_history']) > 1 else ""), flush=True)
     if not only:
         dsp.write_wav_f32(os.path.join(out_dir, "stems", "vo.wav"), stem)
         json.dump(rows, open(os.path.join(out_dir, "vo_lines.json"), "w"), indent=1)

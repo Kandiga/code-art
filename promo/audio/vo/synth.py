@@ -14,6 +14,7 @@ Extra direction tools added on top of stock Piper (all optional):
   * word-level alignment (the graph's w_ceil tensor is exposed) -> every take gets exact word timings;
   * inline markup in text:  army{1.35}   (all phonemes of that word x1.35 longer)
                             army{v1.6}   (vowels only)      army{v1.6c1.1}  (vowels 1.6, consonants 1.1)
+                            Meet{p0.8}, (the punctuation pause after the word x0.8)   {s..} = inter-word space
 Usage (JSON in, JSON out; see piper.mjs):
     python synth.py jobs.json            # jobs.json = {"jobs":[ {...}, ... ]}
 job = {
@@ -128,15 +129,20 @@ def _parse_markup(text):
         if m:
             spec = m.group(1).strip()
             v = c = None
+            sa = pm = 1.0
             mm = re.fullmatch(r"([0-9.]+)", spec)
             if mm:
                 v = c = float(mm.group(1))
             else:
                 mv = re.search(r"v([0-9.]+)", spec)
                 mc = re.search(r"c([0-9.]+)", spec)
+                ms = re.search(r"s([0-9.]+)", spec)
                 v = float(mv.group(1)) if mv else 1.0
                 c = float(mc.group(1)) if mc else 1.0
-            marks[widx] = (v, c)
+                sa = float(ms.group(1)) if ms else 1.0
+                mp = re.search(r"p([0-9.]+)", spec)
+                pm = float(mp.group(1)) if mp else 1.0
+            marks[widx] = (v, c, sa, pm)
         plain += (" " if plain else "") + base
         widx += 1
     return plain, marks
@@ -184,10 +190,21 @@ def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentenc
                             dms[si][ii] = space_mult
     for wi, sp in enumerate(spans):
         if wi in marks:
-            v, c = marks[wi]
+            v, c, sa, pm = marks[wi]
+            if sa != 1.0 and sp:  # pause AFTER this word: scale the next inter-word space token
+                si, k = sp[-1]
+                j = k + 1
+                while j < len(sents[si]) and sents[si][j] in _PUNCT:
+                    j += 1
+                if j < len(sents[si]) and sents[si][j] == " ":
+                    for ii in (2 + 2 * j, 3 + 2 * j):
+                        if ii < len(dms[si]):
+                            dms[si][ii] = sa
             for si, k in sp:
                 ph = sents[si][k]
-                if ph in _PUNCT:
+                if ph in _PUNCT:  # punctuation tokens carry the pause: p<mult> scales it
+                    for ii in (2 + 2 * k, 3 + 2 * k):
+                        dms[si][ii] = pm
                     continue
                 mult = v if (ph[0] in _VOWELS or ph == "ː") else c
                 for ii in (2 + 2 * k, 3 + 2 * k):
@@ -196,7 +213,7 @@ def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentenc
     sent_audio = []
     for si, ph in enumerate(sents):
         if not ph:
-            sent_audio.append((np.zeros(0, np.float32), np.zeros(1, np.int64)))
+            sent_audio.append((np.zeros(0, np.float32), np.zeros(1, np.int64), 0))
             continue
         ids = pv.phonemes_to_ids(ph)
         args = {
@@ -211,11 +228,18 @@ def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentenc
         audio = res[0].squeeze().astype(np.float32)
         samples = (res[1].squeeze() * hop).astype(np.int64)
         csum = np.concatenate([[0], np.cumsum(samples)])
-        sent_audio.append((audio, csum))
+        # trim Piper's per-sentence padding (30-250 ms of silence) so pauses are exactly what the direction says
+        lo = 0
+        if len(audio):
+            idx = np.nonzero(np.abs(audio) > np.abs(audio).max() * 10 ** (-48 / 20))[0]
+            m = int(0.006 * sr)
+            lo, hi = max(0, int(idx[0]) - m), min(len(audio), int(idx[-1]) + 1 + m)
+            audio = audio[lo:hi]
+        sent_audio.append((audio, csum, lo))
     # sentence start offsets in the concatenated output
     offs, cur = [], 0
     gapn = int(round(sentence_silence * sr))
-    for si, (a, _) in enumerate(sent_audio):
+    for si, (a, _, _) in enumerate(sent_audio):
         offs.append(cur)
         cur += len(a) + (gapn if si < len(sent_audio) - 1 else 0)
     for wi, sp in enumerate(spans):
@@ -223,13 +247,12 @@ def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentenc
         if not sp2:
             continue
         si = sp2[0][0]
-        audio, csum = sent_audio[si]
-        scale = len(audio) / max(1, csum[-1])
+        audio, csum, lo = sent_audio[si]
         ks = [k for s_, k in sp2 if s_ == si]
-        a = csum[2 + 2 * ks[0]] * scale
-        b = csum[min(len(csum) - 1, 3 + 2 * ks[-1])] * scale
+        a = csum[2 + 2 * ks[0]] - lo
+        b = csum[min(len(csum) - 1, 3 + 2 * ks[-1])] - lo
         words.append({"w": words_txt[wi], "t0": (offs[si] + a) / sr, "t1": (offs[si] + b) / sr})
-    for si, (a, _) in enumerate(sent_audio):
+    for si, (a, _, _) in enumerate(sent_audio):
         out.append(a)
         if gapn and si < len(sent_audio) - 1:
             out.append(np.zeros(gapn, np.float32))
@@ -250,6 +273,17 @@ def run_job(job):
         a, w = synth_segment(pv, s["text"], int(s.get("speaker", spk)), float(s.get("length_scale", 1.0)),
                              float(s.get("noise_scale", 0.667)), float(s.get("noise_w", 0.8)),
                              float(s.get("sentence_silence", 0.0)), float(s.get("space_mult", 1.0)))
+        # Piper pads every phrase with 30-250 ms of silence: trim it (-48 dB re peak, 6 ms margins) so that
+        # `gap_after` is the TRUE pause between phrases and the line starts/ends exactly on speech.
+        if len(a):
+            thr = np.abs(a).max() * 10 ** (-48 / 20)
+            idx = np.nonzero(np.abs(a) > thr)[0]
+            m = int(0.006 * sr)
+            lo, hi = max(0, idx[0] - m), min(len(a), idx[-1] + 1 + m)
+            a = a[lo:hi]
+            for x in w:
+                x["t0"] -= lo / sr
+                x["t1"] -= lo / sr
         for x in w:
             words.append({"w": x["w"], "t0": pos / sr + x["t0"], "t1": pos / sr + x["t1"], "seg": i})
         out.append(a)

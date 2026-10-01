@@ -240,7 +240,7 @@ export function makeBackdrop(THREE, S, glows, { base = ['#05060a', '#0a0c14'] } 
 // ---- stage factory: the shared soundstage (stage3d.js). If the library is unavailable/mid-upgrade, fall back to a minimal local set
 // with the same fields (floor, cyc, chair, lights{key,fill,rim,amb}) so the shot still renders.
 export function buildStage(THREE, env, opts = {}) {
-  try { if ((globalThis.__dbg || {}).fallbackStage) throw new Error('forced'); return createStage(THREE, env, opts); } catch (e) { (env.S && env.S.warn) && env.S.warn('stage3d fallback: ' + e.message); }
+  try { return createStage(THREE, env, opts); } catch (e) { (env.S && env.S.warn) && env.S.warn('stage3d fallback: ' + e.message); }
   const group = new THREE.Group(), size = 40;
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshStandardMaterial({ color: '#15141a', roughness: 0.3, metalness: 0.3 })); floor.rotation.x = -Math.PI / 2; group.add(floor);
   const cyc = new THREE.Mesh(new THREE.PlaneGeometry(size, 12), new THREE.MeshStandardMaterial({ color: '#1c1b24', roughness: 0.95 })); cyc.position.set(0, 6, -9); group.add(cyc);
@@ -337,9 +337,8 @@ function buildBooklet(THREE, S) {
 
 export default {
   id: 'job_script', kind: '3d', ratio: 2.39,
-  async setup({ THREE, S, renderer }) {
+  setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#040306'); scene.fog = new THREE.FogExp2('#0b0a12', 0.024);
-    const DB = globalThis.__dbg || {};
     const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'warm', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false }); scene.add(stage.group);
     if (stage.setLook) stage.setLook('warm', { intensity: 0.8 });
     scene.environment = makeEnv(THREE, renderer, [
@@ -349,13 +348,13 @@ export default {
     scene.environmentIntensity = 0.5;
     // perf: unlit baked backdrop instead of the PBR cyc; no shadow maps (blob decal below); drop the weak stage fill light
     stage.lights.key.castShadow = false; stage.floor.receiveShadow = false; stage.cyc.receiveShadow = false; stage.lights.fill.visible = false;
-    if (!DB.libCyc) { stage.cyc.visible = false; scene.add(makeBackdrop(THREE, S, [
+    stage.cyc.visible = false; scene.add(makeBackdrop(THREE, S, [
       { x: -3.0, y: 3.4, rx: 7, ry: 3.4, color: '255,160,64', a: 0.2 }, { x: -6.5, y: 5.0, rx: 4, ry: 3, color: '255,190,110', a: 0.1 },
       { x: 5.5, y: 2.6, rx: 5, ry: 3.2, color: '80,120,200', a: 0.2 }, { x: 0.5, y: 0.4, rx: 12, ry: 0.9, color: '110,100,140', a: 0.1 },
-    ])); }
+    ]));
     const camera = new THREE.PerspectiveCamera(lensFov(45), 2.39, 0.1, 80);
     const A = createAmrita(THREE); A.root.position.set(...AM); scene.add(A.root);
-    if (stage.reflect && !DB.noReflect) stage.reflect(A.root, { strength: 0.8 });
+    if (stage.reflect) stage.reflect(A.root, { strength: 0.8 });
     A.root.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
     const stylus = makeStylus(THREE); A.root.add(stylus.group); stylus.group.position.set(-0.7, -0.45, 0.6); stylus.group.rotation.z = 0.6;
@@ -392,8 +391,6 @@ export default {
     // ---- light cones + dust
     const beamKey = makeBeam(THREE, { color: '#ffcf8c', length: 11, radius: 1.2, intensity: 0.15, power: 1.5 }); scene.add(beamKey);
     beamKey.userData.aim(new THREE.Vector3(-4.2, 7.0, 3.4), new THREE.Vector3(-0.1, 1.5, 0.4), 11);
-    let libKey = null, libRim = null;
-    if (DB.libBeam) { const FX = await import('../fx3d.js'); libKey = FX.createBeam(THREE, { from: [-4.2, 7.0, 3.4], to: [-0.1, 1.5, 0.4], color: '#ffcf8c', angle: 0.17, intensity: DB.libI ?? 1.0 }); scene.add(libKey.object); libRim = FX.createBeam(THREE, { from: [4.6, 6.4, -4.6], to: [1.0, 0.9, 0], color: '#8fc8ff', angle: 0.13, intensity: DB.libI ?? 1.0 }); scene.add(libRim.object); }
     const beamRim = makeBeam(THREE, { color: '#8fc8ff', length: 12, radius: 1.5, intensity: 0.17, power: 1.6 }); scene.add(beamRim);
     beamRim.userData.aim(new THREE.Vector3(4.6, 6.4, -4.6), new THREE.Vector3(1.0, 0.9, 0), 12);
     const dustA = makeDust(THREE, { count: 340, center: [0, 2.2, 0.5], size: [9, 5, 6], color: '#ffe0a8', psize: 0.02, intensity: 1.2, seed: 3 }); dustA.userData.setBeam(new THREE.Vector3(-4.2, 7.0, 3.4), beamKey.userData.dir, 0.14); scene.add(dustA);
@@ -442,15 +439,12 @@ export default {
     const ringsG = makeRings(THREE, rings); scene.add(ringsG);
 
     const tmp = { v: new THREE.Vector3(), v2: new THREE.Vector3(), c: new THREE.Color(), q: new THREE.Quaternion(), e: new THREE.Euler() };
-    return { scene, camera, stage, A, THREE, libKey, libRim, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
+    return { scene, camera, stage, A, THREE, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
   },
 
   update(st, T, S) {
     const { THREE, camera, A, words, book, tmp, stage } = st;
-    const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
-    st.scene.visible = !D.empty;
-    st.poolWords.visible = st.poolAm.visible = st.poolBook.visible = st.blob.visible = !D.noPools; st.ghostHalo.visible = !D.noPools; st.stylus.group.visible = !D.noProps; A.root.visible = !D.noAmrita; book.root.visible = !D.noBook;
-    st.beamKey.visible = st.beamRim.visible = !D.noBeams && !st.libKey; if (st.libKey) { st.libKey.object.visible = st.libRim.object.visible = !D.noBeams; st.libKey.update(t); st.libRim.update(t); } st.dustA.visible = st.dustB.visible = !D.noDust; st.bulbs.visible = !D.noBulbs; st.sparks.visible = !D.noSparks;
+    const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact);
     const snapP = lt >= SNAP ? Math.exp(-(lt - SNAP) / 0.09) : 0;
     const kIdx = Math.min(7, Math.floor(lt / 0.125)), kAge = Math.max(0, lt - 0.125 * kIdx);
     const typedN = KEYS.reduce((n, k) => n + (lt >= k ? 1 : 0), 0);
@@ -565,7 +559,6 @@ export default {
     const f = smooth(seg(lt, 0.97, 1.12)), f2 = smooth(seg(lt, 1.52, 1.85));
     const mx = lerp(AM[0], REST[0], 0.5), my = lerp(AM[1], REST[1], 0.5), mz = lerp(AM[2], REST[2], 0.5);
     const fx = lerp(lerp(AM[0], ASM[0], f), mx, f2), fy = lerp(lerp(AM[1], ASM[1], f), my, f2), fz = lerp(lerp(AM[2], ASM[2], f), mz, f2);
-    if (D.noDof) return { dof: { enabled: false }, bloom: { strength: D.noBloom ? 0 : 0.34, radius: 0.5, threshold: 1.15 } };
-    return { dof: { focus: camera.position.distanceTo(tmp.v.set(fx, fy, fz)), strength: 0.65, maxPx: 13, bokeh: 1.4 }, bloom: { strength: D.noBloom ? 0 : 0.34 + 0.2 * imp + 0.32 * snapP, radius: 0.5, threshold: 1.15 } };
+    return { dof: { focus: camera.position.distanceTo(tmp.v.set(fx, fy, fz)), strength: 0.65, maxPx: 13, bokeh: 1.4 }, bloom: { strength: 0.34 + 0.2 * imp + 0.32 * snapP, radius: 0.5, threshold: 1.15 } };
   },
 };

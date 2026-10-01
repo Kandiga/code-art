@@ -8,6 +8,7 @@
 // Value design is for the SEPIA grade (applied after we draw): dark sky / bright moon / mid velvet / gold.
 // =============================================================================
 import { hash, noise1 } from '../rng.js';
+import { wobble, resample } from '../pencil.js';
 import { clamp, lerp, smooth, smoother, outCubic, outBack, inOutCubic, spring } from '../ease.js';
 
 const TAU = Math.PI * 2;
@@ -42,16 +43,14 @@ export const blit = (ctx, c) => ctx.drawImage(c, 0, 0, 1920, 1080);
 
 // quick pencil hatch of a bbox (caller sets the clip). dashes + seeded jitter, boils with `boil`.
 export function hatchBox(ctx, bx, { angle = -0.8, gap = 8, color = '#000', width = 1.2, alpha = 0.5, seed = 1, boil = 0, jit = 1.4, comp = 'multiply', dash = 60, keep = 0.85 } = {}) {
-  // lines are generated only where they cross the bbox (offset range from the corner projections, t-range from a slab clip)
+  // lines are generated only where they cross the bbox; dashes are batched into 3 alpha buckets (3 strokes instead of hundreds)
   const c = Math.cos(angle), s = Math.sin(angle), nx = -s, ny = c;
   const x0 = bx.x, x1 = bx.x + bx.w, y0 = bx.y, y1 = bx.y + bx.h;
   const pr = [x0 * nx + y0 * ny, x1 * nx + y0 * ny, x0 * nx + y1 * ny, x1 * nx + y1 * ny];
-  const o0 = Math.min(...pr), o1 = Math.max(...pr), n = Math.ceil((o1 - o0) / gap);
-  ctx.save(); ctx.globalCompositeOperation = comp; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
-  const i0 = Math.floor(o0 / gap);
+  const o0 = Math.min(...pr), o1 = Math.max(...pr), n = Math.ceil((o1 - o0) / gap), i0 = Math.floor(o0 / gap);
+  const B3 = [new Path2D(), new Path2D(), new Path2D()], A3 = [0.62, 0.78, 0.93];
   for (let ii = 0; ii < n; ii++) {
     const i = i0 + ii, off = o0 + ii * gap + (hash(i, seed) - 0.5) * gap * 0.6;
-    // slab clip of the line p(t) = off*n + t*d against the bbox
     let ta = -1e9, tb = 1e9;
     if (Math.abs(c) > 1e-6) { const u = (x0 - off * nx) / c, v = (x1 - off * nx) / c; ta = Math.max(ta, Math.min(u, v)); tb = Math.min(tb, Math.max(u, v)); }
     else if (off * nx < x0 || off * nx > x1) continue;
@@ -62,14 +61,31 @@ export function hatchBox(ctx, bx, { angle = -0.8, gap = 8, color = '#000', width
     while (t < tb && k < 24) {
       const len = dash * (0.5 + hash(i, k, seed + 3) * 1.2), t1 = Math.min(tb, t + len);
       if (hash(i, k, seed + 9) < keep) {
-        const j = noise1(i * 0.7 + k, seed + boil * 5) * jit;
-        ctx.globalAlpha = alpha * (0.55 + 0.45 * hash(i, k, seed + 7));
-        ctx.beginPath();
-        ctx.moveTo(off * nx + c * t + nx * j, off * ny + s * t + ny * j);
-        ctx.lineTo(off * nx + c * t1 - nx * j, off * ny + s * t1 - ny * j);
-        ctx.stroke();
+        const j = noise1(i * 0.7 + k, seed + boil * 5) * jit, h7 = hash(i, k, seed + 7), P3 = B3[h7 < 0.33 ? 0 : h7 < 0.66 ? 1 : 2];
+        P3.moveTo(off * nx + c * t + nx * j, off * ny + s * t + ny * j);
+        P3.lineTo(off * nx + c * t1 - nx * j, off * ny + s * t1 - ny * j);
       }
       t = t1 + gap * (0.3 + hash(i, k, seed + 13)); k++;
+    }
+  }
+  ctx.save(); ctx.globalCompositeOperation = comp; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
+  for (let q = 0; q < 3; q++) { ctx.globalAlpha = alpha * A3[q]; ctx.stroke(B3[q]); }
+  ctx.restore();
+}
+// fast doubled wobbly ink (same look as pencil.ink, ~5x fewer stroke calls: each pass is a handful of long strokes)
+export function inkFast(ctx, pts, { closed = true, color = '#2A2833', width = 3, passes = 2, amp = 1.6, boil = 0, seed = 1, alpha = 0.95, step = 9, taper = false } = {}) {
+  const base = resample(pts, step, closed);
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = color;
+  for (let p = 0; p < passes; p++) {
+    const w = wobble(base, { boil, amp: amp * (p === 0 ? 1 : 1.35), seed: seed + p * 31, closed });
+    const n = w.length, chunk = Math.max(taper ? 3 : 6, Math.ceil(n / (taper ? 9 : 4))), lim = n - 1 + (closed ? 1 : 0);
+    for (let i = 0; i < lim; i += chunk) {
+      const pr = 0.65 + 0.6 * (noise1(i * 0.17, seed * 13 + p * 97 + boil * 3) * 0.5 + 0.5);
+      let tp = 1; if (taper && !closed) { const u = i / n; tp = clamp(Math.min(u, 1 - u) * 6, 0.25, 1); }
+      ctx.globalAlpha = alpha * (p === 0 ? 1 : 0.7); ctx.lineWidth = Math.max(0.6, width * pr * tp * (p === 0 ? 1 : 0.78));
+      ctx.beginPath(); ctx.moveTo(w[i][0], w[i][1]);
+      for (let k = 1; k <= chunk + 1 && i + k < n + (closed ? 1 : 0); k++) { const q = w[(i + k) % n]; ctx.lineTo(q[0], q[1]); }
+      ctx.stroke();
     }
   }
   ctx.restore();
@@ -84,7 +100,7 @@ export function solid(ctx, P, pts, { fill, hatch, ink = INK, w = 3, boil, seed, 
     hatchBox(ctx, bbox(pts), { color: hatch, boil, seed: seed + 5, ...hatchOpt });
     ctx.restore();
   }
-  if (ink) P.ink(ctx, pts, { color: ink, width: w, boil, seed, closed, amp: 1.5 });
+  if (ink) inkFast(ctx, pts, { color: ink, width: w, boil, seed, closed, amp: 1.5 });
 }
 
 // ---------- the moon (profile, opens LEFT; eye at the portal) ------------------------------------------------------
@@ -157,23 +173,24 @@ function drawEye(ctx, P, T, o, boil) {
     ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(ix, iy, R, 0, TAU); ctx.fill();
     // radial iris fibres
     ctx.save(); ctx.beginPath(); ctx.arc(ix, iy, R, 0, TAU); ctx.clip(); ctx.lineCap = 'round';
-    for (let k = 0; k < 44; k++) {
-      const a = (k / 44) * TAU + hash(k, 3) * 0.2, r0 = 50 + hash(k, 5) * 18, r1 = R * (0.74 + 0.22 * hash(k, 7));
-      ctx.strokeStyle = k % 3 ? 'rgba(110,52,10,0.55)' : 'rgba(255,236,160,0.7)'; ctx.lineWidth = k % 3 ? 2.4 : 2.0;
-      ctx.beginPath(); ctx.moveTo(ix + Math.cos(a) * r0, iy + Math.sin(a) * r0); ctx.lineTo(ix + Math.cos(a + 0.03) * r1, iy + Math.sin(a + 0.03) * r1); ctx.stroke();
-    }
+    { const pd = new Path2D(), pl = new Path2D();
+      for (let k = 0; k < 44; k++) {
+        const a = (k / 44) * TAU + hash(k, 3) * 0.2, r0 = 50 + hash(k, 5) * 18, r1 = R * (0.74 + 0.22 * hash(k, 7)), pp = k % 3 ? pd : pl;
+        pp.moveTo(ix + Math.cos(a) * r0, iy + Math.sin(a) * r0); pp.lineTo(ix + Math.cos(a + 0.03) * r1, iy + Math.sin(a + 0.03) * r1);
+      }
+      ctx.strokeStyle = 'rgba(110,52,10,0.55)'; ctx.lineWidth = 2.4; ctx.stroke(pd); ctx.strokeStyle = 'rgba(255,236,160,0.7)'; ctx.lineWidth = 2.0; ctx.stroke(pl); }
     ctx.restore();
     const pr = lerp(36, 52, smooth((t - 7.1) / 0.4));
     ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(ix, iy, pr, 0, TAU); ctx.fill();
-    P.ink(ctx, P.circlePts(ix, iy, R - 2, 44), { color: INK, width: 9, boil, seed: 91, amp: 1.1, passes: 2 });
+    inkFast(ctx, P.circlePts(ix, iy, R - 2, 44), { color: INK, width: 9, boil, seed: 91, amp: 1.1, passes: 2 });
     // glints
     ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); ctx.ellipse(ix - 36, iy - 40, 26, 17, -0.6, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.arc(ix + 30, iy + 34, 9, 0, TAU); ctx.fill();
     ctx.restore();
-    P.ink(ctx, lower, { closed: false, color: INK, width: 4, boil, seed: 71, amp: 1.2, taper: true });
+    inkFast(ctx, lower, { closed: false, color: INK, width: 4, boil, seed: 71, amp: 1.2, taper: true });
   }
   // upper lid (thick) + lashes
-  P.ink(ctx, upper, { closed: false, color: INK, width: lerp(9, 13, clamp(oo)), boil, seed: 72, amp: 1.3, taper: true, passes: 2 });
+  inkFast(ctx, upper, { closed: false, color: INK, width: lerp(9, 13, clamp(oo)), boil, seed: 72, amp: 1.3, taper: true, passes: 2 });
   const lashN = 11;
   for (let i = 1; i < lashN; i++) {
     const u = i / lashN, k = Math.round(u * N), p0 = upper[k], p1 = upper[Math.min(N, k + 1)], p2 = upper[Math.max(0, k - 1)];
@@ -183,7 +200,7 @@ function drawEye(ctx, P, T, o, boil) {
     const L = (30 + 16 * Math.sin(u * Math.PI)) * (1 - 0.12 * (hash(i, 4) - 0.5));
     const bend = (u - 0.5) * 22;
     const e = [p0[0] + nx * L * dir + bend * 0.5, p0[1] + ny * L * dir];
-    P.ink(ctx, [p0, [lerp(p0[0], e[0], 0.55) + bend * 0.3, lerp(p0[1], e[1], 0.55)], e], { closed: false, color: INK, width: 4.5, boil, seed: 120 + i, amp: 0.6, passes: 1, taper: true });
+    inkFast(ctx, [p0, [lerp(p0[0], e[0], 0.55) + bend * 0.3, lerp(p0[1], e[1], 0.55)], e], { closed: false, color: INK, width: 4.5, boil, seed: 120 + i, amp: 0.6, passes: 1, taper: true });
   }
   // crease above the lid + eyebrow (lifts when the moon wakes)
   const lift = 20 * smooth(oo);
@@ -193,15 +210,15 @@ function drawEye(ctx, P, T, o, boil) {
     crease.push([x, cy - 8 - lift * 0.5 - 150 * Math.pow(s, 0.8) * oo - 60 * (1 - oo) * s]);
     brow.push([cx - 205 + 410 * u, cy - 120 - lift - 100 * Math.pow(s, 0.7) + 40 * (u - 0.35) ]);
   }
-  P.ink(ctx, crease, { closed: false, color: GOLD_D, width: 3, boil, seed: 73, amp: 1.3, taper: true });
+  inkFast(ctx, crease, { closed: false, color: GOLD_D, width: 3, boil, seed: 73, amp: 1.3, taper: true });
   // brow: filled tapered wedge, bold
   const bw = []; for (let i = 0; i <= 24; i++) bw.push([brow[i][0], brow[i][1] - 8 - 12 * Math.sin((i / 24) * Math.PI)]);
   const bpoly = [...bw, ...brow.slice().reverse()];
   ctx.save(); path(ctx, bpoly); ctx.fillStyle = '#3a2a1c'; ctx.fill(); ctx.restore();
-  P.ink(ctx, bpoly, { color: INK, width: 3, boil, seed: 74, amp: 1.0 });
+  inkFast(ctx, bpoly, { color: INK, width: 3, boil, seed: 74, amp: 1.0 });
   // under-eye bag line
   const bag = lower.slice(6, 31).map(([x, y], i) => [x, y + 20 + 4 * Math.sin(i * 0.4)]);
-  if (oo > 0.5) P.ink(ctx, bag, { closed: false, color: OCHRE, width: 2.4, boil, seed: 75, amp: 1.0, taper: true, alpha: 0.8 * smooth((oo - 0.5) / 0.4) });
+  if (oo > 0.5) inkFast(ctx, bag, { closed: false, color: OCHRE, width: 2.4, boil, seed: 75, amp: 1.0, taper: true, alpha: 0.8 * smooth((oo - 0.5) / 0.4) });
 }
 
 function drawMoon(ctx, P, T, S) {
@@ -228,7 +245,7 @@ function drawMoon(ctx, P, T, S) {
   // craters (painted rings)
   [[1060, 235, 40, 28], [1112, 640, 46, 34], [850, 740, 54, 36], [1010, 292, 20, 14], [700, 250, 30, 20], [1000, 775, 26, 18], [860, 220, 22, 15]].forEach(([x, y, rx, ry], i) => {
     ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgba(190,130,40,0.35)'; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0.3, 0, TAU); ctx.fill(); ctx.restore();
-    P.ink(ctx, P.ellipsePts(x, y, rx, ry, 0.3, 26), { color: '#7a4c12', width: 2.4, boil: B, seed: 30 + i, amp: 0.8, alpha: 0.8 });
+    inkFast(ctx, P.ellipsePts(x, y, rx, ry, 0.3, 26), { color: '#7a4c12', width: 2.4, boil: B, seed: 30 + i, amp: 0.8, alpha: 0.8 });
   });
   // cheek blush
   ctx.save(); ctx.globalCompositeOperation = 'multiply';
@@ -238,14 +255,14 @@ function drawMoon(ctx, P, T, S) {
   ctx.restore();
   // double painted border (inner contour) + outline
   const inset = poly.map(([x, y]) => { const dx = x - 760, dy = y - 470, l = Math.hypot(dx, dy); return [x, y]; });
-  P.ink(ctx, MOON.outer.map(([x, y]) => { const dx = x - C1.x, dy = y - C1.y, l = Math.hypot(dx, dy); return [x - (dx / l) * 24, y - (dy / l) * 24]; }), { closed: false, color: '#9A5E14', width: 3, boil: B, seed: 17, amp: 1.2, alpha: 0.75 });
-  P.ink(ctx, poly, { color: INK, width: 5, boil: B, seed: 18, amp: 1.7 });
+  inkFast(ctx, MOON.outer.map(([x, y]) => { const dx = x - C1.x, dy = y - C1.y, l = Math.hypot(dx, dy); return [x - (dx / l) * 24, y - (dy / l) * 24]; }), { closed: false, color: '#9A5E14', width: 3, boil: B, seed: 17, amp: 1.2, alpha: 0.75 });
+  inkFast(ctx, poly, { color: INK, width: 5, boil: B, seed: 18, amp: 1.7 });
   // mouth: closed sleepy smile from the lip notch
   const mp = MOON.face(35);
-  P.ink(ctx, [mp, [mp[0] + 34, mp[1] + 4], [mp[0] + 64, mp[1] - 4], [mp[0] + 82, mp[1] - 18]], { closed: false, color: INK, width: 4, boil: B, seed: 19, amp: 0.8, taper: true });
+  inkFast(ctx, [mp, [mp[0] + 34, mp[1] + 4], [mp[0] + 64, mp[1] - 4], [mp[0] + 82, mp[1] - 18]], { closed: false, color: INK, width: 4, boil: B, seed: 19, amp: 0.8, taper: true });
   // nostril
   const np = MOON.face(19);
-  P.ink(ctx, [[np[0] + 46, np[1] - 10], [np[0] + 66, np[1] - 2], [np[0] + 52, np[1] + 8]], { closed: false, color: INK, width: 3.4, boil: B, seed: 20, amp: 0.6, taper: true });
+  inkFast(ctx, [[np[0] + 46, np[1] - 10], [np[0] + 66, np[1] - 2], [np[0] + 52, np[1] + 8]], { closed: false, color: INK, width: 3.4, boil: B, seed: 20, amp: 0.6, taper: true });
   // the eye (portal)
   drawEye(ctx, P, T, eyeOpen(t), B);
   ctx.restore();
@@ -289,7 +306,7 @@ function drawBack(gx, S, B) {
   solid(gx, P, cs, { fill: '#161a3c', hatch: '#6C79C8', w: 3.2, boil: B, seed: 63, off: [3, 2], hatchOpt: { gap: 12, width: 1.2, alpha: 0.3, angle: -0.5, comp: 'source-over', dash: 60 } });
   [[cx0 + 40, 668, 20, 30], [cx0 + 150, 596, 22, 34], [cx0 + 150, 655, 18, 26]].map(([x, y, w, h]) => [cx0 + (x - cx0) * sc, cy1 + (y - cy1) * sc, w * sc, h * sc]).forEach(([x, y, w, h], i) => {
     gx.fillStyle = '#FFD670'; gx.fillRect(x - w / 2, y - h / 2, w, h);
-    P.ink(gx, P.rectPts(x - w / 2, y - h / 2, w, h, 6), { color: INK, width: 2.4, boil: B, seed: 64 + i, amp: 0.6, passes: 1 });
+    inkFast(gx, P.rectPts(x - w / 2, y - h / 2, w, h, 6), { color: INK, width: 2.4, boil: B, seed: 64 + i, amp: 0.6, passes: 1 });
   });
   hill(826, 22, 66, '#14183a', '#5560B0');
   gx.restore();
@@ -302,10 +319,10 @@ function drawBack(gx, S, B) {
   hatchBox(gx, { x: O.x0, y: O.floorY, w: O.x1 - O.x0, h: O.y1 - O.floorY }, { color: '#2E1A0C', gap: 7, width: 1.4, alpha: 0.5, angle: 0.03, seed: 8, boil: B, comp: 'multiply', dash: 150, keep: 0.8 });
   for (let i = -8; i <= 8; i++) { // planks converge to the vanishing point
     const xb = 960 + i * 150, a = [960 + (xb - 960) * 0.18, O.floorY - 80], b = [xb, O.y1 + 6];
-    P.ink(gx, [a, b], { closed: false, color: '#2A170A', width: 2.2, boil: B, seed: 70 + i, amp: 1.0, alpha: 0.7, passes: 1 });
+    inkFast(gx, [a, b], { closed: false, color: '#2A170A', width: 2.2, boil: B, seed: 70 + i, amp: 1.0, alpha: 0.7, passes: 1 });
   }
   gx.restore();
-  P.ink(gx, [[O.x0, O.floorY], [O.x1, O.floorY]], { closed: false, color: INK, width: 3.4, boil: B, seed: 69, amp: 1.2 });
+  inkFast(gx, [[O.x0, O.floorY], [O.x1, O.floorY]], { closed: false, color: INK, width: 3.4, boil: B, seed: 69, amp: 1.2 });
 }
 
 export function spark4(ctx, x, y, s) {
@@ -334,13 +351,13 @@ export function drape(ctx, P, { xo, edge, y0, y1, folds = 8, seed, boil, lightBi
     hatchBox(ctx, bbox(poly), { color: '#240510', gap: 6, width: 1.2, alpha: dark ? 0.34 : 0.18, angle: Math.PI / 2 + 0.03, seed: seed + j * 3, boil, comp: 'multiply', dash: 170, jit: 1.0 });
     if (!dark) hatchBox(ctx, bbox(poly), { color: '#FF9AA8', gap: 9, width: 1.2, alpha: 0.35, angle: Math.PI / 2 - 0.02, seed: seed + j * 3 + 1, boil, comp: 'source-over', dash: 120, keep: 0.5, jit: 0.8 });
     ctx.restore();
-    P.ink(ctx, top, { closed: false, color: INK, width: 2.4, boil, seed: seed + j, amp: 1.0, passes: 1, alpha: 0.9 });
+    inkFast(ctx, top, { closed: false, color: INK, width: 2.4, boil, seed: seed + j, amp: 1.0, passes: 1, alpha: 0.9 });
   }
   if (braid) {
     const e = ys.map((y, i) => [xe[i], y]);
-    P.ink(ctx, e, { closed: false, color: GOLD_D, width: 12, boil, seed: seed + 50, amp: 0.8, passes: 1 });
-    P.ink(ctx, e, { closed: false, color: GOLD, width: 8, boil, seed: seed + 51, amp: 0.8, passes: 1 });
-    P.ink(ctx, e, { closed: false, color: INK, width: 2.2, boil, seed: seed + 52, amp: 1.0, passes: 1, alpha: 0.8 });
+    inkFast(ctx, e, { closed: false, color: GOLD_D, width: 12, boil, seed: seed + 50, amp: 0.8, passes: 1 });
+    inkFast(ctx, e, { closed: false, color: GOLD, width: 8, boil, seed: seed + 51, amp: 0.8, passes: 1 });
+    inkFast(ctx, e, { closed: false, color: INK, width: 2.2, boil, seed: seed + 52, amp: 1.0, passes: 1, alpha: 0.8 });
   }
   if (hem) { // gold fringe along the bottom edge
     ctx.save(); ctx.strokeStyle = GOLD; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
@@ -387,8 +404,7 @@ function emblem(ctx, P, side, edge, xo, yc, B, k) {
   const disc2 = Array.from({ length: 21 }, (_, i) => { const th = -Math.PI / 2 + (i / 20) * Math.PI; return X(Math.cos(th) * 46, Math.sin(th) * 46); });
   solid(ctx, P, disc2, { fill: VEL, hatch: '#2a0610', w: 2.6, boil: B, seed: 484 + (side > 0 ? 3 : 0), off: [1, 1], hatchOpt: { gap: 5, width: 1, alpha: 0.5, angle: 0.8, comp: 'multiply' } });
 }
-function drawCurtains(ctx, P, t, B) {
-  const k = curtainK(t);
+export function drawCurtains(ctx, P, k, B) {
   [-1, 1].forEach((side) => {
     const xo = side < 0 ? OPEN.x0 - 6 : OPEN.x1 + 6, edge = curtainEdge(side, k);
     drape(ctx, P, { xo, edge, y0: OPEN.y0 - 10, y1: OPEN.y1, folds: 9, seed: side < 0 ? 200 : 300, boil: B, lightBias: side < 0 ? 0 : 1 });
@@ -400,8 +416,8 @@ function drawCurtains(ctx, P, t, B) {
     [-1, 1].forEach((side) => {
       const ex = curtainEdge(side, k)(612), cx = side < 0 ? OPEN.x0 : OPEN.x1;
       ctx.save();
-      P.ink(ctx, [[cx, 604], [lerp(cx, ex, 0.5), 628], [ex + side * -4, 618]], { closed: false, color: GOLD_D, width: 11, boil: B, seed: 400 + side, amp: 0.6, passes: 1 });
-      P.ink(ctx, [[cx, 604], [lerp(cx, ex, 0.5), 628], [ex + side * -4, 618]], { closed: false, color: GOLD, width: 7, boil: B, seed: 402 + side, amp: 0.6, passes: 1 });
+      inkFast(ctx, [[cx, 604], [lerp(cx, ex, 0.5), 628], [ex + side * -4, 618]], { closed: false, color: GOLD_D, width: 11, boil: B, seed: 400 + side, amp: 0.6, passes: 1 });
+      inkFast(ctx, [[cx, 604], [lerp(cx, ex, 0.5), 628], [ex + side * -4, 618]], { closed: false, color: GOLD, width: 7, boil: B, seed: 402 + side, amp: 0.6, passes: 1 });
       const tx = lerp(cx, ex, 0.55), ty = 632;
       solid(ctx, P, [[tx - 5, ty], [tx + 5, ty], [tx + 18, ty + 46], [tx, ty + 56], [tx - 18, ty + 46]], { fill: GOLD, hatch: GOLD_D, w: 2.4, boil: B, seed: 410 + side, off: [2, 1], hatchOpt: { gap: 5, width: 1, alpha: 0.5, angle: 1.2, comp: 'multiply' } });
       ctx.restore();
@@ -418,8 +434,8 @@ function drawFront(gx, S, B) { // proscenium: columns, gold top band, velvet pel
     gx.fillStyle = gr; gx.fillRect(x0, 0, x1 - x0, 1080);
     for (let f = 1; f < 5; f++) {
       const x = lerp(x0, x1, f / 5);
-      P.ink(gx, [[x, 190], [x + (hash(f, si) - 0.5) * 3, 905]], { closed: false, color: '#5A3A08', width: 2.4, boil: B, seed: 500 + f + si * 9, amp: 1.2, alpha: 0.75, passes: 1 });
-      P.ink(gx, [[x + 7, 200], [x + 6, 895]], { closed: false, color: '#FFF1BE', width: 1.8, boil: B, seed: 520 + f + si * 9, amp: 1.2, alpha: 0.6, passes: 1 });
+      inkFast(gx, [[x, 190], [x + (hash(f, si) - 0.5) * 3, 905]], { closed: false, color: '#5A3A08', width: 2.4, boil: B, seed: 500 + f + si * 9, amp: 1.2, alpha: 0.75, passes: 1 });
+      inkFast(gx, [[x + 7, 200], [x + 6, 895]], { closed: false, color: '#FFF1BE', width: 1.8, boil: B, seed: 520 + f + si * 9, amp: 1.2, alpha: 0.6, passes: 1 });
     }
     gx.save(); gx.beginPath(); gx.rect(x0, 190, x1 - x0, 720); gx.clip();
     hatchBox(gx, { x: x0, y: 190, w: x1 - x0, h: 720 }, { color: '#6A4208', gap: 6, width: 1.1, alpha: 0.35, angle: Math.PI / 2, seed: 530 + si, boil: B, comp: 'multiply', dash: 220 });
@@ -429,8 +445,8 @@ function drawFront(gx, S, B) { // proscenium: columns, gold top band, velvet pel
       const pad = q === 0 ? 14 : 12;
       solid(gx, P, P.rectPts(x0 - (si === 0 ? 20 : 0), ya, x1 - x0 + 20, yb - ya, 6), { fill: q === 0 ? '#F1D083' : '#D9A845', hatch: GOLD_D, w: 3.2, boil: B, seed: 540 + q + si * 3, off: [3, 2], hatchOpt: { gap: 6, width: 1.2, alpha: 0.4, angle: -0.7, comp: 'multiply' } });
     });
-    P.ink(gx, [[x0 + (si === 0 ? 0 : 0), 0], [x0, 1080]], { closed: false, color: INK, width: 3, boil: B, seed: 560 + si, amp: 1.2 });
-    P.ink(gx, [[x1, 0], [x1, 1080]], { closed: false, color: INK, width: 3, boil: B, seed: 562 + si, amp: 1.2 });
+    inkFast(gx, [[x0 + (si === 0 ? 0 : 0), 0], [x0, 1080]], { closed: false, color: INK, width: 3, boil: B, seed: 560 + si, amp: 1.2 });
+    inkFast(gx, [[x1, 0], [x1, 1080]], { closed: false, color: INK, width: 3, boil: B, seed: 562 + si, amp: 1.2 });
   });
   // --- gold top band with fan ornaments
   const band = P.rectPts(240, -10, 1440, 130, 0);
@@ -439,8 +455,8 @@ function drawFront(gx, S, B) { // proscenium: columns, gold top band, velvet pel
   hatchBox(gx, { x: 240, y: 0, w: 1440, h: 118 }, { color: '#A47218', gap: 10, width: 1.0, alpha: 0.14, angle: -0.5, seed: 580, boil: B, comp: 'multiply', dash: 100 });
   for (let i = 0; i < 24; i++) { const x = 270 + i * 60; gx.fillStyle = 'rgba(148,100,22,0.5)'; gx.beginPath(); gx.arc(x, 100, 3.2, 0, TAU); gx.fill(); }
   gx.restore();
-  P.ink(gx, [[240, 118], [1680, 118]], { closed: false, color: INK, width: 4, boil: B, seed: 590, amp: 1.2 });
-  P.ink(gx, [[240, 100], [1680, 100]], { closed: false, color: GOLD_D, width: 2, boil: B, seed: 591, amp: 1.0, alpha: 0.8 });
+  inkFast(gx, [[240, 118], [1680, 118]], { closed: false, color: INK, width: 4, boil: B, seed: 590, amp: 1.2 });
+  inkFast(gx, [[240, 100], [1680, 100]], { closed: false, color: GOLD_D, width: 2, boil: B, seed: 591, amp: 1.0, alpha: 0.8 });
   // centre medallion
   solid(gx, P, P.circlePts(960, 70, 52, 34), { fill: '#FFF0C0', hatch: GOLD_D, w: 4, boil: B, seed: 592, off: [3, 2], hatchOpt: { gap: 5, width: 1, alpha: 0.4, angle: -0.8, comp: 'multiply' } });
   solid(gx, P, star5(960, 70, 40, 17), { fill: VEL, hatch: '#2a0610', w: 3, boil: B, seed: 593, off: [2, 1], hatchOpt: { gap: 4, width: 1, alpha: 0.5, angle: 0.8, comp: 'multiply' } });
@@ -455,11 +471,11 @@ function drawFront(gx, S, B) { // proscenium: columns, gold top band, velvet pel
     for (let f = 1; f < 9; f++) { // gathered folds fanning from the top corners
       const u = f / 9, tx = lerp(xa, xb, u), bx = lerp(xa, xb, clamp(u + (u < 0.5 ? 0.08 : -0.08)));
       const bi = Math.round(clamp(u + (u < 0.5 ? 0.08 : -0.08)) * 18);
-      P.ink(gx, [[tx, 118], [lerp(tx, bottom[bi][0], 0.5), lerp(118, bottom[bi][1], 0.5)], [bottom[bi][0], bottom[bi][1]]], { closed: false, color: '#240510', width: 2.2, boil: B, seed: 800 + k * 13 + f, amp: 0.9, passes: 1, alpha: 0.7 });
+      inkFast(gx, [[tx, 118], [lerp(tx, bottom[bi][0], 0.5), lerp(118, bottom[bi][1], 0.5)], [bottom[bi][0], bottom[bi][1]]], { closed: false, color: '#240510', width: 2.2, boil: B, seed: 800 + k * 13 + f, amp: 0.9, passes: 1, alpha: 0.7 });
     }
     hatchBox(gx, bbox(poly), { color: '#240510', gap: 7, width: 1.1, alpha: 0.28, angle: 1.1, seed: 820 + k, boil: B, comp: 'multiply', dash: 90 });
     gx.restore();
-    P.ink(gx, bottom, { closed: false, color: INK, width: 3.2, boil: B, seed: 840 + k, amp: 1.1 });
+    inkFast(gx, bottom, { closed: false, color: INK, width: 3.2, boil: B, seed: 840 + k, amp: 1.1 });
     gx.save(); gx.strokeStyle = GOLD; gx.lineWidth = 3; gx.lineCap = 'round';
     for (let i = 0; i <= 40; i++) { const u = i / 40, s = Math.pow(Math.sin(u * Math.PI), 0.8), x = lerp(xa, xb, u), y = 118 + 62 * s + 2; gx.beginPath(); gx.moveTo(x, y); gx.lineTo(x + (hash(i, k) - 0.5) * 2, y + 11); gx.stroke(); }
     gx.restore();
@@ -472,7 +488,7 @@ function drawFront(gx, S, B) { // proscenium: columns, gold top band, velvet pel
   }
   // --- apron lip + footlights
   gx.fillStyle = '#2A1A0E'; gx.fillRect(O.x0, O.y1 - 8, O.x1 - O.x0, 30);
-  P.ink(gx, [[O.x0, O.y1 - 8], [O.x1, O.y1 - 8]], { closed: false, color: GOLD, width: 6, boil: B, seed: 900, amp: 0.8, passes: 1 });
+  inkFast(gx, [[O.x0, O.y1 - 8], [O.x1, O.y1 - 8]], { closed: false, color: GOLD, width: 6, boil: B, seed: 900, amp: 0.8, passes: 1 });
   for (let j = 0; j < 9; j++) {
     const x = 420 + j * 135, fl = 0.8 + 0.2 * hash(Math.floor(B / 2), j, 77);
     // upward cone of light
@@ -484,7 +500,7 @@ function drawFront(gx, S, B) { // proscenium: columns, gold top band, velvet pel
     gx.fillStyle = halo; gx.fillRect(x - 70, O.y1 - 92, 140, 140);
     solid(gx, P, [[x - 32, O.y1 - 8], [x - 26, O.y1 - 26], [x - 12, O.y1 - 36], [x + 12, O.y1 - 36], [x + 26, O.y1 - 26], [x + 32, O.y1 - 8]], { fill: '#3B3040', hatch: '#F0C860', w: 3, boil: B, seed: 920 + j, off: [2, 1], hatchOpt: { gap: 6, width: 1.1, alpha: 0.4, angle: -0.8, comp: 'source-over' } });
     gx.fillStyle = '#FFF6D2'; gx.beginPath(); gx.ellipse(x, O.y1 - 30, 15, 9, 0, 0, TAU); gx.fill();
-    P.ink(gx, P.ellipsePts(x, O.y1 - 30, 15, 9, 0, 16), { color: INK, width: 2, boil: B, seed: 940 + j, amp: 0.5, passes: 1 });
+    inkFast(gx, P.ellipsePts(x, O.y1 - 30, 15, 9, 0, 16), { color: INK, width: 2, boil: B, seed: 940 + j, amp: 0.5, passes: 1 });
   }
 }
 
@@ -520,9 +536,9 @@ function drawClouds(ctx, P, T) {
     hatchBox(ctx, { x: cx - d.w / 2, y: cy - d.h * 0.6, w: d.w, h: d.h * 1.1 }, { color: '#4A5390', gap: 7, width: 1.2, alpha: 0.4, angle: -0.8, seed: 950 + d.seed, boil: B, comp: 'multiply', dash: 60 });
     ctx.restore();
     // wooden brace / stick behind the cardboard (shows it is a prop)
-    P.ink(ctx, [[cx - d.w * 0.15, base - 2], [cx - d.w * 0.15 - 8, base + 52]], { closed: false, color: '#3a2412', width: 7, boil: B, seed: 960 + d.seed, amp: 0.8, passes: 1 });
-    P.ink(ctx, [[cx + d.w * 0.2, base - 2], [cx + d.w * 0.2 + 8, base + 44]], { closed: false, color: '#3a2412', width: 7, boil: B, seed: 962 + d.seed, amp: 0.8, passes: 1 });
-    P.ink(ctx, [[cx - d.w / 2 + 6, base], [cx + d.w / 2 - 6, base]], { closed: false, color: INK, width: 4, boil: B, seed: 964 + d.seed, amp: 1.0 });
+    inkFast(ctx, [[cx - d.w * 0.15, base - 2], [cx - d.w * 0.15 - 8, base + 52]], { closed: false, color: '#3a2412', width: 7, boil: B, seed: 960 + d.seed, amp: 0.8, passes: 1 });
+    inkFast(ctx, [[cx + d.w * 0.2, base - 2], [cx + d.w * 0.2 + 8, base + 44]], { closed: false, color: '#3a2412', width: 7, boil: B, seed: 962 + d.seed, amp: 0.8, passes: 1 });
+    inkFast(ctx, [[cx - d.w / 2 + 6, base], [cx + d.w / 2 - 6, base]], { closed: false, color: INK, width: 4, boil: B, seed: 964 + d.seed, amp: 1.0 });
   });
 }
 
@@ -538,8 +554,8 @@ function drawStars(ctx, P, T) {
     // twinkle sweep on 6.75 (sparkle_up): left -> right
     const tw = Math.exp(-Math.pow((t - (6.75 + (s.x - 400) / 1300 * 0.4 + 0.02)) / 0.12, 2)) * 0.5;
     const R = s.s * (1 + tw), r = R * 0.46;
-    P.ink(ctx, [[ax, ay], [sx, sy - R * 0.9]], { closed: false, color: '#E9E1CF', width: 2.2, boil: B, seed: 1000 + i, amp: 0.5, passes: 1, alpha: 0.95 });
-    P.ink(ctx, [[ax + 1.5, ay], [sx + 1.5, sy - R * 0.9]], { closed: false, color: INK, width: 1, boil: B, seed: 1010 + i, amp: 0.4, passes: 1, alpha: 0.7 });
+    inkFast(ctx, [[ax, ay], [sx, sy - R * 0.9]], { closed: false, color: '#E9E1CF', width: 2.2, boil: B, seed: 1000 + i, amp: 0.5, passes: 1, alpha: 0.95 });
+    inkFast(ctx, [[ax + 1.5, ay], [sx + 1.5, sy - R * 0.9]], { closed: false, color: INK, width: 1, boil: B, seed: 1010 + i, amp: 0.4, passes: 1, alpha: 0.7 });
     const pts = star5(sx, sy, R, r, sw * 1.2 + 0.2 * Math.sin(t * 2 + i));
     solid(ctx, P, pts, { fill: s.hue ? '#FFF1B0' : GOLD, hatch: GOLD_D, w: 3, boil: B, seed: 1020 + i, off: [2.5, 2], hatchOpt: { gap: Math.max(4, R * 0.14), width: 1.1, alpha: 0.45, angle: -0.7, comp: 'multiply' } });
     if (tw > 0.05) { ctx.save(); ctx.globalAlpha = tw; ctx.fillStyle = '#FFFFFF'; spark4(ctx, sx, sy, R * 1.6); ctx.fill(); ctx.restore(); }
@@ -591,7 +607,7 @@ function drawPuffs(ctx, P, T, front) {
     ctx.fillStyle = sh; ctx.globalAlpha = alpha; ctx.fillRect(x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6);
     hatchBox(ctx, { x: x - r, y: y - r, w: r * 2, h: r * 2 }, { color: '#6D6F86', gap: 6, width: 1.2, alpha: 0.42 * alpha, angle: -0.7, seed: 1210 + i, boil: B, comp: 'multiply', dash: 40 });
     ctx.restore();
-    P.ink(ctx, pts, { color: INK, width: 3.4, boil: B, seed: 1220 + i, amp: 1.2, alpha: alpha * 0.95 });
+    inkFast(ctx, pts, { color: INK, width: 3.4, boil: B, seed: 1220 + i, amp: 1.2, alpha: alpha * 0.95 });
     ctx.restore();
   });
 }
@@ -606,8 +622,8 @@ function drawFlashSparks(ctx, P, T) {
     const a = (i / 18) * TAU + hash(i, 2) * 0.15, r0 = 120 + 40 * hash(i, 3), r1 = r0 + (70 + 90 * hash(i, 4)) * len;
     const p0 = [POOF.x + Math.cos(a) * (r0 + 60 * len), POOF.y - 20 + Math.sin(a) * (r0 + 60 * len) * 0.85], p1 = [POOF.x + Math.cos(a) * r1, POOF.y - 20 + Math.sin(a) * r1 * 0.85];
     ctx.save();
-    P.ink(ctx, [p0, p1], { closed: false, color: INK, width: 9, boil: B, seed: 1300 + i, amp: 0.4, passes: 1, taper: true, alpha: fade });
-    P.ink(ctx, [p0, p1], { closed: false, color: '#FFF6D0', width: 5, boil: B, seed: 1330 + i, amp: 0.4, passes: 1, taper: true, alpha: fade });
+    inkFast(ctx, [p0, p1], { closed: false, color: INK, width: 9, boil: B, seed: 1300 + i, amp: 0.4, passes: 1, taper: true, alpha: fade });
+    inkFast(ctx, [p0, p1], { closed: false, color: '#FFF6D0', width: 5, boil: B, seed: 1330 + i, amp: 0.4, passes: 1, taper: true, alpha: fade });
     ctx.restore();
   }
 }
@@ -653,16 +669,17 @@ function drawSparkles(ctx, P, T) {
 // (multiply over transparent = the pure pigment) and then composited with source-over.
 const _scratch = new Map();
 function hero(ctx, T, S, o) {
-  const pad = Math.ceil(AMR.size * 4.4), L = pad * 2, px = Math.round(L * S.scale), key = px + '|' + S.scale;
+  const Rm = AMR.size * 1.3, l = Math.ceil((Rm * 1.6) / 32) * 32, r = Math.ceil((Rm * 3.4) / 32) * 32, u = Math.ceil((Rm * 1.9) / 32) * 32, d = u; // her box: prop floats to the right
+  const pw = Math.round((l + r) * S.scale), ph = Math.round((u + d) * S.scale), key = pw + 'x' + ph;
   let c = _scratch.get(key);
-  if (!c) { c = S.mk(px, px); _scratch.set(key, c); }
+  if (!c) { c = S.mk(pw, ph); _scratch.set(key, c); }
   const g2 = c.getContext('2d');
-  g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, px, px);
-  g2.setTransform(S.scale, 0, 0, S.scale, 0, 0); g2.translate(pad - o.x, pad - o.y);
+  g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, pw, ph);
+  g2.setTransform(S.scale, 0, 0, S.scale, 0, 0); g2.translate(l - o.x, u - o.y);
   g2.globalCompositeOperation = 'source-over'; g2.globalAlpha = 1;
-  const r = amrita(g2, T, S, o);
-  ctx.save(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(c, o.x - pad, o.y - pad, L, L); ctx.restore();
-  return r;
+  const res = amrita(g2, T, S, o);
+  ctx.save(); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(c, o.x - l, o.y - u, l + r, u + d); ctx.restore();
+  return res;
 }
 // Amrita (library owner is mid-edit: fall back to a crude stand-in if drawAmrita is not exported yet)
 function amrita(ctx, T, S, o) {
@@ -702,46 +719,39 @@ function amritaState(t) {
   return { x, y, size, squash, roll, yaw, eye, crank: (t - 6.55) * 11 };
 }
 
-const PROF = (n, ctx, fn) => {
-  if (!globalThis.__prof) return fn();
-  const cn = globalThis.__cnt || (globalThis.__cnt = {}); const proto = CanvasRenderingContext2D.prototype;
-  if (!proto.__patched) { proto.__patched = true; ['stroke', 'fill', 'drawImage', 'clip', 'fillRect', 'strokeRect', 'createRadialGradient', 'createLinearGradient'].forEach((m) => { const o = proto[m]; proto[m] = function (...a) { const c = globalThis.__curCnt; if (c) c[m] = (c[m] || 0) + 1; return o.apply(this, a); }; }); }
-  globalThis.__curCnt = {}; const t0 = performance.now(); fn(); ctx.getImageData(0, 0, 2, 2); const d = performance.now() - t0; globalThis.__prof[n] = (globalThis.__prof[n] || 0) + d;
-  const cc = globalThis.__curCnt; globalThis.__curCnt = null; const tot = cn[n] || (cn[n] = {}); for (const k in cc) tot[k] = (tot[k] || 0) + cc[k];
-};
 // ---------- the scene ------------------------------------------------------------------------------------------------------
 export default {
   id: 'e1902', kind: '2d',
   draw(ctx, T, S) {
     const P = S.pencil, B = T.boil, t = T.t;
     ctx.save();
-    PROF('back', ctx, () => blit(ctx, cached(S, 'back' + B, (gx) => drawBack(gx, S, B))));
-    PROF('moon', ctx, () => drawMoon(ctx, P, T, S));
-    PROF('zzz', ctx, () => drawZzz(ctx, P, T));
-    PROF('clouds', ctx, () => drawClouds(ctx, P, T));
-    PROF('stars', ctx, () => drawStars(ctx, P, T));
+    blit(ctx, cached(S, 'back' + B, (gx) => drawBack(gx, S, B)));
+    drawMoon(ctx, P, T, S);
+    drawZzz(ctx, P, T);
+    drawClouds(ctx, P, T);
+    drawStars(ctx, P, T);
     // stage light pool for Amrita
     if (t >= 6.5) {
       const a = smooth((t - 6.5) / 0.2);
       ctx.save(); ctx.globalAlpha = 0.5 * a; const gr = ctx.createRadialGradient(AMR.x, 880, 20, AMR.x, 880, 260); gr.addColorStop(0, 'rgba(255,230,160,0.7)'); gr.addColorStop(1, 'rgba(255,230,160,0)');
       ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(AMR.x, 890, 290, 70, 0, 0, TAU); ctx.fill(); ctx.restore();
     }
-    PROF('puffs0', ctx, () => drawPuffs(ctx, P, T, false));
-    PROF('confB', ctx, () => drawConfetti(ctx, P, T, 'back'));
+    drawPuffs(ctx, P, T, false);
+    drawConfetti(ctx, P, T, 'back');
     const A = amritaState(t);
     if (A) {
       // warm halo behind her so she pops off the dark flats
       ctx.save(); const hg = ctx.createRadialGradient(A.x, A.y, A.size * 0.3, A.x, A.y, A.size * 1.9); hg.addColorStop(0, 'rgba(255,236,170,0.55)'); hg.addColorStop(1, 'rgba(255,236,170,0)');
       ctx.fillStyle = hg; ctx.globalAlpha = smooth((t - 6.52) / 0.15); ctx.beginPath(); ctx.arc(A.x, A.y, A.size * 1.9, 0, TAU); ctx.fill(); ctx.restore();
-      PROF('hero', ctx, () => hero(ctx, T, S, { palette: AMR_PAL, x: A.x, y: A.y, size: A.size, yaw: A.yaw, roll: A.roll, squash: A.squash, eye: A.eye, prop: 'crank', propAnim: { crank: A.crank }, propSide: 1, seed: 17, shadow: false }));
+      hero(ctx, T, S, { palette: AMR_PAL, x: A.x, y: A.y, size: A.size, yaw: A.yaw, roll: A.roll, squash: A.squash, eye: A.eye, prop: 'crank', propAnim: { crank: A.crank }, propSide: 1, seed: 17, shadow: false });
     }
-    PROF('puffs1', ctx, () => drawPuffs(ctx, P, T, true));
-    PROF('flash', ctx, () => drawFlashSparks(ctx, P, T));
-    // curtains (dynamic while moving)
-    PROF('curtains', ctx, () => drawCurtains(ctx, P, t, B));
-    PROF('front', ctx, () => blit(ctx, cached(S, 'front' + B, (gx) => drawFront(gx, S, B))));
-    PROF('confF', ctx, () => drawConfetti(ctx, P, T, 'front'));
-    PROF('spark', ctx, () => drawSparkles(ctx, P, T));
+    drawPuffs(ctx, P, T, true);
+    drawFlashSparks(ctx, P, T);
+    // curtains: dynamic while they swing; once settled (6.7) they are baked into the per-boil front layer
+    if (t < 6.7) { drawCurtains(ctx, P, curtainK(t), B); blit(ctx, cached(S, 'front' + B, (gx) => drawFront(gx, S, B))); }
+    else blit(ctx, cached(S, 'frontc' + B, (gx) => { drawCurtains(gx, P, 1, B); drawFront(gx, S, B); }));
+    drawConfetti(ctx, P, T, 'front');
+    drawSparkles(ctx, P, T);
     ctx.restore();
   },
 };

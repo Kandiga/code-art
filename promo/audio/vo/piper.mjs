@@ -85,7 +85,7 @@ export function toJob(text, o = {}) {
 }
 
 export const jobKey = (job) =>
-  crypto.createHash('sha1').update(JSON.stringify({ v: 2, ...job, id: undefined, out: undefined })).digest('hex').slice(0, 16);
+  crypto.createHash('sha1').update(JSON.stringify({ v: 3, ...job, id: undefined, out: undefined })).digest('hex').slice(0, 16);
 
 /**
  * Low level: run jobs through synth.py in ONE python process (model loads amortised).

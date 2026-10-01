@@ -213,6 +213,20 @@ def tape_saturate(y, drive=2.0, bias=0.08, wet=0.35, sr=SR):
     return (1 - wet) * y + wet * s
 
 
+def air_exciter(y, level_db=-30.0, lo=5500.0, hi=10500.0, hp=10800.0, sr=SR):
+    """Harmonic 'air': Piper voices are band-limited at 11 kHz. Rectify the 5.5-10.5 kHz band (adds 2f/3f partials
+    above 11 kHz that follow the voice's own envelope), keep only >10.8 kHz, tilt down, blend very low."""
+    band = bpf(y, lo, hi, 2, sr)
+    up = ss.resample_poly(band, 2, 1)
+    ex = np.abs(up) - np.mean(np.abs(up))
+    ex = ss.resample_poly(ex, 1, 2)[: len(y)]
+    ex = hpf(ex, hp, 4, sr)
+    ex = lpf(ex, 17500.0, 2, sr)
+    r = np.sqrt(np.mean(ex ** 2)) + 1e-12
+    r0 = np.sqrt(np.mean(band ** 2)) + 1e-12
+    return y + ex * (r0 / r) * lin(level_db)
+
+
 def whisper_layer(y, seed=7, bands=20, fmin=140.0, fmax=9500.0, env_hz=45.0, sr=SR):
     """Noise-vocoded copy of y (same temporal/spectral envelope, noise excitation) = breath / hush layer."""
     rng = np.random.RandomState(seed)

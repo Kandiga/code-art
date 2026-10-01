@@ -188,7 +188,7 @@ precision highp float;
 uniform sampler2D tMap, tNoise, tAng;
 uniform vec2 uSize, uC; uniform float uRMax;
 uniform float uBaseA, uBaseB, uRowA, uRowB, uFrontA, uFrontB, uHairA, uHairB;
-uniform float uGap, uSeam, uHairI, uLit, uTrans;
+uniform float uGap, uSeam, uHairI, uLit, uTrans, uFrozen;
 uniform vec3 uLightDir, uLight2, uBackPos; uniform float uDL0, uDL02;
 uniform mat3 uInvOut, uInvIn;
 varying vec2 vUv; varying vec3 vN; varying vec3 vWP;
@@ -203,6 +203,7 @@ vec3 invACES(vec3 y){
   return max(uInvIn * v, 0.0) * 0.6;
 }
 void main(){
+  if (uFrozen > 0.5) { gl_FragColor = vec4(invACES(texture2D(tMap, vUv).rgb), 1.0); return; }
   vec2 pf = (vUv - 0.5) * uSize, pc = pf - uC;
   float r = length(pc), phi = atan(pc.y, pc.x), ru = clamp(r / uRMax, 0.0, 1.0);
   float oA = texture2D(tAng, vec2(ru, uRowA)).r, oB = texture2D(tAng, vec2(ru, uRowB)).r;
@@ -277,13 +278,13 @@ void main(){
   if (rd.y < 0.0) se = min(se, -ro.y / rd.y);
   se = min(se, min(sph(ro, rd, uSph0), sph(ro, rd, uSph1)));
   if (se <= s0) discard;
-  const int N = 8; float ds = (se - s0) / float(N), acc = 0.0;
+  const int N = 6; float ds = (se - s0) / float(N), acc = 0.0;
   for (int i = 0; i < N; i++){
     float s = s0 + (float(i) + 0.5) * ds; vec3 p = ro + rd * s, v = p - uApex; float h = dot(v, uAxis); vec3 rad = v - uAxis * h;
     float rn = length(rad) / max(h * uTanA, 1e-3);
-    float prof = smoothstep(1.0, 0.25, rn);
+    float prof = pow(smoothstep(1.05, 0.1, rn), 1.25);
     float ax = 1.0 / (1.0 + 0.012 * h * h) * smoothstep(0.0, 1.2, h);
-    vec2 q = p.xz * 0.21 + vec2(p.y * 0.07 + uTime * 0.012, p.y * 0.05 - uTime * 0.02); float nz = 0.62 + 0.75 * (texture2D(tNoise, q).g * 0.6 + texture2D(tNoise, q * 2.7 + vec2(0.0, -p.y * 0.2 + uTime * 0.05)).r * 0.4);
+    vec2 q = p.xz * 0.21 + vec2(p.y * 0.07 + uTime * 0.012, p.y * 0.05 - uTime * 0.02); float nz = 0.8 + 0.45 * (texture2D(tNoise, q).g * 0.6 + texture2D(tNoise, q * 2.7 + vec2(0.0, -p.y * 0.2 + uTime * 0.05)).r * 0.4);
     acc += prof * ax * nz * ds;
   }
   gl_FragColor = vec4(uCol * uInt * acc, 1.0);
@@ -321,7 +322,7 @@ export default {
     const camera = new THREE.PerspectiveCamera(vfovOf(35), ASPECT, 0.08, 90);
 
     // ---- the soundstage behind the paper
-    const stage = createStage(THREE, { S, renderer }, { look: 'neutral', table: false, cases: false, grips: false }); scene.add(stage.group);
+    const stage = createStage(THREE, { S, renderer }, { look: 'neutral', table: false, cases: false, grips: false, ...((globalThis.__turnDbg || {}).stageOpts || {}) }); scene.add(stage.group);
     const L = stage.lights;
     L.key.castShadow = true; L.key.shadow.mapSize.set(1024, 1024); L.key.shadow.camera.near = 3; L.key.shadow.camera.far = 14; L.key.shadow.bias = -0.0005;
     const rim2 = new THREE.PointLight('#1FB5A6', 0, 30, 2); scene.add(rim2); // cool teal rim from the right-back (no shadow)
@@ -373,7 +374,7 @@ export default {
     const lightLocal = new THREE.Vector3(-0.45, 0.65, 0.62).normalize(), light2Local = new THREE.Vector3(0.6, -0.3, 0.5).normalize();
     const shared = {
       tMap: { value: null }, tNoise: { value: noiseTex }, tAng: { value: crackTex }, uSize: { value: new THREE.Vector2(Wp, Hp) }, uC: { value: new THREE.Vector2(CRACK_C[0], CRACK_C[1]) }, uRMax: { value: RMAX },
-      uGap: { value: 0 }, uSeam: { value: 0 }, uHairI: { value: 0 }, uLit: { value: 0 }, uTrans: { value: 0 },
+      uGap: { value: 0 }, uSeam: { value: 0 }, uHairI: { value: 0 }, uLit: { value: 0 }, uTrans: { value: 0 }, uFrozen: { value: 1 },
       uLightDir: { value: lightLocal.clone().applyQuaternion(sheet.quaternion) }, uLight2: { value: light2Local.clone().applyQuaternion(sheet.quaternion) }, uDL02: { value: light2Local.z }, uBackPos: { value: new THREE.Vector3(0, 0.02, -0.45).applyMatrix4(sheet.matrixWorld) }, uDL0: { value: lightLocal.z },
       uInvOut: { value: outM.clone().invert() }, uInvIn: { value: inM.clone().invert() },
     };
@@ -383,7 +384,7 @@ export default {
     const pieces = PIECES.map((pc) => {
       const sel = new Uint8Array((nx + 1) * (ny + 1));
       let Smax = 0;
-      for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) { const [a, b] = wedgeDist(pc.k, gx(i), gy(j)); if (a > -0.04 && b > -0.04) { sel[vid(i, j)] = 1; } }
+      for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) { const [a, b] = wedgeDist(pc.k, gx(i), gy(j)); if (a > -0.016 && b > -0.016) { sel[vid(i, j)] = 1; } }
       const map = new Int32Array((nx + 1) * (ny + 1)).fill(-1), vx = [], vy = [], idx = [];
       const take = (i, j) => { const v = vid(i, j); if (map[v] < 0) { map[v] = vx.length; vx.push(gx(i)); vy.push(gy(j)); const s = (gx(i) - CRACK_C[0]) * pc.d[0] + (gy(j) - CRACK_C[1]) * pc.d[1]; const [a, b] = wedgeDist(pc.k, gx(i), gy(j)); if (a > 0 && b > 0 && s > Smax) Smax = s; } return map[v]; };
       for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
@@ -414,7 +415,7 @@ export default {
     const shardP = Array.from({ length: SN }, (_, i) => { const k = Math.floor(hash(SEED, i, 61) * NC), r0 = 0.04 + Math.pow(hash(SEED, i, 62), 0.8) * 0.66, a = crackAngle(k, r0), rad = a + (hash(SEED, i, 63) - 0.5) * 0.9, sp = 0.5 + 1.7 * hash(SEED, i, 64);
       return { x0: CRACK_C[0] + r0 * Math.cos(crackAngle(k, r0)), y0: CRACK_C[1] + r0 * Math.sin(crackAngle(k, r0)), t0: TEAR + r0 / 14 + 0.02 * hash(SEED, i, 65), vx: Math.cos(rad) * sp, vy: Math.sin(rad) * sp, vz: 0.15 + 1.1 * hash(SEED, i, 66), sz: 0.01 + 0.032 * Math.pow(hash(SEED, i, 67), 1.6), asp: 0.5 + hash(SEED, i, 68), ax: hash(SEED, i, 69) * 6.28, ay: hash(SEED, i, 70) * 6.28, wx: (hash(SEED, i, 71) - 0.5) * 16, wy: (hash(SEED, i, 72) - 0.5) * 16, wz: (hash(SEED, i, 73) - 0.5) * 12 }; });
     const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), shardObj = new THREE.Object3D();
-    return { THREE, scene, camera, stage, stageRef: stage, L, rim2, aMeshes, shards, shardP, SN, shardObj, burst, A, beam, moteObj, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, nx, ny, Wp, Hp, tex: null, texCanvas: null };
+    return { THREE, scene, camera, stage, puff, L, rim2, aMeshes, shards, shardP, SN, shardObj, burst, A, beam, moteObj, beamU, apex, axis, bu, bv, motes, mPos, moteGeo, moteMat, puffGeo, puffMat, pPos, PN, MN, pool, ring, sheet, pieces, shared, glow, glowU, tmpV, tmpV2, camState: { p: [0, 0, 0], g: [0, 0, 0], mm: 35 }, nx, ny, Wp, Hp, tex: null, texCanvas: null };
   },
 
   async prepare(st, T, S) {
@@ -455,12 +456,12 @@ export default {
     // ---------------- paper
     st.stage.group.visible = !D.noStage && t > 22.68; st.L.key.castShadow = !D.noShadow && t >= SPOT - 0.01;
     const paperOn = t < 24.7;
-    st.sheet.visible = paperOn;
+    st.sheet.visible = paperOn && !D.noSheet;
     st.glow.visible = t < 24.2 && !D.noGlow;
     if (paperOn && st.tex) {
       const x = t - TEAR;
       const hairK = sstep(22.38, 22.42, t) * (1 - sstep(TEAR - 0.004, TEAR + 0.02, t));
-      shared.uLit.value = sstep(22.0, 22.5, t);
+      shared.uLit.value = sstep(22.42, 22.62, t); shared.uFrozen.value = t < 22.39 ? 1 : 0;
       shared.uGap.value = 0.0032 * sstep(0, 0.07, x);
       shared.uSeam.value = D.noSeam ? 0 : x < 0 ? 0 : 9 * Math.exp(-x / 0.4) * sstep(0, 0.02, x);
       shared.uHairI.value = 7 * hairK;
@@ -508,7 +509,7 @@ export default {
     const landX = 1.05, landZ = 0.5;
     // Amrita path
     const tl = t - LAND;
-    st.rimK = t < LAND ? 0.0 : (1 + 1.6 * Math.exp(-tl / 0.18)) * 1.0;
+    st.rimK = t < LAND ? 0.22 * sstep(DROP - 0.1, DROP + 0.2, t) : (1 + 1.6 * Math.exp(-tl / 0.18)) * 1.0;
     L.rim.position.set(-2.8, 5.6, -4.6); L.rim.target.position.set(0.8, 0.85, 0.3); L.rim.target.updateMatrixWorld();
     L.rim.color.set('#9fd4ff'); L.rim.intensity = 170 * st.rimK; L.rim.angle = 0.5;
     st.rim2.position.set(3.2, 5.0, -4.2); st.rim2.intensity = 45 * st.rimK;
@@ -548,7 +549,8 @@ export default {
     st.beamU.uSph0.value.set(landX, ay, landZ, vis ? 0.5 : 0.0); st.beamU.uSph1.value.set(0, 0.62, 0, 0.0);
 
     // beam / motes / pool / ring / puff
-    st.beam.visible = !D.noBeam; st.moteObj.visible = !D.noBeam;
+    const lampOn = spotK > 0.001 && !D.noBeam;
+    st.beam.visible = lampOn; st.moteObj.visible = lampOn; st.pool.visible = spotK > 0.001; st.ring.visible = t >= LAND && t < LAND + 1.6; st.puff.visible = t >= LAND && t < LAND + 2.2;
     st.beamU.uInt.value = 0.26 * spotK * (1 + 0.25 * antic) * (1 - 0.5 * wake) * (0.9 + 0.1 * settled); st.beamU.uTime.value = t;
     const apexV = st.apex, ax = st.axis, tanA = Math.tan(0.215);
     const shock = t >= LAND ? 1 - Math.exp(-tl / 0.3) : 0;

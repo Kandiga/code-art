@@ -34,7 +34,7 @@ export async function run(sheet) {
   const haze = FX.createHaze(THREE, { count: 900, bounds: { min: [-7, 0.1, -7], max: [7, 7, 5] }, size: 0.022 }); scene.add(haze.object);
   const T0 = 3.7;
 
-  const cv = document.createElement('canvas'); cv.width = sheet === 'one' ? TW : 1920; cv.height = sheet === 'perf' ? 400 : sheet === 'one' ? TH * (Q.get('shot') || 'chair').split(',').length : TH * 3; document.body.appendChild(cv);
+  const cv = document.createElement('canvas'); cv.width = sheet === 'one' ? TW : 1920; cv.height = (sheet === 'perf' || sheet === 'perf2') ? 400 : sheet === 'one' ? TH * (Q.get('shot') || 'chair').split(',').length : TH * 3; document.body.appendChild(cv);
   const g = cv.getContext('2d'); g.fillStyle = '#0b0a0d'; g.fillRect(0, 0, cv.width, cv.height);
   const stats = [];
 
@@ -226,6 +226,38 @@ export async function run(sheet) {
     measure('+ 4 front beams', () => { none(); amritaOn(0.75, 0.8, 0.5, -0.5); beamSet.group.visible = true; });
     measure('+ 10 beams + 900 motes (full)', () => { amritaOn(0.75, 0.8, 0.5, -0.5); });
     measure('stage w/o reflections (chair mirror off)', () => { none(); amritaOn(0.75, 0.8, 0.5, -0.5); ampRefl.setVisible(false); stage.chairReflection && stage.chairReflection.setVisible(false); });
+    g.fillStyle = '#fff'; g.font = '22px monospace'; rows.forEach((r, i) => g.fillText(`${r.name}: ${r.ms} ms   ${r.draws} draws`, 20, 40 + i * 34)); API.perfRows = rows;
+  }
+
+
+  if (sheet === 'perf2') {
+    // decomposition: which part of the stage costs what (1920x804, 4 sub-frames, DOF + bloom). Same camera as the hero shot.
+    const W = 1920, H = 804, rows = [], hero = SHOTS.hero;
+    const parts = { floor: stage.floor, cyc: stage.cyc, truss: stage.truss, chair: stage.chair, table: stage.table, cases: stage.cases, grips: stage.grips, cables: stage.cables, marks: stage.marks, tubes: stage.group.children.find((c) => c.name === 'tubes') };
+    const mists = stage.mists;
+    const showOnly = (names, withMist = false) => { Object.values(parts).forEach((o) => { if (o) o.visible = false; }); names.forEach((n) => { if (parts[n]) parts[n].visible = true; }); mists.forEach((m) => { m.visible = withMist; }); stage.chairReflection && (stage.chairReflection.group.visible = names.includes('chair')); };
+    const measure = (name, setup, reps = 2) => {
+      R_.setSize(W, H, false); curW = W; curH = H; camera.aspect = W / H; camera.fov = hero.fov; let best = 1e9, calls = 0;
+      for (let r = 0; r < reps; r++) {
+        defaults(); allBeams.forEach((b) => { b.group.visible = false; }); haze.object.visible = false; setup();
+        const apply = (tt) => { camera.position.set(...hero.cam); camera.lookAt(...hero.look); camera.updateProjectionMatrix(); stage.update(tt); };
+        apply(T0); const times = subTimes(T0, 30, 4, 0.5), t0 = performance.now();
+        S.post.render({ scene, camera, w: W, h: H, times, update: apply, dof: { focus: hero.focus, strength: 0.55, maxPx: 12, bokeh: 1.3 }, bloom: { strength: 0.42, radius: 0.55, threshold: 0.9 }, exposure: 1, jitter: true });
+        const gl = R_.getContext(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); const ms = performance.now() - t0; if (r > 0) best = Math.min(best, ms); if (r === reps - 1) calls = countDraws();
+      }
+      Object.values(parts).forEach((o) => { if (o) o.visible = true; }); mists.forEach((m) => { m.visible = true; }); stage.chairReflection && (stage.chairReflection.group.visible = true);
+      rows.push({ name, ms: Math.round(best), draws: calls }); console.log('PERF2', name, Math.round(best), 'ms', calls, 'draws');
+    };
+    measure('post chain only (stage hidden)', () => { stage.group.visible = false; const c = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshBasicMaterial({ color: '#223' })); c.name = '_probe'; scene.add(c); setTimeout(() => scene.remove(c), 0); });
+    stage.group.visible = true;
+    measure('floor only', () => showOnly(['floor']));
+    measure('cyc only', () => showOnly(['cyc']));
+    measure('floor + cyc', () => showOnly(['floor', 'cyc']));
+    measure('floor + cyc + truss/rig', () => showOnly(['floor', 'cyc', 'truss']));
+    measure('floor + cyc + chair (+mirror)', () => showOnly(['floor', 'cyc', 'chair']));
+    measure('floor + cyc + table/cases/grips/cables/marks/tubes', () => showOnly(['floor', 'cyc', 'table', 'cases', 'grips', 'cables', 'marks', 'tubes']));
+    measure('floor + cyc + mist', () => showOnly(['floor', 'cyc'], true));
+    measure('FULL stage', () => showOnly(Object.keys(parts), true));
     g.fillStyle = '#fff'; g.font = '22px monospace'; rows.forEach((r, i) => g.fillText(`${r.name}: ${r.ms} ms   ${r.draws} draws`, 20, 40 + i * 34)); API.perfRows = rows;
   }
 
