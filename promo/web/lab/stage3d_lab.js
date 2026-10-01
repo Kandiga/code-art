@@ -34,7 +34,7 @@ export async function run(sheet) {
   const haze = FX.createHaze(THREE, { count: 900, bounds: { min: [-7, 0.1, -7], max: [7, 7, 5] }, size: 0.022 }); scene.add(haze.object);
   const T0 = 3.7;
 
-  const cv = document.createElement('canvas'); cv.width = 1920; cv.height = sheet === 'perf' ? 400 : TH * 3; document.body.appendChild(cv);
+  const cv = document.createElement('canvas'); cv.width = sheet === 'one' ? TW : 1920; cv.height = sheet === 'perf' ? 400 : sheet === 'one' ? TH : TH * 3; document.body.appendChild(cv);
   const g = cv.getContext('2d'); g.fillStyle = '#0b0a0d'; g.fillRect(0, 0, cv.width, cv.height);
   const stats = [];
 
@@ -230,6 +230,7 @@ export async function run(sheet) {
     hero: ['hero', 'low', 'chair', 'wide', 'rim', 'rig'],
     looks: ['neutral', 'teal', 'noir', 'warm', 'hero', 'low'],
   };
+  if (sheet === 'one') { const k = Q.get('shot') || 'chair'; if (SHOTS[k]) tile(0, 0, TW, TH, SHOTS[k]); else fxTile(0, 0, TW, TH, FXSHOTS[k]); }
   if (sheets[sheet]) sheets[sheet].forEach((k, i) => tile(col(i), row(i), TW, TH, SHOTS[k]));
   return API;
 }
