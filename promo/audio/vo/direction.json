@@ -1,7 +1,8 @@
 {
   "_comment": "VO direction. Times come from shared/cues.js; this file only holds PERFORMANCE and CHAIN settings.",
   "voices": {
-    "narrator": { "voice": "en_US-ryan-high", "speaker": 0, "seed": 1, "ns": 0.667, "nw": 0.8 },
+    "narrator": { "voice": "en_GB-cori-high", "speaker": 0, "seed": 1, "ns": 0.667, "nw": 0.8,
+                  "shape": { "formant_ratio": 0.97, "median_hz": 192, "range": 1.15 } },
     "diegetic": { "voice": "en_US-joe-medium", "speaker": 0, "seed": 1, "ns": 0.8, "nw": 0.9 }
   },
   "level": { "lufs": -20.0, "peak_db": -3.0 },
@@ -21,17 +22,17 @@
     "hiss_db": -34, "thump_db": -46, "crackle_per_s": 14, "crackle_db": -34
   },
   "lines": {
-    "vo1": { "segments": [ { "text": "Every film starts with a blank page.", "ls": 1.1, "ns": 0.5, "nw": 0.6 } ], "hush": 0.2, "wet": 0.10 },
-    "vo2": { "segments": [ { "text": "For a hundred and thirty years,", "ls": 1.15, "gap": 0.3 }, { "text": "it took an army{v1.6c1.15} to make a movie.", "ls": 1.15 } ] },
-    "vo3a": { "segments": [ { "text": "Now it takes", "ls": 1.15, "gap": 0.22 }, { "text": "one director.", "ls": 1.2 } ] },
-    "vo3b": { "segments": [ { "text": "Meet.", "ls": 1.1, "gap": 0.1 }, { "text": "Amrita{v1.15}.", "ls": 1.1 } ], "wet": 0.16 },
-    "vo4a": { "segments": [ { "text": "She writes.", "ls": 1.0 } ] },
-    "vo4b": { "segments": [ { "text": "She shoots.", "ls": 1.0 } ] },
-    "vo4c": { "segments": [ { "text": "She scores.", "ls": 1.0 } ] },
-    "vo4d": { "segments": [ { "text": "She cuts.", "ls": 1.0 } ] },
-    "vo5": { "segments": [ { "text": "And she's just getting started.", "ls": 1.05 } ] },
-    "vo6a": { "segments": [ { "text": "Amrita Cinema Studio.", "ls": 0.95 } ] },
-    "vo6b": { "segments": [ { "text": "Your story.", "ls": 1.05, "gap": 0.15 }, { "text": "Directed.", "ls": 1.05 } ] },
+    "vo1": { "segments": [ { "text": "Every film starts with a blank page.", "ls": 1.0, "ns": 0.5, "nw": 0.6 } ], "hush": 0.2, "wet": 0.10 },
+    "vo2": { "segments": [ { "text": "For a hundred and thirty years,", "ls": 1.1, "gap": 0.3 }, { "text": "it took an army{v1.6c1.15} to make a movie.", "ls": 1.1 } ] },
+    "vo3a": { "segments": [ { "text": "Now it takes", "ls": 1.1, "gap": 0.22 }, { "text": "one director.", "ls": 1.15 } ] },
+    "vo3b": { "segments": [ { "text": "Meet.", "ls": 1.0, "gap": 0.1 }, { "text": "[[ɐmɹˈiːtə.]]{v1.15}", "ls": 1.0 } ], "wet": 0.16 },
+    "vo4a": { "segments": [ { "text": "She{c1.4} writes.", "ls": 1.0 } ] },
+    "vo4b": { "segments": [ { "text": "She{c1.4} shoots.", "ls": 1.0 } ] },
+    "vo4c": { "segments": [ { "text": "She{c1.4} scores.", "ls": 1.0 } ] },
+    "vo4d": { "segments": [ { "text": "She{c1.4} cuts.", "ls": 1.0 } ] },
+    "vo5": { "segments": [ { "text": "And she's just getting started.", "ls": 1.0 } ] },
+    "vo6a": { "segments": [ { "text": "[[ɐmɹˈiːtə]] Cinema Studio.", "ls": 0.95, "sp": 0.7 } ] },
+    "vo6b": { "segments": [ { "text": "Your story.", "ls": 1.0, "gap": 0.12 }, { "text": "Directed.", "ls": 1.0 } ] },
     "vo_hello": { "voice": "diegetic", "segments": [ { "text": "Hello!", "ls": 0.95 } ], "formant_shift": 1.5 }
   }
 }

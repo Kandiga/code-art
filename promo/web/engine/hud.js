@@ -470,8 +470,8 @@ function drawNow(ctx, T, st, g) {
   // double underline, hand-drawn, written on right after the stamp
   ctx.save(); ctx.font = F.display(NOW_PX); ctx.letterSpacing = '5px'; const w = ctx.measureText('NOW').width; ctx.restore();
   const u0 = g.x - w / 2 - 4, u1 = g.x + w / 2 + 8;
-  P.underline(ctx, u0, u1, 1036.5, { color: VERM, width: 5, boil, seed: 51, reveal: clamp((s - 0.1) / 0.22) });
-  P.underline(ctx, u0 + 14, u1 - 10, 1042.5, { color: AMBER, width: 3, boil, seed: 53, reveal: clamp((s - 0.2) / 0.22) });
+  P.underline(ctx, u0, u1, 1034, { color: VERM, width: 5, boil, seed: 51, reveal: clamp((s - 0.1) / 0.22) });
+  P.underline(ctx, u0 + 14, u1 - 10, 1040.5, { color: AMBER, width: 3, boil, seed: 53, reveal: clamp((s - 0.2) / 0.22) });
 }
 
 // ---- caption: a taped paper label with write-on pencil lettering ------------------------------------------------------------
@@ -623,19 +623,22 @@ export function draw(ctx, T, S, mode = 'paper') {
     const e = T.era || ERAS[Math.max(0, eraIndexAt(t))] || ERAS[0], cur = stripScroll(y, e, t), nowS = t - NOW_T, isNow = y.now && nowS >= 0;
     const st = { t, boil, cur, y, bp, nowS, isNow };
     // strip: body, shadow, holes, frames, playhead
-    const body = stripBody(S, boil % 3);
+    const body = stripBody(S, boil % 3), enter = e.index === 0 ? 1 - outCubic(clamp((t - e.t0) / 0.4)) : 0; // the strip slides up with the first era
+    ctx.save(); ctx.translate(0, enter * 84);
     ctx.save(); const sg = ctx.createLinearGradient(0, BAND.y + BAND.h, 0, BAND.y + BAND.h + 14); sg.addColorStop(0, 'rgba(14,13,18,0.28)'); sg.addColorStop(1, 'rgba(14,13,18,0)'); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = sg; ctx.fillRect(0, BAND.y + BAND.h, 1920, 14); ctx.restore();
     ctx.drawImage(body, -20, BAND.y - 4, 1960, BAND.h + 8);
     drawHoles(ctx, cur * PITCH, boil, false);
     drawCellsPaper(ctx, T, st);
     drawPlayheadPaper(ctx, T, st);
     drawPlatePaper(ctx, T, { ...st, y });
+    ctx.restore();
     drawCaptionPaper(ctx, T, e);
   } else {
     const fut = FUTURES.find((f) => t >= f.t0 && t < f.t1) || (t < FUTURES[0].t0 ? FUTURES[0] : FUTURES[FUTURES.length - 1]), k = FUTURES.indexOf(fut);
     const cur = N_ERA - 1 + k + (y.roll || 0), js = t - fut.t0, glitch = js >= 0 && js < 0.4 ? (1 - js / 0.4) ** 1.5 : 0;
     const settle = js > 0.25 && js < 0.75 ? 0.04 * Math.exp(-(js - 0.25) * 14) * Math.sin((js - 0.25) * 36) : 0;
     const st = { t, boil, cur: cur + settle, y, bp, glitch, fut };
+    if (t < FUTURES[0].t0 + 0.2) ctx.globalAlpha = hash(Math.floor(t * 30), 91) < 0.35 + (t - FUTURES[0].t0) * 3 ? 1 : 0.45; // flickers on with the 2050 jump
     drawStripDigital(ctx, T, st);
     drawPlateDigital(ctx, T, st);
     drawCaptionDigital(ctx, T, st);

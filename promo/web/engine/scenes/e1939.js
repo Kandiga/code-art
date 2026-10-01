@@ -63,14 +63,14 @@ function glow(ctx, x, y, r, col, a, comp = 'lighter') {
 }
 
 // ---------------------------------------------------------------- palettes (inputs to the three-strip grade) -------------------------------
-const COL = {
+const COL = {   // inputs are pre-inverted through the three-strip grade (sat 1.6, contrast 1.12, primaries push) so the OUTPUT lands on the intended candy colours
   bw: false, ink: GRAPH,
-  sky0: '#FF9CC8', sky1: '#FFBFD8', sky2: '#FFE6EF', skyH: '#FF6FAE',
-  far: '#8E7BFF', farD: '#4B33C8', farL: '#B7A8FF',
-  m1: '#22D3A6', m1D: '#0A7F6A', m1L: '#7BF0C6',
-  m2: '#8BE64C', m2D: '#2C9C2E', m2L: '#D2FA7E',
-  fg: '#27B24A', fgD: '#0F6B33',
-  kerb: '#FF5AA5', kerbD: '#B81A68', path: '#C79BFF', pathD: '#7A4CE0', stitch: '#FFF6E2',
+  sky0: '#FF94AE', sky1: '#FEADBE', sky2: '#E4CAD0', skyH: '#FF7696',
+  far: '#8A85C5', farD: '#5B508C', farL: '#AEA8EB',
+  m1: '#30AB96', m1D: '#3B7A6D', m1L: '#94CDB8',
+  m2: '#96BE75', m2D: '#588855', m2L: '#CFF7A6',
+  fg: '#50865C', fgD: '#315E42',
+  kerb: '#BC6E91', kerbD: '#86395F', path: '#AD91EE', pathD: '#6F589D', stitch: '#FFF6E2',
 };
 const BW = {
   bw: true, ink: '#3A3A42',
@@ -91,7 +91,7 @@ const M2 = hillPoly([[-80, 850], [160, 820], [400, 834], [620, 806], [860, 808],
 const FGL = hillPoly([[-80, 946], [110, 922], [290, 944], [430, 996], [520, 1110]]);          // foreground bumps (mostly hidden by the HUD strip)
 const FGR = hillPoly([[2000, 920], [1760, 900], [1560, 934], [1440, 996], [1380, 1110]]);
 
-const wf = (y) => Math.max(26, 30 + (y - 706) * 0.62);
+const wf = (y) => Math.max(26, 32 + (y - 706) * 0.78);
 function makeRibbon(ctrl) {
   const c = P.smoothPts(ctrl, { n: 10 }), n = c.length, nrm = [], W = [];
   for (let i = 0; i < n; i++) {
@@ -135,9 +135,9 @@ function amritaAt(t) {
   const lt = t - T0, k = clamp(Math.floor(lt / 0.5 + 1e-9), 0, 3), u = clamp((lt - k * 0.5) / 0.5, 0, 1.0);
   const airU = clamp((u - 0.4) / 0.6), ease = lerp(airU, smooth(airU), 0.35);
   const s = lerp(ROUTE_S[k], ROUTE_S[k + 1], ease), [fx, fy] = ribPos(s);
-  const landSq = k >= 1 ? -0.30 * Math.exp(-u / 0.10) * Math.cos(u * 9) : 0;
-  const crouch = -0.26 * smooth((u - 0.10) / 0.22) * (1 - smooth((u - 0.34) / 0.07));
-  const stretch = 0.30 * smooth((u - 0.34) / 0.07) * (1 - smooth((u - 0.46) / 0.34)) + 0.08 * smooth((u - 0.88) / 0.1);
+  const landSq = k >= 1 ? -0.17 * Math.exp(-u / 0.10) * Math.cos(u * 9) : 0;
+  const crouch = -0.14 * smooth((u - 0.10) / 0.22) * (1 - smooth((u - 0.34) / 0.07));
+  const stretch = 0.12 * smooth((u - 0.34) / 0.07) * (1 - smooth((u - 0.46) / 0.34)) + 0.04 * smooth((u - 0.88) / 0.1);
   const squash = (lt <= 0 ? 0 : 1) * (landSq + crouch + stretch);
   const R = 50 + (fy - 700) * 0.40;
   const h = 4 * airU * (1 - airU) * 120 * (R / 120);
@@ -170,7 +170,7 @@ function drawSky(ctx, B, S, pal) {
 }
 
 function drawRainbow(ctx, B) {
-  const cx = 760, cy = 800, R0 = 560, bw = 23, cols = ['#FF4D4D', '#FF9B30', '#FFE23E', '#4CDB6C', '#3F90FF', '#9B5CFF'];
+  const cx = 760, cy = 800, R0 = 560, bw = 23, cols = ['#FA6869', '#C79562', '#FECE80', '#71B67F', '#668BFF', '#8869C3'];
   cols.forEach((c, i) => {
     const r = R0 - i * bw, pts = []; for (let a = Math.PI * 1.02; a <= Math.PI * 1.98; a += 0.05) pts.push([cx + Math.cos(a) * r * 1.12, cy + Math.sin(a) * r * 0.86]);
     const out = pts.concat(pts.map(([x, y]) => { const dx = x - cx, dy = y - cy, l = Math.hypot(dx, dy); return [x - dx / l * bw * 0.96, y - dy / l * bw * 0.96]; }).reverse());
@@ -227,7 +227,7 @@ function drawHill(ctx, B, h, pal, c, cD, cL, o = {}) {
 }
 function drawRibbon(ctx, B, rb, pal, o = {}) {
   const n = rb.c.length;
-  const outer = rb.poly(1.0), inner = rb.poly(0.70);
+  const outer = rb.poly(1.0), inner = rb.poly(0.64);
   P.fill(ctx, outer, { color: pal.kerb, comp: 'source-over', offset: [3, 2], boil: B, amp: 1.0, seed: 101 });
   P.fill(ctx, inner, { color: pal.path, comp: 'source-over', offset: [4, 3], boil: B, amp: 1.0, seed: 102 });
   // pencil hatch on the lilac, in slices (cheap): diagonal strokes
@@ -458,7 +458,7 @@ function drawSparkles(ctx, B, t) {
     const dt = t - tl; if (dt < 0 || dt > 0.75) return;
     const [fx, fy] = ROUTE[k + 1], Rr = 50 + (fy - 700) * 0.40, kk = dt / 0.75, N = k === 0 ? 11 : 8;
     for (let i = 0; i < N; i++) {
-      const a = (i / N) * TAU + hash(i, k, 21) * 0.6 - 1.57 * 0, d = outCubic(kk) * Rr * (1.1 + 1.4 * hash(i, k, 22)), x = fx + Math.cos(a) * d * 1.15, y = fy - Rr * 0.5 + Math.sin(a) * d * 0.75 - kk * 18;
+      const a = (i / N) * TAU + hash(i, k, 21) * 0.6 - 1.57 * 0, d = Rr * (1.0 + outCubic(kk) * (0.5 + 1.1 * hash(i, k, 22))), x = fx + Math.cos(a) * d * 1.2, y = fy - Rr * 0.9 + Math.sin(a) * d * 0.95 - kk * 18;
       drawStar(ctx, B, x, y, Rr * (0.12 + 0.12 * hash(i, k, 23)) * (1 - kk * 0.8), SPARK_COLS[(i + k) % 5], 1 - kk * kk, 700 + k * 40 + i);
     }
     // ground ripple
@@ -498,7 +498,7 @@ function amritaArgs(t, S, T) {
     propAnim: { t, sound: lt > 0.5 ? sound : 0 }, groundY: a.fy, seed: 14, shadow: { a: 0.9 },
   };
 }
-function drawAmritaColor(ctx, T, S) { const o = amritaArgs(T.t, S, T); S.amrita2d.drawAmrita(ctx, T, S, o); return o; }
+function drawAmritaColor(ctx, T, S) { const o = amritaArgs(T.t, S, T); glow(ctx, o.x, o.y, o.size * 2.4, '#FFFFFF', 0.55, 'source-over'); S.amrita2d.drawAmrita(ctx, T, S, o); return o; }
 function drawAmritaGray(ctx, T, S) {
   const o = amritaArgs(T.t, S, T), c = tmpCanvas(S, 1000, 760), g = c.getContext('2d'), cx = o.x + 100, cy = o.y;
   g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
@@ -575,6 +575,8 @@ export default {
       ctx.restore();
     }
     drawBloomRim(ctx, T);
+    // paper grain over everything: the whole film is a drawing
+    ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.42; P.paper(ctx, S, { seed: 39, base: '#F2EEE6', shade: '#E2DACB' }); ctx.restore();
     ctx.restore();
     // the portal must be pristine for the dive
     if (lt >= 1.4) { ctx.save(); ctx.beginPath(); ctx.arc(PT.cx, PT.cy, PT.r, 0, TAU); ctx.clip(); drawWindow(ctx, T.boil, T.t, 1); ctx.restore(); }

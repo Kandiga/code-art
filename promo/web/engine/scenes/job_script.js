@@ -337,7 +337,7 @@ function buildBooklet(THREE, S) {
 
 export default {
   id: 'job_script', kind: '3d', ratio: 2.39,
-  setup({ THREE, S, renderer }) {
+  async setup({ THREE, S, renderer }) {
     const scene = new THREE.Scene(); scene.background = new THREE.Color('#040306'); scene.fog = new THREE.FogExp2('#0b0a12', 0.024);
     const DB = globalThis.__dbg || {};
     const stage = buildStage(THREE, { THREE, S, renderer }, { look: 'warm', tubes: false, cables: false, marks: false, grips: false, cases: false, table: false }); scene.add(stage.group);
@@ -392,6 +392,8 @@ export default {
     // ---- light cones + dust
     const beamKey = makeBeam(THREE, { color: '#ffcf8c', length: 11, radius: 1.2, intensity: 0.15, power: 1.5 }); scene.add(beamKey);
     beamKey.userData.aim(new THREE.Vector3(-4.2, 7.0, 3.4), new THREE.Vector3(-0.1, 1.5, 0.4), 11);
+    let libKey = null, libRim = null;
+    if (DB.libBeam) { const FX = await import('../fx3d.js'); libKey = FX.createBeam(THREE, { from: [-4.2, 7.0, 3.4], to: [-0.1, 1.5, 0.4], color: '#ffcf8c', angle: 0.17, intensity: DB.libI ?? 1.0 }); scene.add(libKey.object); libRim = FX.createBeam(THREE, { from: [4.6, 6.4, -4.6], to: [1.0, 0.9, 0], color: '#8fc8ff', angle: 0.13, intensity: DB.libI ?? 1.0 }); scene.add(libRim.object); }
     const beamRim = makeBeam(THREE, { color: '#8fc8ff', length: 12, radius: 1.5, intensity: 0.17, power: 1.6 }); scene.add(beamRim);
     beamRim.userData.aim(new THREE.Vector3(4.6, 6.4, -4.6), new THREE.Vector3(1.0, 0.9, 0), 12);
     const dustA = makeDust(THREE, { count: 340, center: [0, 2.2, 0.5], size: [9, 5, 6], color: '#ffe0a8', psize: 0.02, intensity: 1.2, seed: 3 }); dustA.userData.setBeam(new THREE.Vector3(-4.2, 7.0, 3.4), beamKey.userData.dir, 0.14); scene.add(dustA);
@@ -440,7 +442,7 @@ export default {
     const ringsG = makeRings(THREE, rings); scene.add(ringsG);
 
     const tmp = { v: new THREE.Vector3(), v2: new THREE.Vector3(), c: new THREE.Color(), q: new THREE.Quaternion(), e: new THREE.Euler() };
-    return { scene, camera, stage, A, THREE, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
+    return { scene, camera, stage, A, THREE, libKey, libRim, stylus, tipHalo, bulbs, words, book, glow, beamKey, beamRim, dustA, dustB, sparks, ringsG, ghostHalo, poolWords, poolAm, poolBook, blob, tmp, ASMV };
   },
 
   update(st, T, S) {
@@ -448,7 +450,7 @@ export default {
     const lt = clamp(T.lt, 0, 2), t = T.t, imp = Math.min(1, T.impact), D = globalThis.__dbg || {};
     st.scene.visible = !D.empty;
     st.poolWords.visible = st.poolAm.visible = st.poolBook.visible = st.blob.visible = !D.noPools; st.ghostHalo.visible = !D.noPools; st.stylus.group.visible = !D.noProps; A.root.visible = !D.noAmrita; book.root.visible = !D.noBook;
-    st.beamKey.visible = st.beamRim.visible = !D.noBeams; st.dustA.visible = st.dustB.visible = !D.noDust; st.bulbs.visible = !D.noBulbs; st.sparks.visible = !D.noSparks;
+    st.beamKey.visible = st.beamRim.visible = !D.noBeams && !st.libKey; if (st.libKey) { st.libKey.object.visible = st.libRim.object.visible = !D.noBeams; st.libKey.update(t); st.libRim.update(t); } st.dustA.visible = st.dustB.visible = !D.noDust; st.bulbs.visible = !D.noBulbs; st.sparks.visible = !D.noSparks;
     const snapP = lt >= SNAP ? Math.exp(-(lt - SNAP) / 0.09) : 0;
     const kIdx = Math.min(7, Math.floor(lt / 0.125)), kAge = Math.max(0, lt - 0.125 * kIdx);
     const typedN = KEYS.reduce((n, k) => n + (lt >= k ? 1 : 0), 0);

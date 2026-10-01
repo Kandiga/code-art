@@ -310,7 +310,7 @@ export function createStage(THREE, env = {}, opts = {}) {
   const phys = (p) => { const m = new T.MeshPhysicalMaterial(p); if (envMap) m.envMap = envMap; return m; };
   const std = (p) => { const m = new T.MeshStandardMaterial(p); if (envMap) m.envMap = envMap; return m; };
   const floorTex = floorTexture(T);
-  const floorMat = new T.MeshPhysicalMaterial({ color: '#0d0d12', roughness: 0.36, metalness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.32, roughnessMap: floorTex, bumpMap: floorTex, bumpScale: 0.5 });
+  const floorMat = new T.MeshPhysicalMaterial({ color: '#0d0d12', roughness: 0.46, metalness: 0.3, clearcoat: 0.32, clearcoatRoughness: 0.4, roughnessMap: floorTex, bumpMap: floorTex, bumpScale: 0.5 });
   floorMat.transparent = true; floorMat.depthWrite = true; floorMat.blending = T.CustomBlending; floorMat.blendSrc = T.OneFactor; floorMat.blendDst = T.OneMinusSrcAlphaFactor; floorMat.blendSrcAlpha = T.OneFactor; floorMat.blendDstAlpha = T.OneMinusSrcAlphaFactor;
   floorMat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, stageU, cycU, floorU);
@@ -710,7 +710,7 @@ export function createStage(THREE, env = {}, opts = {}) {
       kit.aim(p, tg, _m4); b.group.matrix.copy(_m4); b.group.matrixWorldNeedsUpdate = true;
       const k = clamp(l.intensity / b.ref, 0, 3); _c.copy(l.color).multiplyScalar(0.05 + 2.8 * k * st.glowK); b.lens.material.color.copy(_c);
       b.pipe.visible = p.y < RIGY - 0.2 && p.y > 2; b.pipe.position.set(p.x, (p.y + RIGY) / 2, p.z); b.pipe.scale.set(0.012, RIGY - p.y, 0.012);
-      b.halo.material.color.copy(_c).multiplyScalar(0.3); b.halo.position.copy(p).addScaledVector(_v2.sub(p).normalize(), 0.22);
+      b.halo.userData.base.copy(_c).multiplyScalar(0.3); b.halo.userData.aim.copy(_v2.sub(p).normalize()); b.halo.position.copy(p).addScaledVector(b.halo.userData.aim, 0.22);
     }
   }
   const baseUpdate = T.Object3D.prototype.updateMatrixWorld;
@@ -735,7 +735,8 @@ export function createStage(THREE, env = {}, opts = {}) {
       const body = new T.Mesh(geo, metalDark); body.scale.setScalar(1.15);
       const lens = new T.Mesh(new T.CircleGeometry(0.098 * 1.15, 20), new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false, fog: false })); lens.position.z = 0.205 * 1.15;
       const pipe = new T.Mesh(kit.prim.cyl6, std({ color: '#1f1f26', metalness: 0.8, roughness: 0.4 })); pipe.frustumCulled = false;
-      const halo = new T.Sprite(new T.SpriteMaterial({ map: radial(), color: '#ffffff', blending: T.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false, fog: false })); halo.scale.set(1.3, 1.3, 1);
+      const halo = new T.Sprite(new T.SpriteMaterial({ map: radial(), color: '#ffffff', blending: T.AdditiveBlending, depthWrite: false, transparent: true, toneMapped: false, fog: false })); halo.scale.set(1.3, 1.3, 1); halo.userData.base = new T.Color(); halo.userData.aim = new T.Vector3(0, 0, 1);
+      halo.onBeforeRender = (r, sc, cam) => { const u = halo.userData, d = (cam.position.x - halo.position.x) * u.aim.x + (cam.position.y - halo.position.y) * u.aim.y + (cam.position.z - halo.position.z) * u.aim.z, L = Math.hypot(cam.position.x - halo.position.x, cam.position.y - halo.position.y, cam.position.z - halo.position.z) || 1, f = clamp((d / L + 0.2) / 0.8, 0, 1); halo.material.color.copy(u.base).multiplyScalar(f * f * (3 - 2 * f)); };
       g.add(body, lens); boundGroup.add(g, pipe, halo); st.bound.push({ light, group: g, lens, pipe, halo, ref });
     }
   }
@@ -753,7 +754,7 @@ export function createStage(THREE, env = {}, opts = {}) {
     setLook(name, o) { return setLook(api, name, o); },
     /** blend two looks (names or look objects), k 0..1; pass {lights:true} to also recolour key/fill/rim/amb */
     blendLook(a, b, k, o = {}) { return setLook(api, blendLooks(T, a, b, k), { lights: false, quiet: !o.lights, ...o }); },
-    bindLights(on = true) { if (on && !st.bound.length) bindLightFixtures(); boundGroup.visible = on; if (!on) st.bound.length = 0; return api; },
+    bindLights(on = true) { if (on && !st.bound.length) bindLightFixtures(); boundGroup.visible = on; if (!on && st.bound.length) { st.bound.length = 0; boundGroup.clear(); } return api; },
     reflect(obj, o) { return reflect(api, obj, o); },
     /** 'periphery' (default, props out of the way) | 'showcase' (table + cases pulled in, for lab shots) */
     layout(name) { const p = POS[name] || POS.periphery; table.position.set(p.table[0], p.table[1], p.table[2]); table.rotation.y = p.table[3]; casesL.position.set(...p.casesL); casesR.position.set(...p.casesR); return api; },

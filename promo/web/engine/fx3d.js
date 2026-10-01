@@ -377,7 +377,7 @@ export function createRibbons(T, o = {}) {
         float ph = fract(vU * 1.0 - uTime * uSpeed * (0.7 + 0.6 * vSeed) + vSeed * 3.1); float tail = exp(-ph * 5.0) * uPulse;
         float fade = smoothstep(0.0, 0.06, vU) * smoothstep(1.0, 0.9, vU);
         float core = exp(-vSide * vSide * 3.5), prof = 1.0 - smoothstep(0.0, 1.0, abs(vSide));
-        gl_FragColor = vec4(vC * (0.12 + 1.8 * tail) * fade * uInt * (0.25 + 0.75 * core) * (0.4 + prof), 1.0); }`,
+        gl_FragColor = vec4(vC * (0.1 + 1.6 * tail) * fade * uInt * 0.42 * (0.25 + 0.75 * core) * (0.4 + prof), 1.0); }`,
   });
   const mesh = new T.Mesh(g, mat); mesh.frustumCulled = false; mesh.renderOrder = 6; mesh.name = 'ribbons';
   return { object: mesh, mesh, uniforms: U, material: mat, count: R, update(t) { U.uTime.value = t; return this; } };
@@ -399,7 +399,8 @@ export function hologramMaterial(T, o = {}) {
         float scan = pow(0.5 + 0.5 * sin(vW.y * uScanFreq - uTime * uScanSpeed * 6.0), 3.0);
         float sweep = exp(-pow(fract(vW.y * 0.4 - uTime * 0.18) - 0.5, 2.0) * 90.0);
         float fl = 1.0 - uFlicker * step(0.93, fract(sin(floor(uTime * 30.0) * 12.9898) * 43758.5453)) - 0.05 * sin(uTime * 47.0);
-        vec3 col = mix(uColor, uColor2, fres) * (0.2 + 1.5 * fres * uRim + 0.5 * scan + 0.8 * sweep);
+        vec3 col = mix(uColor, uColor2, fres) * (0.1 + 0.95 * fres * uRim + 0.32 * scan + 0.5 * sweep);
+        if (!gl_FrontFacing) col *= 0.4;
         gl_FragColor = vec4(col * uAlpha * fl, 1.0); }`,
   });
   m.userData.update = (t) => { m.uniforms.uTime.value = t; return m; }; m.userData.setTime = m.userData.update;
@@ -422,7 +423,7 @@ export function lensFlare(T, o = {}) {
   const parts = [], mkMat = (tex, c, k) => new T.SpriteMaterial({ map: tex, color: c.clone().multiplyScalar(k), blending: T.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true, toneMapped: false, fog: false });
   const add = (tex, w, h, k, tint, pos, rot = 0) => { const s = new T.Sprite(mkMat(tex, tint, k)); s.frustumCulled = false; s.renderOrder = 20; s.material.rotation = rot; parts.push({ s, w, h, k, tint: tint.clone(), pos, base: k }); g.add(s); return s; };
   add(glowTexture(T), P.size * 3.2, P.size * 3.2, 1.8, col, 1); add(glowTexture(T), P.size * 9, P.size * 9, 0.22, col.clone().lerp(new T.Color('#6b5bff'), 0.4), 1);
-  if (P.streak) { add(streakTexture(T), P.size * 16, P.size * 0.9, 0.9, col.clone().lerp(new T.Color('#7cc4ff'), 0.55), 1); add(streakTexture(T), P.size * 7, P.size * 0.45, 0.8, new T.Color('#ffffff'), 1); }
+  if (P.streak) { add(streakTexture(T), P.size * 18, P.size * 0.9, 1.5, col.clone().lerp(new T.Color('#7cc4ff'), 0.55), 1); add(streakTexture(T), P.size * 8, P.size * 0.45, 1.2, new T.Color('#ffffff'), 1); }
   if (P.ring) add(ringTexture(T), P.size * 4.5, P.size * 4.5, 0.55, col.clone().lerp(new T.Color('#ffffff'), 0.2), 1);
   const gk = [-0.55, -0.3, 0.35, 0.7, -1.1, 1.5, -0.8, 0.15], gt = ['#ffb62e', '#1fb5a6', '#6b5bff', '#f2542d', '#7cc4ff', '#ffb62e', '#1fb5a6', '#6b5bff'];
   for (let i = 0; i < P.ghosts; i++) add(discTexture(T), P.size * (0.7 + 1.6 * hash(i, 1, 7)), P.size * (0.7 + 1.6 * hash(i, 1, 7)), 0.16 + 0.1 * hash(i, 2, 7), new T.Color(gt[i % gt.length]), gk[i % gk.length]);
@@ -453,8 +454,8 @@ export function createGodrayCard(T, o = {}) {
       void main(){
         float sh, fall; vec2 p = vUv;
         if (uMode < 0.5) { vec2 d = (p - uOrigin) * vec2(uAspect, 1.0); float r = length(d), a = atan(d.y, d.x); float n = texture(uNoise, vec3(a * 0.9549 * uRays / 6.0, r * 0.3, uTime * uSpeed + uSeed)).g; sh = 0.25 + 1.6 * pow(n, 1.5); fall = exp(-r * 1.6) * smoothstep(0.0, 0.08, r); }
-        else { float u = p.x + (1.0 - p.y) * uSlant; float n = texture(uNoise, vec3(u * uRays * 0.5, p.y * 0.4, uTime * uSpeed + uSeed)).g; sh = 0.2 + 1.7 * pow(n, 1.6); fall = smoothstep(0.0, 0.3, p.y) * (0.35 + 0.65 * p.y) * smoothstep(0.0, 0.12, p.x) * smoothstep(1.0, 0.88, p.x); }
-        float edge = smoothstep(0.0, 0.1, p.x) * smoothstep(1.0, 0.9, p.x) * smoothstep(0.0, 0.08, p.y) * smoothstep(1.0, 0.92, p.y);
+        else { float u = p.x + (1.0 - p.y) * uSlant; float n = texture(uNoise, vec3(u * uRays * 0.5, p.y * 0.4, uTime * uSpeed + uSeed)).g; sh = 0.2 + 1.7 * pow(n, 1.6); fall = smoothstep(0.0, 0.3, p.y) * (0.35 + 0.65 * p.y); }
+        float edge = smoothstep(0.0, 0.3, p.x) * smoothstep(1.0, 0.7, p.x) * smoothstep(0.0, 0.25, p.y) * smoothstep(1.0, 0.75, p.y);
         gl_FragColor = vec4(uColor * uInt * sh * fall * edge, 1.0); }`,
   });
   const mesh = new T.Mesh(new T.PlaneGeometry(P.width, P.height), mat); mesh.name = 'godray'; mesh.renderOrder = 4; mesh.frustumCulled = false;
@@ -463,18 +464,19 @@ export function createGodrayCard(T, o = {}) {
 }
 
 // ================================================================================================ FILM STRIP
-/** 35 mm film strip along a curve with perforations + frames (procedural pictures or an atlas). o: { curve|length, width=0.35, atlas, atlasCols=4, atlasRows=4, tint, emissive=1.1, scroll=0, segments, up:[0,0,1], seed } */
+/** 35 mm film strip along a curve with perforations + frames (procedural pictures or an atlas). o: { curve|length, width=0.35, atlas, atlasCols=4, atlasRows=4, tint, emissive=1.1, scroll=0, segments, widthDir:[0,1,0], seed }
+ *  widthDir = which way the strip's width runs (default world up -> a vertical strip facing sideways to the curve; use [0,0,1] for a flat strip lying in a horizontal plane). */
 export function createFilmStrip(T, o = {}) {
-  const P = { width: 0.35, emissive: 1.1, scroll: 0, atlasCols: 4, atlasRows: 4, seed: 4, up: [0, 0, 1], ...o };
+  const P = { width: 0.35, emissive: 1.1, scroll: 0, atlasCols: 4, atlasRows: 4, seed: 4, widthDir: [0, 1, 0], ...o };
   const curve = o.curve ? (o.curve.getPoint ? o.curve : new T.CatmullRomCurve3(o.curve.map((p) => toVec(T, p)))) : new T.LineCurve3(new T.Vector3(-(o.length ?? 4) / 2, 0, 0), new T.Vector3((o.length ?? 4) / 2, 0, 0));
   const L = curve.getLength(), frameLen = P.width * 0.543, frames = Math.max(1, Math.round(L / frameLen)), seg = P.segments ?? Math.max(24, Math.min(400, frames * 6));
-  const pos = [], uv = [], idx = [], up = toVec(T, P.up), p = new T.Vector3(), tg = new T.Vector3(), sd = new T.Vector3();
+  const pos = [], uv = [], idx = [], wd = toVec(T, P.widthDir), p = new T.Vector3(), tg = new T.Vector3(), sd = new T.Vector3();
   for (let j = 0; j <= seg; j++) {
-    const u = j / seg; curve.getPointAt(u, p); curve.getTangentAt(u, tg); sd.crossVectors(tg, up); if (sd.lengthSq() < 1e-6) sd.set(0, 1, 0); sd.normalize();
+    const u = j / seg; curve.getPointAt(u, p); curve.getTangentAt(u, tg); sd.copy(wd).addScaledVector(tg, -wd.dot(tg)); if (sd.lengthSq() < 1e-6) sd.set(0, 0, 1).addScaledVector(tg, -tg.z); sd.normalize();
     for (let s = 0; s < 2; s++) { const q = p.clone().addScaledVector(sd, (s ? 0.5 : -0.5) * P.width); pos.push(q.x, q.y, q.z); uv.push(u, s); }
     if (j < seg) { const a = j * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
   }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeBoundingSphere();
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); g.computeBoundingSphere();
   const U = { uTime: { value: 0 }, uFrames: { value: frames }, uLen: { value: L }, uWidth: { value: P.width }, uScroll: { value: P.scroll }, uInt: { value: P.emissive }, uTint: { value: toColor(T, P.tint ?? '#ffffff') }, uAtlas: { value: P.atlas || null }, uCols: { value: P.atlasCols }, uRows: { value: P.atlasRows }, uSeed: { value: P.seed } };
   const mat = new T.ShaderMaterial({
     uniforms: U, defines: P.atlas ? { ATLAS: 1 } : {}, side: T.DoubleSide, fog: false, toneMapped: false, vertexShader: 'varying vec2 vUv; varying vec3 vN, vW; void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }',
@@ -510,7 +512,7 @@ export function createFilmStrip(T, o = {}) {
           col = c0 * uInt;
         } else {
           float edgeMark = step(0.5, h1(cell + 3.0)) * step(0.5, fract(fu * 6.0)) * step(abs(abs(p.y) - uWidth * 0.31), uWidth * 0.012) * 0.12; col += vec3(0.9, 0.55, 0.2) * edgeMark;
-          vec3 V = normalize(cameraPosition - vW); float fr = pow(1.0 - abs(dot(normalize(vN), V)), 3.0); col += vec3(0.5, 0.55, 0.7) * fr * 0.18;
+          vec3 V = normalize(cameraPosition - vW); float fr = pow(1.0 - abs(dot(normalize(vN + 1e-5), V)), 3.0); col += vec3(0.5, 0.55, 0.7) * fr * 0.18;
         }
         gl_FragColor = vec4(col, 1.0); }`,
   });
@@ -601,18 +603,18 @@ export function roundedRectShape(T, w, h, r, hole = false) {
 /** Storyboard panel / screen: glossy rounded frame + emissive screen + soft glow + optional viewfinder brackets.
  *  o: { w=1.6, h=0.9, depth=0.05, border=0.05, radius=0.05, color='#17161d', edge='#7cc4ff', edgeIntensity=1.2, screen:{color,map,intensity}, glow=0.5, brackets=false } */
 export function createPanelFrame(T, o = {}) {
-  const P = { w: 1.6, h: 0.9, depth: 0.05, border: 0.05, radius: 0.05, color: '#17161d', edge: '#7cc4ff', edgeIntensity: 1.2, glow: 0.5, brackets: false, ...o }, group = new T.Group(); group.name = 'panel';
+  const P = { w: 1.6, h: 0.9, depth: 0.05, border: 0.05, radius: 0.05, color: '#2a2a35', edge: '#7cc4ff', edgeIntensity: 1.2, glow: 0.5, brackets: false, ...o }, group = new T.Group(); group.name = 'panel';
   const iw = P.w - 2 * P.border, ih = P.h - 2 * P.border, ir = Math.max(0.005, P.radius - P.border * 0.6);
   const outer = roundedRectShape(T, P.w, P.h, P.radius), holePath = roundedRectShape(T, iw, ih, ir); outer.holes.push(holePath);
   const fg = new T.ExtrudeGeometry(outer, { depth: P.depth, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 2, curveSegments: 10 }); fg.translate(0, 0, -P.depth / 2);
-  const frame = new T.Mesh(fg, new T.MeshPhysicalMaterial({ color: P.color, roughness: 0.3, metalness: 0.55, clearcoat: 1, clearcoatRoughness: 0.12 })); frame.name = 'panel-frame'; frame.castShadow = true; group.add(frame);
+  const frame = new T.Mesh(fg, new T.MeshPhysicalMaterial({ color: P.color, roughness: 0.32, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 2.6 })); frame.name = 'panel-frame'; frame.castShadow = true; group.add(frame);
   // emissive lip (thin ring just inside the frame)
   const lip = roundedRectShape(T, iw + 0.012, ih + 0.012, ir + 0.006); lip.holes.push(roundedRectShape(T, iw - 0.004, ih - 0.004, Math.max(0.003, ir - 0.002)));
   const edge = new T.Mesh(new T.ShapeGeometry(lip, 10), new T.MeshBasicMaterial({ color: toColor(T, P.edge).multiplyScalar(P.edgeIntensity), toneMapped: false, fog: false })); edge.position.z = P.depth / 2 + 0.0095; edge.name = 'panel-edge'; group.add(edge);
   const sc = P.screen || {}, sm = new T.MeshBasicMaterial({ color: toColor(T, sc.color ?? '#10151f').multiplyScalar(sc.intensity ?? 1), map: sc.map || null, toneMapped: false, fog: false });
   const screen = new T.Mesh(new T.PlaneGeometry(iw, ih), sm); screen.position.z = P.depth / 2 - 0.004; screen.name = 'panel-screen'; group.add(screen);
-  const gm = new T.Mesh(new T.PlaneGeometry(P.w * 1.9, P.h * 2.1), new T.ShaderMaterial({ uniforms: { uC: { value: toColor(T, P.edge) }, uI: { value: P.glow * 0.3 }, uA: { value: P.w / P.h } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, toneMapped: false, vertexShader: FLAT_VS,
-    fragmentShader: 'precision highp float; varying vec2 vUv; uniform vec3 uC; uniform float uI, uA; void main(){ vec2 p = abs(vUv - 0.5) * 2.0; vec2 d = max(p - vec2(0.5, 0.48), 0.0); float r = length(d * vec2(1.0, 1.0)); float a = exp(-r * r * 9.0); gl_FragColor = vec4(uC * uI * a, 1.0); }' }));
+  const gm = new T.Mesh(new T.PlaneGeometry(P.w * 1.9, P.h * 2.1), new T.ShaderMaterial({ uniforms: { uC: { value: toColor(T, P.edge) }, uI: { value: P.glow * 0.14 }, uA: { value: P.w / P.h } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, toneMapped: false, vertexShader: FLAT_VS,
+    fragmentShader: 'precision highp float; varying vec2 vUv; uniform vec3 uC; uniform float uI, uA; void main(){ vec2 p = abs(vUv - 0.5) * 2.0; vec2 d = max(p - vec2(0.5, 0.48), 0.0); float r = length(d); float a = exp(-r * r * 18.0); gl_FragColor = vec4(uC * uI * a, 1.0); }' }));
   gm.position.z = -P.depth / 2 - 0.01; gm.name = 'panel-glow'; gm.renderOrder = 2; group.add(gm);
   if (P.brackets) {
     const bm = new T.MeshBasicMaterial({ color: toColor(T, P.edge).multiplyScalar(1.6), toneMapped: false, fog: false }), t = 0.012, l = Math.min(iw, ih) * 0.14, bx = iw / 2 + 0.05, by = ih / 2 + 0.05;
@@ -621,6 +623,6 @@ export function createPanelFrame(T, o = {}) {
   return {
     group, object: group, frame, screen, edge, glowMesh: gm, width: P.w, height: P.h,
     setScreen(s = {}) { if (s.map !== undefined) { sm.map = s.map; sm.needsUpdate = true; } if (s.color != null) toColor(T, s.color, sm.color); if (s.intensity != null) sm.color.multiplyScalar(s.intensity); if (s.opacity != null) { sm.transparent = s.opacity < 1; sm.opacity = s.opacity; } return this; },
-    setGlow(k) { gm.material.uniforms.uI.value = P.glow * 0.3 * k; return this; }, setEdge(c, k = 1) { toColor(T, c, edge.material.color).multiplyScalar(P.edgeIntensity * k); gm.material.uniforms.uC.value.set(c); return this; },
+    setGlow(k) { gm.material.uniforms.uI.value = P.glow * 0.14 * k; return this; }, setEdge(c, k = 1) { toColor(T, c, edge.material.color).multiplyScalar(P.edgeIntensity * k); gm.material.uniforms.uC.value.set(c); return this; },
   };
 }

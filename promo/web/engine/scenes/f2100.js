@@ -695,8 +695,8 @@ const HEAD_FRESNEL = {
       c += col * stripes * fres * 0.35 * smoothstep(0.8, 2.3, vO.y);
       c += mix(vec3(0.8, 0.7, 1.0), uAmber, 0.35) * brain * (0.05 + 0.16 * uPulse);
       c += uTeal * low * 0.07 * (0.4 + facet);
-      float tw = step(0.90, fract(facet * 7.31 + floor(uT * 5.0) * 0.173));                   // gem facets twinkle
-      c += mix(uTeal, vec3(1.0), 0.45) * tw * (0.20 + 0.35 * fres + 0.25 * uPulse);
+      float tw = step(0.80, facet) * pow(0.5 + 0.5 * sin(uT * 2.6 + facet * 60.0), 10.0);       // gem facets glint (smooth, ~20% of facets)
+      c += mix(uTeal, vec3(1.0), 0.4) * tw * (0.12 + 0.45 * fres + 0.15 * uPulse);
       gl_FragColor = vec4(c * uBright, 1.0); }`,
 };
 

@@ -262,12 +262,8 @@ const BEAM_VERT = /* glsl */`varying vec3 vWP; void main(){ vec4 wp = modelMatri
 const BEAM_FRAG = /* glsl */`
 precision highp float;
 uniform vec3 uApex, uAxis, uCol; uniform float uCos2, uTanA, uH, uInt, uTime;
-uniform vec4 uSph0, uSph1;
+uniform vec4 uSph0, uSph1; uniform sampler2D tNoise;
 varying vec3 vWP;
-float h31(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f);
-  return mix(mix(mix(h31(i), h31(i+vec3(1,0,0)), f.x), mix(h31(i+vec3(0,1,0)), h31(i+vec3(1,1,0)), f.x), f.y),
-             mix(mix(h31(i+vec3(0,0,1)), h31(i+vec3(1,0,1)), f.x), mix(h31(i+vec3(0,1,1)), h31(i+vec3(1,1,1)), f.x), f.y), f.z); }
 float sph(vec3 ro, vec3 rd, vec4 s){ vec3 oc = ro - s.xyz; float b = dot(oc, rd), c = dot(oc, oc) - s.w * s.w, d = b*b - c; if (d < 0.0) return 1e9; float t = -b - sqrt(d); return t > 0.0 ? t : 1e9; }
 void main(){
   vec3 ro = cameraPosition, rd = normalize(vWP - ro);
@@ -281,13 +277,13 @@ void main(){
   if (rd.y < 0.0) se = min(se, -ro.y / rd.y);
   se = min(se, min(sph(ro, rd, uSph0), sph(ro, rd, uSph1)));
   if (se <= s0) discard;
-  const int N = 14; float ds = (se - s0) / float(N), acc = 0.0;
+  const int N = 8; float ds = (se - s0) / float(N), acc = 0.0;
   for (int i = 0; i < N; i++){
     float s = s0 + (float(i) + 0.5) * ds; vec3 p = ro + rd * s, v = p - uApex; float h = dot(v, uAxis); vec3 rad = v - uAxis * h;
     float rn = length(rad) / max(h * uTanA, 1e-3);
     float prof = smoothstep(1.0, 0.25, rn);
     float ax = 1.0 / (1.0 + 0.012 * h * h) * smoothstep(0.0, 1.2, h);
-    float nz = 0.72 + 0.4 * vn(p * vec3(1.3, 0.8, 1.3) + vec3(0.0, uTime * 0.18, uTime * 0.05)) + 0.2 * vn(p * 3.1 - vec3(0.0, uTime * 0.3, 0.0));
+    vec2 q = p.xz * 0.21 + vec2(p.y * 0.07 + uTime * 0.012, p.y * 0.05 - uTime * 0.02); float nz = 0.62 + 0.75 * (texture2D(tNoise, q).g * 0.6 + texture2D(tNoise, q * 2.7 + vec2(0.0, -p.y * 0.2 + uTime * 0.05)).r * 0.4);
     acc += prof * ax * nz * ds;
   }
   gl_FragColor = vec4(uCol * uInt * acc, 1.0);
@@ -325,7 +321,7 @@ export default {
     const camera = new THREE.PerspectiveCamera(vfovOf(35), ASPECT, 0.08, 90);
 
     // ---- the soundstage behind the paper
-    const stage = createStage(THREE, { S, renderer }, { look: 'neutral' }); scene.add(stage.group);
+    const stage = createStage(THREE, { S, renderer }, { look: 'neutral', table: false, cases: false, grips: false }); scene.add(stage.group);
     const L = stage.lights;
     L.key.castShadow = true; L.key.shadow.mapSize.set(1024, 1024); L.key.shadow.camera.near = 3; L.key.shadow.camera.far = 14; L.key.shadow.bias = -0.0005;
     const rim2 = new THREE.PointLight('#1FB5A6', 0, 30, 2); scene.add(rim2); // cool teal rim from the right-back (no shadow)
@@ -339,7 +335,7 @@ export default {
     // ---- spotlight volume: analytic cone raymarch (one bounding cone mesh per beam)
     const apex = new THREE.Vector3(0.55, 7.0, 1.2), base = new THREE.Vector3(0.45, 0, 0.35), axis = base.clone().sub(apex).normalize();
     const BEAM_H = base.distanceTo(apex) * 1.04, BEAM_TAN = Math.tan(0.215), BEAM_ANG = Math.atan(BEAM_TAN);
-    const beamU = { uApex: { value: apex }, uAxis: { value: axis }, uCol: { value: new THREE.Color(1.0, 0.82, 0.55) }, uCos2: { value: Math.cos(BEAM_ANG) ** 2 }, uTanA: { value: BEAM_TAN }, uH: { value: BEAM_H }, uInt: { value: 0 }, uTime: { value: 0 }, uSph0: { value: new THREE.Vector4(0, -9, 0, 0.5) }, uSph1: { value: new THREE.Vector4(0, 0.62, 0, 0.5) } };
+    const beamU = { uApex: { value: apex }, uAxis: { value: axis }, uCol: { value: new THREE.Color(1.0, 0.82, 0.55) }, uCos2: { value: Math.cos(BEAM_ANG) ** 2 }, uTanA: { value: BEAM_TAN }, uH: { value: BEAM_H }, uInt: { value: 0 }, uTime: { value: 0 }, uSph0: { value: new THREE.Vector4(0, -9, 0, 0.5) }, uSph1: { value: new THREE.Vector4(0, 0.62, 0, 0.5) }, tNoise: { value: null } };
     const coneGeo = new THREE.ConeGeometry(BEAM_H * BEAM_TAN * 1.12, BEAM_H * 1.01, 40, 1, true); coneGeo.translate(0, -BEAM_H * 1.01 / 2, 0);
     const beam = new THREE.Mesh(coneGeo, new THREE.ShaderMaterial({ vertexShader: BEAM_VERT, fragmentShader: BEAM_FRAG, uniforms: beamU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, fog: false, side: THREE.FrontSide }));
     beam.position.copy(apex); beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), axis); beam.frustumCulled = false; beam.renderOrder = 5; scene.add(beam);
@@ -371,7 +367,7 @@ export default {
       sheet.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(P0, G0, new THREE.Vector3(0, 1, 0)));
       sheet.updateMatrixWorld(true);
     }
-    const noiseTex = makeNoiseTex(THREE), crackTex = makeCrackTex(THREE);
+    const noiseTex = makeNoiseTex(THREE), crackTex = makeCrackTex(THREE); beamU.tNoise.value = noiseTex;
     const inM = new THREE.Matrix3().fromArray([0.59719, 0.076, 0.0284, 0.35458, 0.90834, 0.13383, 0.04823, 0.01566, 0.83777]);
     const outM = new THREE.Matrix3().fromArray([1.60475, -0.10208, -0.00327, -0.53108, 1.10813, -0.07276, -0.07367, -0.00605, 1.07602]);
     const lightLocal = new THREE.Vector3(-0.45, 0.65, 0.62).normalize(), light2Local = new THREE.Vector3(0.6, -0.3, 0.5).normalize();
@@ -457,7 +453,7 @@ export default {
     const renderH = Math.round((S.W * S.scale) / ASPECT / 2) * 2, ptScale = (0.5 * renderH) / Math.tan((camera.fov * DEG) / 2) * 0.0035;
 
     // ---------------- paper
-    st.stage.group.visible = !D.noStage; st.L.key.castShadow = !D.noShadow;
+    st.stage.group.visible = !D.noStage && t > 22.68; st.L.key.castShadow = !D.noShadow && t >= SPOT - 0.01;
     const paperOn = t < 24.7;
     st.sheet.visible = paperOn;
     st.glow.visible = t < 24.2 && !D.noGlow;

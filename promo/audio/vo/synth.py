@@ -166,7 +166,7 @@ def _word_spans(pv, words_txt):
     return full, spans
 
 
-def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentence_silence=0.0):
+def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentence_silence=0.0, space_mult=1.0):
     """Synthesize one phrase -> (float32 mono array, [word dicts with t0/t1 seconds])."""
     plain, marks = _parse_markup(text)
     words_txt = plain.split()
@@ -175,6 +175,13 @@ def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentenc
     sents, spans = _word_spans(pv, words_txt)
     # per-sentence duration multipliers
     dms = [np.ones(len(pv.phonemes_to_ids(s)) if s else 0, np.float32) for s in sents]
+    if space_mult != 1.0:  # pace control without squeezing vowels: scale only the inter-word gaps
+        for si, ph in enumerate(sents):
+            for k, p in enumerate(ph):
+                if p == " ":
+                    for ii in (2 + 2 * k, 3 + 2 * k):
+                        if ii < len(dms[si]):
+                            dms[si][ii] = space_mult
     for wi, sp in enumerate(spans):
         if wi in marks:
             v, c = marks[wi]
@@ -232,7 +239,7 @@ def synth_segment(pv, text, speaker, length_scale, noise_scale, noise_w, sentenc
 def run_job(job):
     segs = job.get("segments")
     if segs is None:
-        segs = [{k: job[k] for k in ("text", "length_scale", "noise_scale", "noise_w", "gap_after", "sentence_silence") if k in job}]
+        segs = [{k: job[k] for k in ("text", "length_scale", "noise_scale", "noise_w", "gap_after", "sentence_silence", "space_mult") if k in job}]
     voice = job["voice"]
     seed = int(job.get("seed", 1))
     pv = load_voice(voice, seed)
@@ -242,7 +249,7 @@ def run_job(job):
     for i, s in enumerate(segs):
         a, w = synth_segment(pv, s["text"], int(s.get("speaker", spk)), float(s.get("length_scale", 1.0)),
                              float(s.get("noise_scale", 0.667)), float(s.get("noise_w", 0.8)),
-                             float(s.get("sentence_silence", 0.0)))
+                             float(s.get("sentence_silence", 0.0)), float(s.get("space_mult", 1.0)))
         for x in w:
             words.append({"w": x["w"], "t0": pos / sr + x["t0"], "t1": pos / sr + x["t1"], "seg": i})
         out.append(a)

@@ -57,6 +57,7 @@ def get_take(lid, voice_cfg, spec, ls_mul, use_cache=True):
             "noise_w": float(s.get("nw", voice_cfg.get("nw", 0.8))),
             "gap_after": float(s.get("gap", 0.0)),
             "sentence_silence": float(s.get("ss", 0.0)),
+            "space_mult": float(s.get("sp", 1.0)),
         })
     seed = int(spec.get("seed", voice_cfg.get("seed", 1)))
     speaker = int(voice_cfg.get("speaker", 0))
@@ -237,6 +238,11 @@ def render_line(cue, role, spec, D, next_t0, use_cache=True, log=print):
     hist = []
     for attempt in range(8):
         y22, sr22, words, path = get_take(cue["id"], vcfg, spec, ls_mul, use_cache)
+        # --- narrator timbre/register: Praat "Change gender" (formant ratio, median F0, intonation range)
+        sh = dict(vcfg.get("shape", {}))
+        sh.update(spec.get("shape", {}))
+        if sh:
+            y22 = prosody.change_voice(y22, sr22, sh.get("formant_ratio", 1.0), sh.get("median_hz", 0.0), sh.get("range", 1.0))
         # --- intonation direction on the raw take (PSOLA), word-anchored
         pe = spec.get("pitch", {})
         if pe.get("events") or pe.get("global_st"):

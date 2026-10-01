@@ -42,20 +42,31 @@ export const blit = (ctx, c) => ctx.drawImage(c, 0, 0, 1920, 1080);
 
 // quick pencil hatch of a bbox (caller sets the clip). dashes + seeded jitter, boils with `boil`.
 export function hatchBox(ctx, bx, { angle = -0.8, gap = 8, color = '#000', width = 1.2, alpha = 0.5, seed = 1, boil = 0, jit = 1.4, comp = 'multiply', dash = 60, keep = 0.85 } = {}) {
-  const cx = bx.x + bx.w / 2, cy = bx.y + bx.h / 2, R = Math.hypot(bx.w, bx.h) / 2;
-  const c = Math.cos(angle), s = Math.sin(angle), nx = -s, ny = c, n = Math.ceil((2 * R) / gap);
+  // lines are generated only where they cross the bbox (offset range from the corner projections, t-range from a slab clip)
+  const c = Math.cos(angle), s = Math.sin(angle), nx = -s, ny = c;
+  const x0 = bx.x, x1 = bx.x + bx.w, y0 = bx.y, y1 = bx.y + bx.h;
+  const pr = [x0 * nx + y0 * ny, x1 * nx + y0 * ny, x0 * nx + y1 * ny, x1 * nx + y1 * ny];
+  const o0 = Math.min(...pr), o1 = Math.max(...pr), n = Math.ceil((o1 - o0) / gap);
   ctx.save(); ctx.globalCompositeOperation = comp; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
-  for (let i = 0; i < n; i++) {
-    const off = -R + i * gap + (hash(i, seed) - 0.5) * gap * 0.6;
-    let t = -R, k = 0;
-    while (t < R && k < 24) {
-      const len = dash * (0.5 + hash(i, k, seed + 3) * 1.2), t1 = Math.min(R, t + len);
+  const i0 = Math.floor(o0 / gap);
+  for (let ii = 0; ii < n; ii++) {
+    const i = i0 + ii, off = o0 + ii * gap + (hash(i, seed) - 0.5) * gap * 0.6;
+    // slab clip of the line p(t) = off*n + t*d against the bbox
+    let ta = -1e9, tb = 1e9;
+    if (Math.abs(c) > 1e-6) { const u = (x0 - off * nx) / c, v = (x1 - off * nx) / c; ta = Math.max(ta, Math.min(u, v)); tb = Math.min(tb, Math.max(u, v)); }
+    else if (off * nx < x0 || off * nx > x1) continue;
+    if (Math.abs(s) > 1e-6) { const u = (y0 - off * ny) / s, v = (y1 - off * ny) / s; ta = Math.max(ta, Math.min(u, v)); tb = Math.min(tb, Math.max(u, v)); }
+    else if (off * ny < y0 || off * ny > y1) continue;
+    if (tb <= ta) continue;
+    let t = ta, k = 0;
+    while (t < tb && k < 24) {
+      const len = dash * (0.5 + hash(i, k, seed + 3) * 1.2), t1 = Math.min(tb, t + len);
       if (hash(i, k, seed + 9) < keep) {
         const j = noise1(i * 0.7 + k, seed + boil * 5) * jit;
         ctx.globalAlpha = alpha * (0.55 + 0.45 * hash(i, k, seed + 7));
         ctx.beginPath();
-        ctx.moveTo(cx + nx * off + c * t + nx * j, cy + ny * off + s * t + ny * j);
-        ctx.lineTo(cx + nx * off + c * t1 - nx * j, cy + ny * off + s * t1 - ny * j);
+        ctx.moveTo(off * nx + c * t + nx * j, off * ny + s * t + ny * j);
+        ctx.lineTo(off * nx + c * t1 - nx * j, off * ny + s * t1 - ny * j);
         ctx.stroke();
       }
       t = t1 + gap * (0.3 + hash(i, k, seed + 13)); k++;
@@ -691,7 +702,13 @@ function amritaState(t) {
   return { x, y, size, squash, roll, yaw, eye, crank: (t - 6.55) * 11 };
 }
 
-const PROF = (n, ctx, fn) => { if (!globalThis.__prof) return fn(); const t0 = performance.now(); fn(); ctx.getImageData(0, 0, 2, 2); const d = performance.now() - t0; globalThis.__prof[n] = (globalThis.__prof[n] || 0) + d; };
+const PROF = (n, ctx, fn) => {
+  if (!globalThis.__prof) return fn();
+  const cn = globalThis.__cnt || (globalThis.__cnt = {}); const proto = CanvasRenderingContext2D.prototype;
+  if (!proto.__patched) { proto.__patched = true; ['stroke', 'fill', 'drawImage', 'clip', 'fillRect', 'strokeRect', 'createRadialGradient', 'createLinearGradient'].forEach((m) => { const o = proto[m]; proto[m] = function (...a) { const c = globalThis.__curCnt; if (c) c[m] = (c[m] || 0) + 1; return o.apply(this, a); }; }); }
+  globalThis.__curCnt = {}; const t0 = performance.now(); fn(); ctx.getImageData(0, 0, 2, 2); const d = performance.now() - t0; globalThis.__prof[n] = (globalThis.__prof[n] || 0) + d;
+  const cc = globalThis.__curCnt; globalThis.__curCnt = null; const tot = cn[n] || (cn[n] = {}); for (const k in cc) tot[k] = (tot[k] || 0) + cc[k];
+};
 // ---------- the scene ------------------------------------------------------------------------------------------------------
 export default {
   id: 'e1902', kind: '2d',

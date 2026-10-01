@@ -34,12 +34,12 @@ export async function run(sheet) {
   const haze = FX.createHaze(THREE, { count: 900, bounds: { min: [-7, 0.1, -7], max: [7, 7, 5] }, size: 0.022 }); scene.add(haze.object);
   const T0 = 3.7;
 
-  const cv = document.createElement('canvas'); cv.width = sheet === 'one' ? TW : 1920; cv.height = sheet === 'perf' ? 400 : sheet === 'one' ? TH : TH * 3; document.body.appendChild(cv);
+  const cv = document.createElement('canvas'); cv.width = sheet === 'one' ? TW : 1920; cv.height = sheet === 'perf' ? 400 : sheet === 'one' ? TH * (Q.get('shot') || 'chair').split(',').length : TH * 3; document.body.appendChild(cv);
   const g = cv.getContext('2d'); g.fillStyle = '#0b0a0d'; g.fillRect(0, 0, cv.width, cv.height);
   const stats = [];
 
   const defaults = () => {
-    stage.setLook('neutral'); stage.setHaze(1); stage.setGlow(1); stage.rig.set('all', { intensity: 1, on: true, color: null });
+    stage.bindLights(false); stage.setLook('neutral'); stage.setHaze(1); stage.setGlow(1); stage.rig.set('all', { intensity: 1, on: true, color: null });
     stage.rig.get('all').forEach((f) => { f.color = null; });
     ST.rigThreePoint(stage, { target: [0, 0.8, 0] });
     L.key.intensity = 260; L.rim.intensity = 330; L.fill.intensity = 7;
@@ -74,6 +74,7 @@ export async function run(sheet) {
     if (o.label) { g.save(); g.font = '16px monospace'; g.fillStyle = 'rgba(255,255,255,0.9)'; g.shadowColor = '#000'; g.shadowBlur = 4; g.fillText(`${o.label}  ${Math.round(ms)}ms${calls ? ' ' + calls + ' draws' : ''}`, x + 8, y + 20); g.restore(); }
   }
   const col = (i) => (i % 2) * TW, row = (i) => Math.floor(i / 2) * TH;
+  const oneBeam = () => { beamBack.group.visible = false; beamSet.group.visible = false; beamTop.beams.forEach((b, i) => b.setIntensity(i ? 0 : 1.1)); };
   const amritaOn = (x = 0.95, y = 0.82, z = 0.5, yaw = -0.5) => { A.root.visible = true; A.root.position.set(x, y, z); A.root.rotation.set(0, 0, 0); A.pose({ yaw, bob: 0 }); A.eyes({ open: 1, lookX: 0.5, lookY: 0.1 }); A.expression('happy', 0.6); A.setProp('slate', { t: T0, glow: 1 }); };
 
   const SHOTS = {
@@ -84,11 +85,12 @@ export async function run(sheet) {
     props: { label: 'TABLE + clapper', cam: [-1.7, 1.28, 0.3], look: [-3.35, 0.88, -1.45], fov: 26, focus: 2.6, setup() { stage.clapper.setOpen(0.5); L.key.intensity = 300; } },
     cases: { label: 'CASES + cables + tape', cam: [-2.2, 0.75, 2.2], look: [-5.2, 0.4, -1.4], fov: 32, focus: 4.6, setup() { L.key.intensity = 300; } },
     hero: { label: 'AMRITA hero + reflection', cam: [2.0, 0.55, 4.2], look: [0.5, 0.75, 0.3], fov: 26, focus: 4.4, setup() { amritaOn(0.75, 0.8, 0.5, -0.5); L.key.intensity = 320; ST.rigThreePoint(stage, { target: [0.5, 0.8, 0.3] }); beamBack.group.visible = false; beamSet.group.visible = false; beamTop.beams.forEach((b, i) => b.setIntensity(i ? 0 : 1.1)); } },
-    low: { label: 'FLOOR sheen, grazing', cam: [0.0, 0.16, 6.5], look: [0, 0.3, -4], fov: 30, focus: 8, setup() { amritaOn(0.2, 0.7, 0.2, -0.4); } },
-    teal: { label: 'look: teal-orange', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { stage.setLook('teal-orange'); ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); } },
-    noir: { label: 'look: noir', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { stage.setLook('noir'); ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); } },
-    warm: { label: 'look: warm', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { stage.setLook('warm'); ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); } },
-    neutral: { label: 'look: neutral', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); } },
+    low: { label: 'FLOOR sheen, grazing', cam: [0.0, 0.16, 6.5], look: [0, 0.3, -4], fov: 30, focus: 8, setup() { amritaOn(0.2, 0.7, 0.2, -0.4); oneBeam(); } },
+    teal: { label: 'look: teal-orange', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { stage.setLook('teal-orange'); ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); oneBeam(); } },
+    noir: { label: 'look: noir', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { stage.setLook('noir'); ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); oneBeam(); } },
+    bound: { label: 'bound fixtures (key+rim visible)', cam: [0.0, 1.6, 12.5], look: [0, 3.2, -1], fov: 38, focus: 13, setup() { stage.bindLights(true); ST.rigThreePoint(stage, { target: [0, 0.8, 0], key: { dist: 11, el: 34 }, rim: { dist: 12, el: 28 } }); L.key.intensity = 300; L.rim.intensity = 500; amritaOn(0.75, 0.8, 0.5, -0.5); oneBeam(); } },
+    warm: { label: 'look: warm', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { stage.setLook('warm'); ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); oneBeam(); } },
+    neutral: { label: 'look: neutral', cam: [2.0, 0.55, 4.2], look: [0.3, 0.8, 0], fov: 26, focus: 4.4, setup() { ST.rigThreePoint(stage, { target: [0.3, 0.8, 0] }); amritaOn(0.7, 0.8, 0.5, -0.5); oneBeam(); } },
   };
   const API = { S, THREE, FX, ST, stage, scene, camera, A, haze, allBeams, tile, TW, TH, cv, g, stats, defaults, SHOTS, col, row, errors, R_, setupMs, subTimes, T0, amritaOn };
   window.__lab = API;
@@ -98,7 +100,8 @@ export async function run(sheet) {
   const fxRoot = new THREE.Group(); scene.add(fxRoot);
   const fxGroups = {}; const fxUpd = {};
   const slot = (k) => { const gr = new THREE.Group(); gr.userData.k = k; gr.visible = false; fxRoot.add(gr); return gr; };
-  const flatFloor = (gr, y = 0, c = '#0b0b10') => { const m = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: c, roughness: 0.3, metalness: 0.4 })); m.rotation.x = -Math.PI / 2; m.position.set(40 * (gr.userData.k || 0), y, 0); gr.add(m); return m; };
+  const flatFloor = (gr, y = 0, c = '#0b0b10') => { const m = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: c, roughness: 0.4, metalness: 0.3 })); m.rotation.x = -Math.PI / 2; m.position.set(40 * (gr.userData.k || 0), y, 0); gr.add(m); return m; };
+  const flatFloorX = flatFloor;
   const P = (x, y, z, k) => [x + 40 * k, y, z];
   {
     // 1 beams: three crossing beams (amber / teal / violet) over a hazy floor
@@ -120,16 +123,16 @@ export async function run(sheet) {
   {
     // 3 particle field: swirl that morphs into a ring (aperture)
     const gr = fxGroups.particles = slot(3); flatFloor(gr);
-    const N = 6000, pf = FX.createParticleField(THREE, { count: N, shape: 'disc', radius: 2.6, center: P(0, 1.6, 0, 3), bounds: { min: P(-2.6, 0.2, -2.6, 3), max: P(2.6, 3.4, 2.6, 3) }, flow: 'swirl', speed: 1.1, size: 0.03, colors: ['#ffb62e', '#7cc4ff', '#6b5bff', '#fff3d6'], morph: true, seed: 8 });
+    const N = 6000, pf = FX.createParticleField(THREE, { count: N, shape: 'disc', radius: 2.6, center: P(0, 1.6, 0, 3), bounds: { min: P(-2.6, 0.2, -2.6, 3), max: P(2.6, 3.4, 2.6, 3) }, flow: 'swirl', speed: 1.1, size: 0.04, intensity: 0.7, colors: ['#ffb62e', '#7cc4ff', '#6b5bff', '#fff3d6'], morph: true, seed: 8 });
     const tg = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const a = (i / N) * Math.PI * 2 * 7, rr = i % 3 === 0 ? 1.35 : 1.05 + 0.12 * Math.sin(a * 3), sw = ((i * 7) % N) / N; tg[i * 3] = 40 * 3 + Math.cos(a) * rr; tg[i * 3 + 1] = 1.7 + Math.sin(a) * rr; tg[i * 3 + 2] = (sw - 0.5) * 0.25; }
     pf.setTargets(tg); gr.add(pf.object);
-    fxUpd.particles = (t) => pf.update(t, { morph: 0.55 });
+    fxUpd.particles = (t, o) => pf.update(t, { morph: o && o.morph != null ? o.morph : 0.55 });
     fxGroups.particles.userData.pf = pf;
   }
   {
     // 4 ribbons: neural bundle from a head-ish origin
     const gr = fxGroups.ribbons = slot(4); flatFloor(gr, -0.01, '#06060a');
-    const rb = FX.createRibbons(THREE, { bundle: { curve: [P(-2.2, 1.0, 0, 4), P(-1.0, 1.7, 0.4, 4), P(0.4, 2.4, -0.2, 4), P(1.8, 3.2, 0.3, 4), P(3.0, 4.4, -0.4, 4)], count: 90, spread: 0.55, twist: 1.2 }, width: 0.035, wave: 0.12, speed: 0.4, colors: ['#6b5bff', '#7cc4ff', '#1fb5a6', '#ffb62e'], intensity: 1.1, segments: 80 });
+    const rb = FX.createRibbons(THREE, { bundle: { curve: [P(-2.2, 1.0, 0, 4), P(-1.0, 1.7, 0.4, 4), P(0.4, 2.4, -0.2, 4), P(1.8, 3.2, 0.3, 4), P(3.0, 4.4, -0.4, 4)], count: 70, spread: 0.8, twist: 1.2 }, width: 0.03, wave: 0.16, speed: 0.4, colors: ['#6b5bff', '#7cc4ff', '#1fb5a6', '#ffb62e'], intensity: 1.0, segments: 80 });
     gr.add(rb.object);
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 16), FX.hologramMaterial(THREE, { color: '#6b5bff', alpha: 0.7 })); head.position.set(...P(-2.4, 1.0, 0, 4)); gr.add(head);
     fxUpd.ribbons = (t) => { rb.update(t); head.material.userData.update(t); };
@@ -148,14 +151,14 @@ export async function run(sheet) {
     const gr = fxGroups.flare = slot(6); flatFloor(gr);
     const fl = FX.lensFlare(THREE, { color: '#ffcf96', size: 0.5, intensity: 1.2 }); fl.position.set(...P(1.6, 2.4, -2, 6)); gr.add(fl);
     const lens = new THREE.Mesh(new THREE.CircleGeometry(0.12, 24), new THREE.MeshBasicMaterial({ color: new THREE.Color('#ffd9a0').multiplyScalar(6), toneMapped: false })); lens.position.copy(fl.position); gr.add(lens);
-    const tx = FX.createTextPlane(THREE, 'WORLD  BUILDING', { height: 0.42, color: '#fff3d6', glowColor: '#ffb62e', glow: 0.8, intensity: 1.6, font: S.F.display(160) }); tx.mesh.position.set(...P(-0.5, 1.25, 0, 6)); gr.add(tx.mesh);
+    const tx = FX.createTextPlane(THREE, 'WORLD  BUILDING', { height: 0.6, color: '#fff3d6', glowColor: '#ffb62e', glow: 0.3, intensity: 1.1, font: S.F.display(160) }); tx.mesh.position.set(...P(-0.5, 1.25, 0, 6)); gr.add(tx.mesh);
     fxUpd.flare = (t) => {};
   }
   {
     // 7 film strip: helix of frames
     const gr = fxGroups.strip = slot(7); flatFloor(gr, -0.01, '#05060a');
     const pts = []; for (let i = 0; i <= 40; i++) { const u = i / 40, a = u * Math.PI * 2.2 - 0.6; pts.push(new THREE.Vector3(40 * 7 + Math.cos(a) * 1.6 + (u - 0.5) * 1.4, 0.4 + u * 2.6, Math.sin(a) * 1.6)); }
-    const fs = FX.createFilmStrip(THREE, { curve: pts, width: 0.62, up: [0, 1, 0] }); gr.add(fs.object); fxUpd.strip = (t) => fs.update(t);
+    const fs = FX.createFilmStrip(THREE, { curve: pts, width: 0.62 }); gr.add(fs.object); fxUpd.strip = (t) => fs.update(t);
     const sh = FX.createGodrayCard(THREE, { width: 5, height: 5, color: '#7cc4ff', intensity: 0.5, mode: 'radial', origin: [0.5, 0.5], rays: 24 }); sh.mesh.position.set(...P(0, 1.6, -1.6, 7)); gr.add(sh.mesh); fxUpd.strip2 = (t) => sh.update(t);
   }
   {
@@ -175,9 +178,10 @@ export async function run(sheet) {
   const FXSHOTS = {
     beams: { fxk: 'beams', label: 'BEAMS + haze motes', cam: P(0, 1.1, 9.5, 1), look: P(0, 2.6, -1, 1), fov: 34, bloom: { strength: 0.5, radius: 0.6, threshold: 0.7 } },
     haze: { fxk: 'haze', label: 'HAZE macro (bokeh)', cam: P(0.4, 1.4, 3.6, 2), look: P(0, 1.8, 0, 2), fov: 30, dof: { focus: 3.4, strength: 1.6, maxPx: 18, bokeh: 1.8 } },
+    particles1: { fxk: 'particles', morph: 1.0, label: 'PARTICLES morphed to ring (1.0)', cam: P(0, 1.8, 7.5, 3), look: P(0, 1.8, 0, 3), fov: 36, bloom: { strength: 0.55, radius: 0.6, threshold: 0.5 } },
     particles: { fxk: 'particles', label: 'PARTICLES swirl→ring (morph .55)', cam: P(0, 1.9, 7.5, 3), look: P(0, 1.8, 0, 3), fov: 36, bloom: { strength: 0.55, radius: 0.6, threshold: 0.5 } },
-    ribbons: { fxk: 'ribbons', label: 'RIBBONS neural bundle', cam: P(0.6, 2.4, 8.5, 4), look: P(0.2, 2.5, 0, 4), fov: 36, bloom: { strength: 0.6, radius: 0.6, threshold: 0.4 } },
-    holo: { fxk: 'holo', label: 'HOLOGRAM + holo floor', cam: P(0, 1.6, 6.8, 5), look: P(0, 1.1, 0, 5), fov: 34, bloom: { strength: 0.55, radius: 0.6, threshold: 0.5 } },
+    ribbons: { fxk: 'ribbons', label: 'RIBBONS neural bundle', cam: P(0.6, 2.4, 8.5, 4), look: P(0.2, 2.5, 0, 4), fov: 36, bloom: { strength: 0.5, radius: 0.6, threshold: 0.9 } },
+    holo: { fxk: 'holo', label: 'HOLOGRAM + holo floor', cam: P(0, 1.6, 6.8, 5), look: P(0, 1.1, 0, 5), fov: 34, bloom: { strength: 0.5, radius: 0.6, threshold: 0.8 } },
     flare: { fxk: 'flare', label: 'LENS FLARE + 3D text', cam: P(-0.6, 1.5, 6.0, 6), look: P(0.4, 1.7, 0, 6), fov: 38, bloom: { strength: 0.5, radius: 0.6, threshold: 0.8 } },
     strip: { fxk: 'strip', label: 'FILM STRIP helix + godray', cam: P(0, 2.0, 7.0, 7), look: P(0, 1.8, 0, 7), fov: 36, bloom: { strength: 0.4, radius: 0.5, threshold: 0.9 } },
     panels: { fxk: 'panels', label: 'PANEL FRAMES (storyboard)', cam: P(0, 1.7, 6.2, 8), look: P(0, 1.5, 0, 8), fov: 34, bloom: { strength: 0.5, radius: 0.6, threshold: 0.8 } },
@@ -187,7 +191,7 @@ export async function run(sheet) {
     Object.values(fxGroups).forEach((gr) => { gr.visible = false; }); fxGroups[o.fxk].visible = true; stage.group.visible = false; haze.object.visible = false; A.root.visible = false;
     if (w !== curW || h !== curH) { R_.setSize(w, h, false); curW = w; curH = h; }
     camera.fov = o.fov || 34; camera.aspect = w / h; const t = o.t ?? T0, saveFog = scene.fog.density; scene.fog.density = 0.0;
-    const apply = (tt) => { camera.position.set(...o.cam); camera.lookAt(...o.look); camera.updateProjectionMatrix(); fxUpd[o.fxk](tt); if (o.fxk === 'strip') fxUpd.strip2(tt); stage.update(tt); };
+    const apply = (tt) => { camera.position.set(...o.cam); camera.lookAt(...o.look); camera.updateProjectionMatrix(); fxUpd[o.fxk](tt, o); if (o.fxk === 'strip') fxUpd.strip2(tt); stage.update(tt); };
     apply(t); const focus = camera.position.distanceTo(new THREE.Vector3(...o.look)), times = SUB > 1 ? subTimes(t, 30, SUB, 0.5) : [t], t0 = performance.now();
     S.post.render({ scene, camera, w, h, times, update: apply, dof: o.dof || { focus, strength: 0.5, maxPx: 10, bokeh: 1.3 }, bloom: o.bloom || { strength: 0.45, radius: 0.55, threshold: 0.9 }, exposure: 1, jitter: SUB > 1 });
     const gl = R_.getContext(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); const ms = performance.now() - t0; stats.push([o.label, ms, 0]);
@@ -196,7 +200,7 @@ export async function run(sheet) {
     scene.fog.density = saveFog; stage.group.visible = true;
   }
   API.fxTile = fxTile; API.FXSHOTS = FXSHOTS;
-  const fxSheets = { fx: ['beams', 'haze', 'particles', 'ribbons', 'holo', 'flare'], fx2: ['strip', 'panels', 'godray', 'beams', 'holo', 'particles'] };
+  const fxSheets = { fx: ['beams', 'haze', 'particles', 'ribbons', 'holo', 'flare'], fx2: ['strip', 'panels', 'godray', 'particles1', 'ribbons', 'holo'] };
   if (fxSheets[sheet]) fxSheets[sheet].forEach((k, i) => fxTile(col(i), row(i), TW, TH, FXSHOTS[k]));
 
 
@@ -228,9 +232,9 @@ export async function run(sheet) {
   const sheets = {
     main: ['wide', 'chair', 'rim', 'rig', 'props', 'cases'],
     hero: ['hero', 'low', 'chair', 'wide', 'rim', 'rig'],
-    looks: ['neutral', 'teal', 'noir', 'warm', 'hero', 'low'],
+    looks: ['neutral', 'teal', 'noir', 'warm', 'bound', 'low'],
   };
-  if (sheet === 'one') { const k = Q.get('shot') || 'chair'; if (SHOTS[k]) tile(0, 0, TW, TH, SHOTS[k]); else fxTile(0, 0, TW, TH, FXSHOTS[k]); }
+  if (sheet === 'one') (Q.get('shot') || 'chair').split(',').forEach((k, i) => { if (SHOTS[k]) tile(0, i * TH, TW, TH, SHOTS[k]); else fxTile(0, i * TH, TW, TH, FXSHOTS[k]); });
   if (sheets[sheet]) sheets[sheet].forEach((k, i) => tile(col(i), row(i), TW, TH, SHOTS[k]));
   return API;
 }
